@@ -5,10 +5,7 @@ window.BI_CONFIG = {
 
   VIEW_NAME: "vw_validacao_bi_final",
 
-  ESTEIRA_PADRAO: "Jun a Ago/26 (Regular)",
-
   DOMINIOS_PERMITIDOS: [
-    "animaeducacao.com.br",
-    "ulife.com.br"
+    "animaeducacao.com.br"
   ]
 };

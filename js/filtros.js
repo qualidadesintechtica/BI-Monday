@@ -1,28 +1,368 @@
-function valoresUnicos(dados, campo) {
-  return [...new Set(dados.map(x => x[campo]).filter(v => v !== null && v !== undefined && String(v).trim() !== ""))]
-    .sort((a,b) => String(a).localeCompare(String(b), "pt-BR", {numeric:true}));
+function normalizarTexto(valor) {
+  return String(
+    valor ?? ""
+  )
+    .trim()
+    .toLowerCase();
 }
-function preencherSelect(id, valores, todos) {
-  const s = document.getElementById(id);
-  s.innerHTML = `<option value="">${todos}</option>`;
-  valores.forEach(v => {
-    const o = document.createElement("option");
-    o.value = v; o.textContent = v; s.appendChild(o);
-  });
+
+
+/* ======================================================
+   VALORES ÚNICOS
+====================================================== */
+
+function valoresUnicos(
+  dados,
+  campo
+) {
+
+  const valores =
+    dados
+      .map(function (item) {
+        return item[campo];
+      })
+      .filter(function (valor) {
+
+        return (
+          valor !== null &&
+          valor !== undefined &&
+          String(valor).trim() !== ""
+        );
+
+      });
+
+
+  return [
+    ...new Set(valores)
+  ].sort(
+    function (a, b) {
+
+      return String(a)
+        .localeCompare(
+          String(b),
+          "pt-BR",
+          {
+            numeric: true,
+            sensitivity: "base"
+          }
+        );
+
+    }
+  );
 }
-function aplicarFiltros(dados) {
-  const pares = [
-    ["filtroBloco","bloco"],
-    ["filtroStatus","status_validacao"],
-    ["filtroCategoria","categoria_material"],
-    ["filtroGestor","gestor_validacao_nq"],
-    ["filtroRevisor","revisor_validador"]
+
+
+/* ======================================================
+   IDENTIFICA SE EXISTEM BRANCOS
+====================================================== */
+
+function possuiEmBranco(
+  dados,
+  campo
+) {
+
+  return dados.some(
+    function (item) {
+
+      const valor =
+        item[campo];
+
+      return (
+        valor === null ||
+        valor === undefined ||
+        String(valor).trim() === ""
+      );
+
+    }
+  );
+}
+
+
+/* ======================================================
+   CRIA SELECT
+====================================================== */
+
+function preencherSelect(
+  id,
+  valores,
+  labelTodos,
+  incluirEmBranco = false
+) {
+
+  const select =
+    document.getElementById(id);
+
+  if (!select) {
+    return;
+  }
+
+  /*
+    Guarda seleção atual
+  */
+
+  const valorAtual =
+    select.value;
+
+
+  select.innerHTML = "";
+
+
+  /*
+    Opção Todos
+  */
+
+  const opcaoTodos =
+    document.createElement(
+      "option"
+    );
+
+  opcaoTodos.value = "";
+
+  opcaoTodos.textContent =
+    labelTodos;
+
+  select.appendChild(
+    opcaoTodos
+  );
+
+
+  /*
+    Valores reais
+  */
+
+  valores.forEach(
+    function (valor) {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        valor;
+
+      option.textContent =
+        valor;
+
+      select.appendChild(
+        option
+      );
+
+    }
+  );
+
+
+  /*
+    Em branco
+  */
+
+  if (incluirEmBranco) {
+
+    const branco =
+      document.createElement(
+        "option"
+      );
+
+    branco.value =
+      "__EM_BRANCO__";
+
+    branco.textContent =
+      "Em branco";
+
+    select.appendChild(
+      branco
+    );
+
+  }
+
+
+  /*
+    Tenta manter a seleção
+  */
+
+  const existe =
+    Array.from(
+      select.options
+    ).some(
+      function (option) {
+
+        return (
+          option.value ===
+          valorAtual
+        );
+
+      }
+    );
+
+  if (existe) {
+
+    select.value =
+      valorAtual;
+
+  }
+}
+
+
+/* ======================================================
+   COMPARAÇÃO DE FILTRO
+====================================================== */
+
+function itemPassaFiltro(
+  item,
+  campo,
+  valorFiltro
+) {
+
+  /*
+    Sem filtro
+  */
+
+  if (!valorFiltro) {
+    return true;
+  }
+
+
+  const valorItem =
+    item[campo];
+
+
+  /*
+    Em branco
+  */
+
+  if (
+    valorFiltro ===
+    "__EM_BRANCO__"
+  ) {
+
+    return (
+      valorItem === null ||
+      valorItem === undefined ||
+      String(valorItem).trim() === ""
+    );
+
+  }
+
+
+  /*
+    Comparação normalizada
+  */
+
+  return (
+    normalizarTexto(
+      valorItem
+    ) ===
+    normalizarTexto(
+      valorFiltro
+    )
+  );
+}
+
+
+/* ======================================================
+   APLICA TODOS OS FILTROS
+====================================================== */
+
+function aplicarFiltros(
+  dados
+) {
+
+  const filtros = [
+
+    {
+      select:
+        "filtroEsteira",
+      campo:
+        "esteira_producao"
+    },
+
+    {
+      select:
+        "filtroMatriz",
+      campo:
+        "matriz_oferta"
+    },
+
+    {
+      select:
+        "filtroBloco",
+      campo:
+        "bloco"
+    },
+
+    {
+      select:
+        "filtroStatus",
+      campo:
+        "status_validacao"
+    },
+
+    {
+      select:
+        "filtroCategoria",
+      campo:
+        "categoria_material"
+    },
+
+    {
+      select:
+        "filtroGestor",
+      campo:
+        "gestor_validacao_nq"
+    },
+
+    {
+      select:
+        "filtroRevisor",
+      campo:
+        "revisor_validador"
+    }
+
   ];
-  return dados.filter(item => pares.every(([id,campo]) => {
-    const v = document.getElementById(id)?.value || "";
-    return !v || item[campo] === v;
-  }));
+
+
+  return dados.filter(
+    function (item) {
+
+      return filtros.every(
+        function (filtro) {
+
+          const elemento =
+            document.getElementById(
+              filtro.select
+            );
+
+          if (!elemento) {
+            return true;
+          }
+
+
+          return itemPassaFiltro(
+            item,
+            filtro.campo,
+            elemento.value
+          );
+
+        }
+      );
+
+    }
+  );
 }
-window.valoresUnicos = valoresUnicos;
-window.preencherSelect = preencherSelect;
-window.aplicarFiltros = aplicarFiltros;
+
+
+/* ======================================================
+   EXPORTAÇÃO
+====================================================== */
+
+window.valoresUnicos =
+  valoresUnicos;
+
+window.possuiEmBranco =
+  possuiEmBranco;
+
+window.preencherSelect =
+  preencherSelect;
+
+window.aplicarFiltros =
+  aplicarFiltros;
