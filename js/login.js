@@ -1,212 +1,520 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+/* =========================================================
+   BI MONDAY - DATAHUB
+   LOGIN / CADASTRO
+   ========================================================= */
 
-  <title>Entrar | BI Validação de Materiais</title>
 
-  <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/login.css">
-</head>
+/* ---------- CONFIGURAÇÕES GERAIS ---------- */
 
-<body>
+* {
+    box-sizing: border-box;
+}
 
-  <main class="login-shell">
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+}
 
-    <section class="login-brand">
-      <span>DataHub de Validação</span>
+body {
+    min-height: 100vh;
 
-      <h1>BI Validação de Materiais</h1>
+    font-family:
+        Inter,
+        "Segoe UI",
+        Arial,
+        sans-serif;
 
-      <p>
-        Indicadores operacionais alimentados automaticamente
-        pela Monday via Supabase.
-      </p>
-    </section>
+    background:
+        linear-gradient(
+            135deg,
+            #1d0e42 0%,
+            #2d1553 55%,
+            #64037e 100%
+        );
 
+    color: #1d0e42;
+}
 
-    <section class="login-card">
 
-      <!-- LOGIN -->
+/* =========================================================
+   ESTRUTURA PRINCIPAL
+   ========================================================= */
 
-      <div id="loginPanel">
+.login-shell {
+    width: 100%;
+    min-height: 100vh;
 
-        <h2>Entrar</h2>
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
 
-        <p>
-          Use seu e-mail institucional e sua senha.
-        </p>
+    align-items: center;
 
-        <div
-          id="loginMessage"
-          class="auth-message"
-          hidden
-        ></div>
+    gap: 60px;
 
-        <form id="loginForm">
+    padding: 60px clamp(40px, 8vw, 130px);
+}
 
-          <div class="field">
-            <label for="loginEmail">E-mail</label>
 
-            <input
-              id="loginEmail"
-              type="email"
-              autocomplete="email"
-              required
-            >
-          </div>
+/* =========================================================
+   LADO ESQUERDO
+   MARCA / APRESENTAÇÃO
+   ========================================================= */
 
+.login-brand {
+    max-width: 650px;
 
-          <div class="field">
-            <label for="loginPassword">Senha</label>
+    color: #ffffff;
+}
 
-            <input
-              id="loginPassword"
-              type="password"
-              autocomplete="current-password"
-              required
-            >
-          </div>
+.login-brand > span {
+    display: inline-block;
 
+    margin-bottom: 20px;
 
-          <button
-            id="loginButton"
-            class="login-button"
-            type="submit"
-          >
-            Entrar
-          </button>
+    padding: 8px 15px;
 
-        </form>
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
 
+    background: rgba(255, 255, 255, 0.08);
 
-        <div class="first-access">
+    font-size: 13px;
+    font-weight: 700;
 
-          <p>É seu primeiro acesso?</p>
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
 
-          <button
-            type="button"
-            class="secondary-button"
-            data-show-panel="register"
-          >
-            Criar minha conta
-          </button>
+.login-brand h1 {
+    margin: 0 0 20px;
 
-        </div>
+    max-width: 600px;
 
-      </div>
+    font-size: clamp(42px, 5vw, 72px);
+    line-height: 1.02;
 
+    font-weight: 800;
 
-      <!-- CADASTRO -->
+    letter-spacing: -0.04em;
 
-      <div
-        id="registerPanel"
-        hidden
-      >
+    color: #ffffff;
+}
 
-        <h2>Criar conta</h2>
+.login-brand p {
+    max-width: 550px;
 
-        <p>
-          Cadastre-se usando seu e-mail
-          <strong>@animaeducacao.com.br</strong>.
-        </p>
+    margin: 0;
 
-        <div
-          id="registerMessage"
-          class="auth-message"
-          hidden
-        ></div>
+    font-size: 18px;
+    line-height: 1.7;
 
+    color: rgba(255, 255, 255, 0.78);
+}
 
-        <form id="registerForm">
 
-          <div class="field">
+/* =========================================================
+   CARD LOGIN / CADASTRO
+   ========================================================= */
 
-            <label for="registerName">
-              Nome completo
-            </label>
+.login-card {
+    width: 100%;
+    max-width: 470px;
 
-            <input
-              id="registerName"
-              type="text"
-              autocomplete="name"
-              required
-            >
+    justify-self: end;
 
-          </div>
+    padding: 42px;
 
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 24px;
 
-          <div class="field">
+    background: rgba(255, 255, 255, 0.97);
 
-            <label for="registerEmail">
-              E-mail institucional
-            </label>
+    box-shadow:
+        0 30px 80px rgba(13, 4, 38, 0.32);
 
-            <input
-              id="registerEmail"
-              type="email"
-              autocomplete="email"
-              required
-            >
+    backdrop-filter: blur(14px);
+}
 
-          </div>
 
+/* Garante que os painéis ocultos realmente desapareçam */
 
-          <div class="field">
+[hidden] {
+    display: none !important;
+}
 
-            <label for="registerPassword">
-              Crie uma senha
-            </label>
 
-            <input
-              id="registerPassword"
-              type="password"
-              minlength="6"
-              autocomplete="new-password"
-              required
-            >
+/* =========================================================
+   TÍTULOS
+   ========================================================= */
 
-          </div>
+.login-card h2 {
+    margin: 0 0 10px;
 
+    font-size: 30px;
+    line-height: 1.2;
 
-          <button
-            id="registerButton"
-            class="login-button"
-            type="submit"
-          >
-            Criar conta
-          </button>
+    font-weight: 800;
 
-        </form>
+    color: #2d1553;
+}
 
+.login-card > div > p {
+    margin: 0 0 28px;
 
-        <div class="first-access">
+    font-size: 15px;
+    line-height: 1.6;
 
-          <p>Já possui conta?</p>
+    color: #766f88;
+}
 
-          <button
-            type="button"
-            class="secondary-button"
-            data-show-panel="login"
-          >
-            Voltar para entrar
-          </button>
+.login-card strong {
+    color: #a30085;
+}
 
-        </div>
 
-      </div>
+/* =========================================================
+   FORMULÁRIOS
+   ========================================================= */
 
-    </section>
+.login-card form {
+    width: 100%;
+}
 
-  </main>
+.field {
+    width: 100%;
 
+    margin-bottom: 18px;
+}
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+.field label {
+    display: block;
 
-  <script src="js/config.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/login.js"></script>
+    margin-bottom: 7px;
 
-</body>
-</html>
+    font-size: 13px;
+    font-weight: 700;
+
+    color: #3c3151;
+}
+
+.field input {
+    width: 100%;
+    height: 50px;
+
+    padding: 0 15px;
+
+    border: 1px solid #dcd6e7;
+    border-radius: 12px;
+
+    outline: none;
+
+    background: #ffffff;
+
+    color: #261840;
+
+    font-family: inherit;
+    font-size: 15px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+.field input::placeholder {
+    color: #aaa3b7;
+}
+
+.field input:hover {
+    border-color: #c8bfd8;
+}
+
+.field input:focus {
+    border-color: #a30085;
+
+    box-shadow:
+        0 0 0 4px rgba(163, 0, 133, 0.10);
+}
+
+
+/* =========================================================
+   BOTÃO PRINCIPAL
+   ========================================================= */
+
+.login-button {
+    width: 100%;
+    min-height: 52px;
+
+    margin-top: 4px;
+
+    padding: 13px 18px;
+
+    border: 0;
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #db007d,
+            #a30085
+        );
+
+    color: #ffffff;
+
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 10px 24px rgba(163, 0, 133, 0.22);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.login-button:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 14px 28px rgba(163, 0, 133, 0.30);
+}
+
+.login-button:active {
+    transform: translateY(0);
+}
+
+.login-button:disabled {
+    opacity: 0.65;
+
+    cursor: not-allowed;
+
+    transform: none;
+
+    box-shadow: none;
+}
+
+
+/* =========================================================
+   PRIMEIRO ACESSO
+   ========================================================= */
+
+.first-access {
+    margin-top: 26px;
+    padding-top: 22px;
+
+    border-top: 1px solid #e8e3ef;
+
+    text-align: center;
+}
+
+.first-access p {
+    margin: 0 0 11px;
+
+    font-size: 14px;
+
+    color: #766f88;
+}
+
+
+/* =========================================================
+   BOTÃO SECUNDÁRIO
+   ========================================================= */
+
+.secondary-button {
+    width: 100%;
+    min-height: 50px;
+
+    padding: 12px 16px;
+
+    border: 1px solid #db007d;
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    color: #a30085;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.secondary-button:hover {
+    border-color: #a30085;
+
+    background: #fff1f8;
+
+    transform: translateY(-1px);
+}
+
+.secondary-button:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   MENSAGENS
+   ========================================================= */
+
+.auth-message {
+    width: 100%;
+
+    margin: 0 0 20px;
+    padding: 12px 14px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+
+/* ERRO */
+
+.auth-message.error {
+    border: 1px solid #f0b9c0;
+
+    background: #fff0f2;
+
+    color: #a51d32;
+}
+
+
+/* SUCESSO */
+
+.auth-message.success {
+    border: 1px solid #b8e4c6;
+
+    background: #edf9f1;
+
+    color: #216e39;
+}
+
+
+/* =========================================================
+   CADASTRO
+   ========================================================= */
+
+#registerPanel {
+    animation: panelFade 0.25s ease;
+}
+
+#loginPanel {
+    animation: panelFade 0.25s ease;
+}
+
+@keyframes panelFade {
+
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+    .login-shell {
+        grid-template-columns: 1fr;
+
+        gap: 40px;
+
+        padding:
+            50px
+            clamp(25px, 7vw, 70px);
+    }
+
+    .login-brand {
+        max-width: 700px;
+
+        text-align: center;
+
+        margin: 0 auto;
+    }
+
+    .login-brand p {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .login-card {
+        justify-self: center;
+
+        max-width: 520px;
+    }
+}
+
+
+/* =========================================================
+   CELULAR
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .login-shell {
+        display: block;
+
+        padding: 28px 18px;
+    }
+
+    .login-brand {
+        margin-bottom: 30px;
+    }
+
+    .login-brand > span {
+        margin-bottom: 14px;
+
+        font-size: 11px;
+    }
+
+    .login-brand h1 {
+        margin-bottom: 14px;
+
+        font-size: 36px;
+    }
+
+    .login-brand p {
+        font-size: 15px;
+        line-height: 1.55;
+    }
+
+    .login-card {
+        padding: 28px 22px;
+
+        border-radius: 20px;
+    }
+
+    .login-card h2 {
+        font-size: 26px;
+    }
+
+    .field input {
+        height: 48px;
+    }
+
+    .login-button,
+    .secondary-button {
+        min-height: 48px;
+    }
+}
