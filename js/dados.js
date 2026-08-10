@@ -6,7 +6,32 @@ async function carregarDadosBI() {
   let inicio = 0;
   let todosOsDados = [];
 
+  const campos = `
+    monday_item_id,
+    titulo,
+    unidade_material,
+    categoria_material,
+    bloco,
+    esteira_producao,
+    matriz_oferta,
+    status_validacao,
+    gestor_validacao_nq,
+    revisor_validador,
+    professor_1,
+    professor_2,
+    professores,
+    data_liberacao_validacao,
+    data_validacao,
+    data_revalidacao,
+    qtd_ajustes_conteudista_da,
+    qtd_ajustes_modelagem,
+    qtd_ajustes_tecnologia,
+    qtd_ajustes_total,
+    sincronizado_em
+  `;
+
   while (true) {
+
     const fim =
       inicio + tamanhoLote - 1;
 
@@ -18,19 +43,21 @@ async function carregarDadosBI() {
         .from(
           window.BI_CONFIG.VIEW_NAME
         )
-        .select("*")
+        .select(campos)
         .range(
           inicio,
           fim
         );
 
     if (error) {
+
       console.error(
-        "Erro ao carregar dados do Supabase:",
+        "Erro ao carregar dados:",
         error
       );
 
       throw error;
+
     }
 
     const registros =
@@ -40,11 +67,6 @@ async function carregarDadosBI() {
       todosOsDados.concat(
         registros
       );
-
-    /*
-      Se vier menos de 1000,
-      chegamos ao final da View.
-    */
 
     if (
       registros.length <
@@ -57,7 +79,7 @@ async function carregarDadosBI() {
   }
 
   console.log(
-    "Total carregado:",
+    "Registros carregados:",
     todosOsDados.length
   );
 
