@@ -1,41 +1,212 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("loginForm");
-  const msg = document.getElementById("loginMessage");
-  const btn = document.getElementById("loginButton");
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  function mensagem(texto) {
-    msg.textContent = texto;
-    msg.hidden = false;
-  }
+  <title>Entrar | BI Validação de Materiais</title>
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    msg.hidden = true;
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-    const dominio = email.split("@").pop();
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
 
-    if (!window.BI_CONFIG.DOMINIOS_PERMITIDOS.includes(dominio)) {
-      mensagem("Use um e-mail institucional autorizado.");
-      return;
-    }
+<body>
 
-    btn.disabled = true;
-    btn.textContent = "Entrando...";
-    try {
-      const { error } = await window.biSupabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      window.location.assign("index.html");
-    } catch (error) {
-      mensagem(error?.message || "Não foi possível entrar.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Entrar";
-    }
-  });
+  <main class="login-shell">
 
-  (async () => {
-    const { data } = await window.biSupabase.auth.getSession();
-    if (data?.session) window.location.replace("index.html");
-  })();
-});
+    <section class="login-brand">
+      <span>DataHub de Validação</span>
+
+      <h1>BI Validação de Materiais</h1>
+
+      <p>
+        Indicadores operacionais alimentados automaticamente
+        pela Monday via Supabase.
+      </p>
+    </section>
+
+
+    <section class="login-card">
+
+      <!-- LOGIN -->
+
+      <div id="loginPanel">
+
+        <h2>Entrar</h2>
+
+        <p>
+          Use seu e-mail institucional e sua senha.
+        </p>
+
+        <div
+          id="loginMessage"
+          class="auth-message"
+          hidden
+        ></div>
+
+        <form id="loginForm">
+
+          <div class="field">
+            <label for="loginEmail">E-mail</label>
+
+            <input
+              id="loginEmail"
+              type="email"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+
+          <div class="field">
+            <label for="loginPassword">Senha</label>
+
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+
+
+          <button
+            id="loginButton"
+            class="login-button"
+            type="submit"
+          >
+            Entrar
+          </button>
+
+        </form>
+
+
+        <div class="first-access">
+
+          <p>É seu primeiro acesso?</p>
+
+          <button
+            type="button"
+            class="secondary-button"
+            data-show-panel="register"
+          >
+            Criar minha conta
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- CADASTRO -->
+
+      <div
+        id="registerPanel"
+        hidden
+      >
+
+        <h2>Criar conta</h2>
+
+        <p>
+          Cadastre-se usando seu e-mail
+          <strong>@animaeducacao.com.br</strong>.
+        </p>
+
+        <div
+          id="registerMessage"
+          class="auth-message"
+          hidden
+        ></div>
+
+
+        <form id="registerForm">
+
+          <div class="field">
+
+            <label for="registerName">
+              Nome completo
+            </label>
+
+            <input
+              id="registerName"
+              type="text"
+              autocomplete="name"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="registerEmail">
+              E-mail institucional
+            </label>
+
+            <input
+              id="registerEmail"
+              type="email"
+              autocomplete="email"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="registerPassword">
+              Crie uma senha
+            </label>
+
+            <input
+              id="registerPassword"
+              type="password"
+              minlength="6"
+              autocomplete="new-password"
+              required
+            >
+
+          </div>
+
+
+          <button
+            id="registerButton"
+            class="login-button"
+            type="submit"
+          >
+            Criar conta
+          </button>
+
+        </form>
+
+
+        <div class="first-access">
+
+          <p>Já possui conta?</p>
+
+          <button
+            type="button"
+            class="secondary-button"
+            data-show-panel="login"
+          >
+            Voltar para entrar
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/login.js"></script>
+
+</body>
+</html>
