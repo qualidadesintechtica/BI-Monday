@@ -4,7 +4,6 @@ document.addEventListener(
 
     "use strict";
 
-
     /* ==================================================
        AUTENTICAÇÃO
     ================================================== */
@@ -16,7 +15,6 @@ document.addEventListener(
       return;
     }
 
-
     /* ==================================================
        ELEMENTOS
     ================================================== */
@@ -26,24 +24,20 @@ document.addEventListener(
         "statusCarregamento"
       );
 
-
     const quantidadeFiltrada =
       document.getElementById(
         "quantidadeFiltrada"
       );
-
 
     const ultimaAtualizacao =
       document.getElementById(
         "ultimaAtualizacao"
       );
 
-
     let dadosCompletos = [];
 
-
     /* ==================================================
-       CAMPOS DE FILTRO
+       IDS DOS FILTROS
     ================================================== */
 
     const filtros = [
@@ -63,7 +57,6 @@ document.addEventListener(
       "filtroRevisor"
 
     ];
-
 
     /* ==================================================
        POPULAR FILTROS
@@ -93,7 +86,6 @@ document.addEventListener(
 
       );
 
-
       /* ------------------------------
          MATRIZ
       ------------------------------ */
@@ -115,7 +107,6 @@ document.addEventListener(
         )
 
       );
-
 
       /* ------------------------------
          BLOCO
@@ -139,7 +130,6 @@ document.addEventListener(
 
       );
 
-
       /* ------------------------------
          STATUS
       ------------------------------ */
@@ -161,7 +151,6 @@ document.addEventListener(
         )
 
       );
-
 
       /* ------------------------------
          CATEGORIA
@@ -185,7 +174,6 @@ document.addEventListener(
 
       );
 
-
       /* ------------------------------
          GESTOR
       ------------------------------ */
@@ -207,7 +195,6 @@ document.addEventListener(
         )
 
       );
-
 
       /* ------------------------------
          REVISOR
@@ -233,7 +220,6 @@ document.addEventListener(
 
     }
 
-
     /* ==================================================
        ATUALIZA TELA
     ================================================== */
@@ -245,7 +231,6 @@ document.addEventListener(
           dadosCompletos
         );
 
-
       /* ------------------------------
          KPIs
       ------------------------------ */
@@ -255,11 +240,9 @@ document.addEventListener(
           dadosFiltrados
         );
 
-
       window.preencherKPIs(
         kpis
       );
-
 
       /* ------------------------------
          GRÁFICOS
@@ -269,14 +252,11 @@ document.addEventListener(
         dadosFiltrados
       );
 
-
       /* ------------------------------
          QUANTIDADE
       ------------------------------ */
 
-      if (
-        quantidadeFiltrada
-      ) {
+      if (quantidadeFiltrada) {
 
         quantidadeFiltrada
           .textContent =
@@ -287,12 +267,15 @@ document.addEventListener(
 
     }
 
-
     /* ==================================================
        ÚLTIMA ATUALIZAÇÃO
     ================================================== */
 
     function mostrarUltimaAtualizacao() {
+
+      if (!ultimaAtualizacao) {
+        return;
+      }
 
       const datas =
         dadosCompletos
@@ -327,10 +310,7 @@ document.addEventListener(
             }
           );
 
-
-      if (
-        datas.length === 0
-      ) {
+      if (datas.length === 0) {
 
         ultimaAtualizacao
           .textContent =
@@ -339,7 +319,6 @@ document.addEventListener(
         return;
 
       }
-
 
       const maiorData =
         Math.max.apply(
@@ -358,7 +337,6 @@ document.addEventListener(
 
         );
 
-
       ultimaAtualizacao
         .textContent =
         new Date(
@@ -369,7 +347,6 @@ document.addEventListener(
 
     }
 
-
     /* ==================================================
        CARREGAMENTO
     ================================================== */
@@ -378,25 +355,25 @@ document.addEventListener(
 
       try {
 
-        statusCarregamento
-          .textContent =
-          "Carregando dados...";
+        if (statusCarregamento) {
 
+          statusCarregamento
+            .textContent =
+            "Carregando dados...";
+
+        }
 
         /*
-          IMPORTANTE:
-          carregamos TODA a View.
+          Carrega todos os dados da View.
         */
 
         dadosCompletos =
           await window.carregarDadosBI();
 
-
         console.log(
           "Total de registros:",
           dadosCompletos.length
         );
-
 
         /* ------------------------------
            FILTROS
@@ -404,13 +381,11 @@ document.addEventListener(
 
         popularFiltros();
 
-
         /* ------------------------------
-           ATUALIZAÇÃO
+           ÚLTIMA ATUALIZAÇÃO
         ------------------------------ */
 
         mostrarUltimaAtualizacao();
-
 
         /* ------------------------------
            TELA
@@ -418,12 +393,14 @@ document.addEventListener(
 
         atualizarTela();
 
+        if (statusCarregamento) {
 
-        statusCarregamento
-          .textContent =
-          dadosCompletos.length +
-          " registros carregados";
+          statusCarregamento
+            .textContent =
+            dadosCompletos.length +
+            " registros carregados";
 
+        }
 
       } catch (error) {
 
@@ -432,48 +409,55 @@ document.addEventListener(
           error
         );
 
+        if (statusCarregamento) {
 
-        statusCarregamento
-          .textContent =
-          "Erro ao carregar dados: " +
-          (
-            error?.message ||
-            "erro desconhecido"
-          );
+          statusCarregamento
+            .textContent =
+            "Erro ao carregar dados: " +
+            (
+              error?.message ||
+              "erro desconhecido"
+            );
+
+        }
 
       }
 
     }
 
-
     /* ==================================================
        EVENTOS DOS FILTROS
     ================================================== */
 
-    filtros.forEach(
-      function (id) {
+    /*
+      Usamos delegação porque os SELECTs
+      originais são substituídos por DIVs
+      quando preencherSelect() é executado.
+    */
 
-        const elemento =
-          document.getElementById(id);
+    document.addEventListener(
+      "multifilterchange",
+      function (event) {
 
+        const alvo =
+          event.target;
 
-        if (!elemento) {
+        if (!alvo) {
           return;
         }
 
+        if (
+          filtros.includes(
+            alvo.id
+          )
+        ) {
 
-        elemento.addEventListener(
-          "change",
-          function () {
+          atualizarTela();
 
-            atualizarTela();
-
-          }
-        );
+        }
 
       }
     );
-
 
     /* ==================================================
        LOGOUT
@@ -484,7 +468,6 @@ document.addEventListener(
         "logoutButton"
       );
 
-
     if (logoutButton) {
 
       logoutButton.addEventListener(
@@ -493,7 +476,6 @@ document.addEventListener(
       );
 
     }
-
 
     /* ==================================================
        INICIALIZA
