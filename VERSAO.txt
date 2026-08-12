@@ -1,12 +1,5 @@
-BI Monday V6 - Indicadores
-Data: 12/08/2026
-
-Inclui:
-- Gráfico Operacional
-- Ajustes com gráficos
-- Análise de Dias para Validação
-- Histórico de Atualizações
-- Filtros múltiplos aplicados às novas páginas
-- Preserva Resumo, Operação, Ajustes, Equipe, login e Supabase
-
-Observação: os gráficos foram reproduzidos com os campos hoje disponíveis na view do Supabase. Medidas DAX do modelo semântico remoto podem exigir refinamento posterior para equivalência numérica exata com o PBIX.
+BI Monday V7 - Indicadores consolidados
+Base: V5 funcional + páginas V6
+IMPORTANTE: os arquivos deste pacote devem ser colocados DIRETAMENTE na raiz do repositório BI-Monday.
+O arquivo index.html deve ficar na raiz, ao lado de login.html, e as pastas css/ e js/ também na raiz.
+Cache-busting: 20260812-v7
