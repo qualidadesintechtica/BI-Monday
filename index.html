@@ -55,24 +55,10 @@
 
       <nav class="nav">
 
-        <a
-          class="active"
-          href="#"
-        >
-          Resumo Executivo
-        </a>
-
-        <a href="#">
-          Operação
-        </a>
-
-        <a href="#">
-          Ajustes
-        </a>
-
-        <a href="#">
-          Equipe
-        </a>
+        <a class="active" href="#resumo" data-view="resumo">Resumo Executivo</a>
+        <a href="#operacao" data-view="operacao">Operação</a>
+        <a href="#ajustes" data-view="ajustes">Ajustes</a>
+        <a href="#equipe" data-view="equipe">Equipe</a>
 
       </nav>
 
@@ -330,6 +316,8 @@
       </section>
 
 
+      <section id="viewResumo" class="page-view active" data-page="resumo">
+
       <!-- =============================================
            KPIs
       ============================================== -->
@@ -510,6 +498,95 @@
 
       </section>
 
+      </section>
+
+      <!-- =============================================
+           OPERAÇÃO
+      ============================================== -->
+      <section id="viewOperacao" class="page-view" data-page="operacao">
+        <div class="section-heading">
+          <div>
+            <h2>Operação</h2>
+            <p>Detalhamento das linhas que formam os indicadores. Use os filtros acima para investigar inclusive registros em branco.</p>
+          </div>
+          <div class="section-actions">
+            <input id="buscaOperacao" class="table-search" type="search" placeholder="Pesquisar nas linhas...">
+            <button id="exportarOperacao" class="action-button" type="button">Exportar CSV</button>
+          </div>
+        </div>
+        <div id="contadorOperacao" class="table-counter">--</div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr>
+                <th>Título</th><th>Unidade/Material</th><th>Categoria</th><th>Bloco</th><th>Esteira</th><th>Matriz</th><th>Status</th><th>Gestor</th><th>Revisor</th><th>Professor(es)</th><th>Liberação</th><th>Validação</th>
+              </tr></thead>
+              <tbody id="tbodyOperacao"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================
+           AJUSTES
+      ============================================== -->
+      <section id="viewAjustes" class="page-view" data-page="ajustes">
+        <div class="section-heading">
+          <div>
+            <h2>Ajustes</h2>
+            <p>Visão dos materiais atualmente em fluxos de ajuste e da quantidade registrada de retornos.</p>
+          </div>
+          <button id="exportarAjustes" class="action-button" type="button">Exportar CSV</button>
+        </div>
+        <section class="mini-kpis">
+          <article class="mini-kpi"><span>Materiais em ajuste</span><strong id="ajustesTotalLinhas">0</strong></article>
+          <article class="mini-kpi"><span>Conteudista e DA</span><strong id="ajustesConteudista">0</strong></article>
+          <article class="mini-kpi"><span>Modelagem</span><strong id="ajustesModelagem">0</strong></article>
+          <article class="mini-kpi"><span>Tecnologia</span><strong id="ajustesTecnologia">0</strong></article>
+          <article class="mini-kpi"><span>Ocorrências registradas</span><strong id="ajustesOcorrencias">0</strong></article>
+        </section>
+        <div id="contadorAjustes" class="table-counter">--</div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr>
+                <th>Título</th><th>Unidade/Material</th><th>Status</th><th>Bloco</th><th>Gestor</th><th>Revisor</th><th>Conteudista/DA</th><th>Modelagem</th><th>Tecnologia</th><th>Total</th>
+              </tr></thead>
+              <tbody id="tbodyAjustes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================
+           EQUIPE
+      ============================================== -->
+      <section id="viewEquipe" class="page-view" data-page="equipe">
+        <div class="section-heading">
+          <div>
+            <h2>Equipe</h2>
+            <p>Acompanhamento por Gestor, Revisor e Professor com os mesmos filtros aplicados ao restante do DataHub.</p>
+          </div>
+        </div>
+        <section class="mini-kpis four">
+          <article class="mini-kpi"><span>Pessoas / papéis</span><strong id="equipePessoas">0</strong></article>
+          <article class="mini-kpi"><span>Gestores</span><strong id="equipeGestores">0</strong></article>
+          <article class="mini-kpi"><span>Revisores</span><strong id="equipeRevisores">0</strong></article>
+          <article class="mini-kpi"><span>Professores</span><strong id="equipeProfessores">0</strong></article>
+        </section>
+        <div id="contadorEquipe" class="table-counter">--</div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr>
+                <th>Tipo</th><th>Responsável</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>A liberar</th>
+              </tr></thead>
+              <tbody id="tbodyEquipe"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
 
   </div>
@@ -545,6 +622,8 @@
   <script src="js/kpis.js"></script>
 
   <script src="js/graficos.js"></script>
+
+  <script src="js/paginas.js"></script>
 
   <script src="js/dashboard.js"></script>
 
