@@ -1,0 +1,147 @@
+﻿pagina,visual_id,tipo_visual,tipo_campo,tabela,campo_medida
+Gráfico Ajuste,75263454747f9f9af31a,cardVisual,Measure,Medidas,Total de Retornos
+Gráfico Ajuste,37d91ed4e34d25cd883d,tableEx,Column,Base,Titulo
+Gráfico Ajuste,37d91ed4e34d25cd883d,tableEx,Column,Base,Name
+Gráfico Ajuste,37d91ed4e34d25cd883d,tableEx,Measure,Medidas,Qtd Retornos
+Gráfico Ajuste,37d91ed4e34d25cd883d,tableEx,Measure,Medidas,Maior Nº de Retornos
+Gráfico Ajuste,27f0a43982bd12b506aa,barChart,Column,Base,Titulo
+Gráfico Ajuste,27f0a43982bd12b506aa,barChart,Column,Base,Name
+Gráfico Ajuste,27f0a43982bd12b506aa,barChart,Measure,Medidas,Qtd Retornos
+Gráfico Ajuste,53a773cef6ea1b130bbb,cardVisual,Measure,Medidas,UAs com Retorno
+Gráfico Ajuste,470f44d59f5babad9d96,cardVisual,Measure,Medidas,UAs para Comitê
+Gráfico Ajuste,4dd5bd5c40d4f1e3ffa0,slicer,Column,Base,Esteira Producao
+Gráfico Ajuste,62c14c46218a524e381f,tableEx,Column,Base,Titulo
+Gráfico Ajuste,62c14c46218a524e381f,tableEx,Column,Base,Name
+Gráfico Ajuste,62c14c46218a524e381f,tableEx,Column,Base,Revisor Validador
+Gráfico Ajuste,62c14c46218a524e381f,tableEx,Column,Base,Gestor de Validação - NQ
+Gráfico Ajuste,62c14c46218a524e381f,tableEx,Measure,Medidas,Total de Retornos
+Gráfico Ajuste,e25adc1c40e49d296893,cardVisual,Measure,Medidas,Maior Nº de Retornos
+Gráfico Analises Conclúidas,a02e4ed2dbad85cecae5,slicer,Column,Base,Esteira Producao
+Gráfico Analises Conclúidas,e89ff739757328172108,columnChart,Column,Base,Gestor de Validação - NQ
+Gráfico Analises Conclúidas,e89ff739757328172108,columnChart,Column,Calendario,Date
+Gráfico Analises Conclúidas,e89ff739757328172108,columnChart,Measure,Medidas,Liberadas por Dia
+Gráfico Analises Conclúidas,e89ff739757328172108,columnChart,Measure,Medidas,Em Ajuste por Dia
+Gráfico Analises Conclúidas,e89ff739757328172108,columnChart,Measure,Medidas,Validadas por Dia
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Column,Base,Gestor de Validação - NQ
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Column,Base,Revisor Validador
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Column,Calendario,Date
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Column,Base,Data do Ajuste e envio para Revalidação
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Measure,Medidas,Liberadas por Dia
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Measure,Medidas,Em Ajuste por Dia
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Measure,Medidas,Validadas por Dia
+Gráfico Analises Conclúidas,35181f99c3a6011663ed,tableEx,Measure,Medidas,Total Validadas por Dia
+Gráfico Analises Conclúidas,bc9172452e050618a3dc,cardVisual,Measure,Medidas,Análise Concluída por Dia
+Gráfico Analises Conclúidas,40b1a10bc0a6a60a8170,slicer,Column,Calendario,Date
+Análise de Dias para Validação,7f94bd264cc322a9a4d6,slicer,Column,Base,Revisor Validador
+Análise de Dias para Validação,86e260e6f9a5be3a5b7c,slicer,Column,Base,Esteira Producao
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Titulo
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Name
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,DimBloco,Bloco
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Gestor de Validação - NQ
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Status Validação
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Data Liberação
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Dias até Ajuste
+Análise de Dias para Validação,d32186b77ae54e690544,tableEx,Column,Base,Dias até Validação
+Análise de Dias para Validação,d6b89e68e255a0979640,slicer,Column,Base,Status Dashboard
+Análise de Dias para Validação,d6b89e68e255a0979640,slicer,Column,Historico_Atualizacoes,Bloco
+Análise de Dias para Validação,817052cd39795f93497a,slicer,Column,Base,Gestor de Validação - NQ
+Análise de Dias para Validação,a5f773f62717f65ffd43,slicer,Column,Base,Esteira Producao
+Análise de Dias para Validação,0400d2bd7ede3c21192b,slicer,Column,DimBloco,Bloco
+Análise de Dias para Validação,0400d2bd7ede3c21192b,slicer,Column,Historico_Atualizacoes,Bloco
+Gráfico A1 e A3,26fc25005d5600787c2c,columnChart,Column,Dim A,Name
+Gráfico A1 e A3,26fc25005d5600787c2c,columnChart,Column,Base,Grupo Status A1 e A3
+Gráfico A1 e A3,26fc25005d5600787c2c,columnChart,Measure,Medidas,Qtd UAs
+Gráfico A1 e A3,1b1740b9641d9d925a21,slicer,Column,Base,Name
+Gráfico A1 e A3,d4699120017b82c76b31,slicer,Column,Base,Esteira Producao
+Gráfico A1 e A3,30dbce0550d21e464192,pivotTable,Column,Dim A,Name
+Gráfico A1 e A3,30dbce0550d21e464192,pivotTable,Measure,Medidas,Validadas A
+Gráfico A1 e A3,30dbce0550d21e464192,pivotTable,Measure,Medidas,Enviadas para ajuste A
+Gráfico A1 e A3,30dbce0550d21e464192,pivotTable,Measure,Medidas,Revalidar NQ A
+Gráfico A1 e A3,30dbce0550d21e464192,pivotTable,Measure,Medidas,Liberadas para validação A
+Dashboard Executivo,223fefd7dc2f34f7a61f,cardVisual,Measure,Medidas,% Analisado
+Dashboard Executivo,c804e1eff389c875723f,cardVisual,Measure,Medidas,Última Atualização
+Dashboard Executivo,39ff130869f81f5d66f9,cardVisual,Measure,Medidas,Total UAs
+Dashboard Executivo,74db7a440d1403e8a7bc,cardVisual,Measure,Medidas,Status Revalidadas
+Dashboard Executivo,42edd4ef9f4dbe2f267c,cardVisual,Measure,Medidas,Em Ajuste
+Dashboard Executivo,bfa1d47ba611e40770f0,cardVisual,Measure,Medidas,UAs Não Liberadas
+Dashboard Executivo,3618644fd49926e41130,cardVisual,Measure,Medidas,% a Chegar
+Dashboard Executivo,14f423ae8fcb04e7881e,slicer,Column,DimBloco,Bloco
+Dashboard Executivo,14f423ae8fcb04e7881e,slicer,Column,Historico_Atualizacoes,Bloco
+Dashboard Executivo,a40734cd1126155a5cb0,cardVisual,Measure,Medidas,NQ
+Dashboard Executivo,5e20c8bbf4b6e8e2dc8d,cardVisual,Measure,Medidas,Validadas
+Dashboard Executivo,8d5f981856ebdd099817,slicer,Column,Base,Esteira Producao
+Dashboard Executivo,7940b43ee6899d0cfe65,cardVisual,Measure,Medidas,Liberadas Geral
+Dashboard Executivo,64a99800286d1d6b0015,cardVisual,Measure,Medidas,Status Liberadas
+Dashboard Executivo,6085104f565af872bf51,slicer,Column,Base,Esteira Producao
+Dashboard Executivo,58b5e16033bb720ce293,slicer,Column,Base,Revisor Validador
+Dashboard Executivo,2a1b9994faea3cc1e12f,slicer,Column,Base,Status Dashboard
+Dashboard Executivo,2a1b9994faea3cc1e12f,slicer,Column,Historico_Atualizacoes,Bloco
+Dashboard Executivo,adc09a3d688edda684f2,slicer,Column,Base,Gestor de Validação - NQ
+Gráfico Operacional,bdbaafba050ddb15d2e6,clusteredBarChart,Column,Base,Gestor de Validação - NQ
+Gráfico Operacional,bdbaafba050ddb15d2e6,clusteredBarChart,Measure,Medidas,Liberadas
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Bloco
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Titulo
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Name
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Gestor de Validação - NQ
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Revisor Validador
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Data de Liberação para Validação
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Data de Atribuição Revisor
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Data de Solicitação de Ajustes - Conteudista
+Gráfico Operacional,768c9f5205d00520065e,tableEx,Column,Base,Data da Validação
+Gráfico Operacional,45e26d141c924604d16a,clusteredBarChart,Column,Base,Revisor Validador
+Gráfico Operacional,45e26d141c924604d16a,clusteredBarChart,Measure,Medidas,Liberadas
+Gráfico Operacional,8202edec96b802bca1e0,columnChart,Column,Base,Gestor de Validação - NQ
+Gráfico Operacional,8202edec96b802bca1e0,columnChart,Measure,Medidas,NQ
+Gráfico Operacional,8202edec96b802bca1e0,columnChart,Measure,Medidas,Em Ajuste
+Gráfico Operacional,8202edec96b802bca1e0,columnChart,Measure,Medidas,Validadas
+Gráfico Operacional,a85c031e5ca8d8697e82,slicer,Column,Base,Esteira Producao
+Gráfico Historico de Atualizações,6a2dbc289b38304082f1,pivotTable,Column,Base,Bloco
+Gráfico Historico de Atualizações,6a2dbc289b38304082f1,pivotTable,Column,Base,Data Liberação
+Gráfico Historico de Atualizações,6a2dbc289b38304082f1,pivotTable,Measure,Medidas,UAs Liberadas Histórico
+Gráfico Historico de Atualizações,7e9c64ad711d359a338b,cardVisual,Measure,Medidas,UAs com Retorno
+Gráfico Historico de Atualizações,aa31e4b017bfbf2b1836,lineChart,Column,Base,Data Liberação
+Gráfico Historico de Atualizações,aa31e4b017bfbf2b1836,lineChart,Column,Base,Bloco
+Gráfico Historico de Atualizações,aa31e4b017bfbf2b1836,lineChart,Measure,Medidas,UAs Liberadas por Dia
+Gráfico Historico de Atualizações,92cd836fd68c23716832,cardVisual,Measure,Medidas,Total de Retornos
+Gráfico Historico de Atualizações,96f5b0e662a853c5f4d8,cardVisual,Measure,Medidas,UAs para Comitê
+Gráfico Historico de Atualizações,58925ced69fa5a7e6fc7,cardVisual,Measure,Medidas,Maior Nº de Retornos
+Gráfico Historico de Atualizações,27fb9514ac0bfb51bf2a,slicer,Column,Base,Esteira Producao
+Análise Operacional,1a74071d14b8f093bdc5,slicer,Column,DimBloco,Bloco
+Análise Operacional,1a74071d14b8f093bdc5,slicer,Column,Historico_Atualizacoes,Bloco
+Análise Operacional,6228f93610184ed28f5a,tableEx,Column,DimBloco,Bloco
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,Total UAs
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,Liberadas
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,UAs Não Liberadas
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,NQ
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,Em Ajuste
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,Validadas
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,% Analisado
+Análise Operacional,6228f93610184ed28f5a,tableEx,Measure,Medidas,% a Chegar
+Análise Operacional,6f96700b4a1321624ffa,slicer,Column,Base,Esteira Producao
+Análise Operacional,7c7fb55bc016b95ca50a,slicer,Column,Base,Titulo
+Análise Operacional,b7739e97b460e00caab3,tableEx,Column,Base,Titulo
+Análise Operacional,b7739e97b460e00caab3,tableEx,Column,Base,Name
+Análise Operacional,b7739e97b460e00caab3,tableEx,Column,Base,Bloco
+Análise Operacional,b7739e97b460e00caab3,tableEx,Measure,Medidas,Liberadas
+Análise Operacional,b7739e97b460e00caab3,tableEx,Measure,Medidas,NQ
+Análise Operacional,b7739e97b460e00caab3,tableEx,Measure,Medidas,Em Ajuste
+Análise Operacional,b7739e97b460e00caab3,tableEx,Measure,Medidas,Validadas
+Análise Operacional,15177f3310bef023e88c,slicer,Column,Base,Revisor Validador
+Análise Operacional,ac934e799df4b2c92575,slicer,Column,Base,Gestor de Validação - NQ
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Column,Base,Revisor Validador
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Measure,Medidas,Liberadas
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Measure,Medidas,NQ
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Measure,Medidas,Em Ajuste
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Measure,Medidas,Validadas
+Análise Operacional,a547e10423ffaf3f0e9d,tableEx,Column,DimBloco1,Bloco
+Análise Operacional,b917fcaca1d38b474bca,slicer,Column,Base,Status Dashboard
+Análise Operacional,b917fcaca1d38b474bca,slicer,Column,Historico_Atualizacoes,Bloco
+Análise Operacional,8d234f23dd432bb54e96,slicer,Column,Base,Esteira Producao
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Column,Base,Gestor de Validação - NQ
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,UAs Liberadas por Professor
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,UAs Não Liberadas Professor
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,UAs Previstas Professor
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,NQ
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,Em Ajuste
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,Validadas
+Análise Operacional,42c1aba9f2a785af68d5,tableEx,Measure,Medidas,% Analisado

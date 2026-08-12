@@ -258,10 +258,17 @@ document.addEventListener(
 
       if (quantidadeFiltrada) {
 
-        quantidadeFiltrada
-          .textContent =
-          dadosFiltrados.length +
-          " registros no filtro atual";
+        const uasFiltradas =
+          typeof window.consolidarUAs === "function"
+            ? window.consolidarUAs(dadosFiltrados).length
+            : dadosFiltrados.length;
+
+        quantidadeFiltrada.textContent =
+          uasFiltradas +
+          " UAs no filtro atual" +
+          (dadosFiltrados.length !== uasFiltradas
+            ? " (" + dadosFiltrados.length + " linhas da base)"
+            : "");
 
       }
 
