@@ -26,7 +26,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     resumo: "Resumo Executivo",
     operacao: "Operação",
     ajustes: "Ajustes",
-    equipe: "Equipe"
+    equipe: "Equipe",
+    "grafico-operacional": "Gráfico Operacional",
+    "dias-validacao": "Análise de Dias para Validação",
+    historico: "Histórico de Atualizações"
   };
 
   function popularFiltros() {
@@ -67,6 +70,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
     window.atualizarPaginasBI?.(dadosFiltrados);
+    window.atualizarIndicadoresBI?.(dadosFiltrados);
 
     if (quantidadeFiltrada) {
       quantidadeFiltrada.textContent = `${dadosFiltrados.length} registros no filtro atual`;
@@ -88,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (tituloPagina) tituloPagina.textContent = titulosPaginas[nome];
     history.replaceState(null, "", `#${nome}`);
 
-    if (nome === "resumo") {
+    if (["resumo", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
       setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
     }
   }

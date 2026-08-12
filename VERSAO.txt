@@ -1,4 +1,12 @@
-BI Monday GitHub V5
-Build: 20260812-v5
-Inclui Operação, Ajustes e Equipe.
-Arquivos devem ser enviados para a RAIZ do repositório BI-Monday.
+BI Monday V6 - Indicadores
+Data: 12/08/2026
+
+Inclui:
+- Gráfico Operacional
+- Ajustes com gráficos
+- Análise de Dias para Validação
+- Histórico de Atualizações
+- Filtros múltiplos aplicados às novas páginas
+- Preserva Resumo, Operação, Ajustes, Equipe, login e Supabase
+
+Observação: os gráficos foram reproduzidos com os campos hoje disponíveis na view do Supabase. Medidas DAX do modelo semântico remoto podem exigir refinamento posterior para equivalência numérica exata com o PBIX.

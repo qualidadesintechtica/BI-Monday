@@ -904,3 +904,22 @@
   .section-actions { flex-direction: column; align-items: stretch; }
   .table-search { width: 100%; }
 }
+
+/* ==================================================
+   V6 · INDICADORES DO POWER BI
+================================================== */
+.nav-section-title {
+  margin: 22px 12px 6px;
+  color: #cdbfe0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.analytics-grid { margin-bottom: 18px; }
+.analytics-table-card { margin-top: 18px; }
+.small-kpi-value { font-size: 18px !important; line-height: 1.25; }
+.page-view .chart-card { min-width: 0; }
+@media (max-width: 900px) {
+  .analytics-grid { grid-template-columns: 1fr; }
+}

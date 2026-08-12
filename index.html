@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260812-v5"
+    href="css/global.css?v=20260812-v6"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260812-v5"
+    href="css/dashboard.css?v=20260812-v6"
   >
 
 </head>
@@ -59,6 +59,11 @@
         <a href="#operacao" data-view="operacao">Operação</a>
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
+
+        <div class="nav-section-title">Indicadores</div>
+        <a href="#grafico-operacional" data-view="grafico-operacional">Gráfico Operacional</a>
+        <a href="#dias-validacao" data-view="dias-validacao">Dias para Validação</a>
+        <a href="#historico" data-view="historico">Histórico de Atualizações</a>
 
       </nav>
 
@@ -545,6 +550,10 @@
           <article class="mini-kpi"><span>Tecnologia</span><strong id="ajustesTecnologia">0</strong></article>
           <article class="mini-kpi"><span>Ocorrências registradas</span><strong id="ajustesOcorrencias">0</strong></article>
         </section>
+        <section class="charts analytics-grid">
+          <article class="chart-card"><h3>Ajustes por tipo</h3><div id="graficoAjustesTipo" class="chart"></div></article>
+          <article class="chart-card"><h3>Top materiais por nº de retornos</h3><div id="graficoAjustesTop" class="chart"></div></article>
+        </section>
         <div id="contadorAjustes" class="table-counter">--</div>
         <div class="table-card">
           <div class="table-scroll">
@@ -557,6 +566,99 @@
           </div>
         </div>
       </section>
+
+
+
+      <!-- =============================================
+           GRÁFICO OPERACIONAL
+      ============================================== -->
+      <section id="viewGraficoOperacional" class="page-view" data-page="grafico-operacional">
+        <div class="section-heading">
+          <div>
+            <h2>Gráfico Operacional</h2>
+            <p>Distribuição dos materiais por bloco e situação de validação, seguindo os filtros selecionados.</p>
+          </div>
+        </div>
+        <section class="mini-kpis four">
+          <article class="mini-kpi"><span>Validadas</span><strong id="opValidadas">0</strong></article>
+          <article class="mini-kpi"><span>Em NQ</span><strong id="opNQ">0</strong></article>
+          <article class="mini-kpi"><span>Em ajuste</span><strong id="opAjuste">0</strong></article>
+          <article class="mini-kpi"><span>A liberar</span><strong id="opALiberar">0</strong></article>
+        </section>
+        <section class="charts analytics-grid">
+          <article class="chart-card"><h3>Status por bloco</h3><div id="graficoOperacionalBloco" class="chart"></div></article>
+          <article class="chart-card"><h3>Distribuição operacional</h3><div id="graficoOperacionalStatus" class="chart"></div></article>
+        </section>
+        <div class="table-card analytics-table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Bloco</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>A liberar</th></tr></thead>
+              <tbody id="tbodyGraficoOperacional"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================
+           DIAS PARA VALIDAÇÃO
+      ============================================== -->
+      <section id="viewDiasValidacao" class="page-view" data-page="dias-validacao">
+        <div class="section-heading">
+          <div>
+            <h2>Análise de Dias para Validação</h2>
+            <p>Tempo decorrido entre a liberação e a validação dos materiais que possuem as duas datas preenchidas.</p>
+          </div>
+        </div>
+        <section class="mini-kpis four">
+          <article class="mini-kpi"><span>Média de dias</span><strong id="diasMedia">0</strong></article>
+          <article class="mini-kpi"><span>Mediana</span><strong id="diasMediana">0</strong></article>
+          <article class="mini-kpi"><span>Até 7 dias</span><strong id="diasAte7">0</strong></article>
+          <article class="mini-kpi"><span>Acima de 15 dias</span><strong id="diasAcima15">0</strong></article>
+        </section>
+        <section class="charts analytics-grid">
+          <article class="chart-card"><h3>Faixas de tempo</h3><div id="graficoDiasFaixas" class="chart"></div></article>
+          <article class="chart-card"><h3>Média por bloco</h3><div id="graficoDiasBloco" class="chart"></div></article>
+        </section>
+        <div class="table-card analytics-table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Título</th><th>Unidade/Material</th><th>Bloco</th><th>Status</th><th>Liberação</th><th>Validação</th><th>Dias</th></tr></thead>
+              <tbody id="tbodyDiasValidacao"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================
+           HISTÓRICO DE ATUALIZAÇÕES
+      ============================================== -->
+      <section id="viewHistorico" class="page-view" data-page="historico">
+        <div class="section-heading">
+          <div>
+            <h2>Gráfico Histórico de Atualizações</h2>
+            <p>Evolução diária das liberações e validações registradas na base atual.</p>
+          </div>
+        </div>
+        <section class="mini-kpis four">
+          <article class="mini-kpi"><span>Dias com liberação</span><strong id="histDiasLiberacao">0</strong></article>
+          <article class="mini-kpi"><span>Liberados no histórico</span><strong id="histLiberacoes">0</strong></article>
+          <article class="mini-kpi"><span>Validados no histórico</span><strong id="histValidacoes">0</strong></article>
+          <article class="mini-kpi"><span>Último dia com movimento</span><strong id="histUltimoDia" class="small-kpi-value">--</strong></article>
+        </section>
+        <section class="charts analytics-grid">
+          <article class="chart-card"><h3>Liberações e validações por dia</h3><div id="graficoHistoricoDia" class="chart"></div></article>
+          <article class="chart-card"><h3>Acumulado de liberações</h3><div id="graficoHistoricoAcumulado" class="chart"></div></article>
+        </section>
+        <div class="table-card analytics-table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Data</th><th>Liberações</th><th>Validações</th></tr></thead>
+              <tbody id="tbodyHistorico"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
 
       <!-- =============================================
            EQUIPE
@@ -609,26 +711,28 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260812-v5"></script>
+  <script src="js/config.js?v=20260812-v6"></script>
 
-  <script src="js/supabase.js?v=20260812-v5"></script>
+  <script src="js/supabase.js?v=20260812-v6"></script>
 
-  <script src="js/auth.js?v=20260812-v5"></script>
+  <script src="js/auth.js?v=20260812-v6"></script>
 
-  <script src="js/dados.js?v=20260812-v5"></script>
+  <script src="js/dados.js?v=20260812-v6"></script>
 
-  <script src="js/filtros.js?v=20260812-v5"></script>
+  <script src="js/filtros.js?v=20260812-v6"></script>
 
-  <script src="js/kpis.js?v=20260812-v5"></script>
+  <script src="js/kpis.js?v=20260812-v6"></script>
 
-  <script src="js/graficos.js?v=20260812-v5"></script>
+  <script src="js/graficos.js?v=20260812-v6"></script>
 
-  <script src="js/paginas.js?v=20260812-v5"></script>
+  <script src="js/paginas.js?v=20260812-v6"></script>
 
-  <script src="js/dashboard.js?v=20260812-v5"></script>
+  <script src="js/indicadores.js?v=20260812-v6"></script>
+
+  <script src="js/dashboard.js?v=20260812-v6"></script>
 
 
-<div data-build-version="20260812-v5" style="display:none"></div>
+<div data-build-version="20260812-v6" style="display:none"></div>
 </body>
 
 </html>
