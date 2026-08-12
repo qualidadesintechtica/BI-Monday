@@ -1,0 +1,4 @@
+BI Monday GitHub V5
+Build: 20260812-v5
+Inclui Operação, Ajustes e Equipe.
+Arquivos devem ser enviados para a RAIZ do repositório BI-Monday.
