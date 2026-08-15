@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   function mostrarUltimaAtualizacao() {
     if (!ultimaAtualizacao) return;
     const tempos = dadosCompletos
-      .map(x => Date.parse(x.sincronizado_em || ""))
+      .map(x => Date.parse(x.sincronizado_validacao || x.sincronizado_esteira || x.sincronizado_em || ""))
       .filter(Number.isFinite);
     ultimaAtualizacao.textContent = tempos.length
       ? new Date(Math.max(...tempos)).toLocaleString("pt-BR")

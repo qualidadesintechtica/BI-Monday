@@ -923,3 +923,5 @@
 @media (max-width: 900px) {
   .analytics-grid { grid-template-columns: 1fr; }
 }
+
+.build-badge{display:block;margin-top:8px;font-size:10px;opacity:.7;letter-spacing:.03em}

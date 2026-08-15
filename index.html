@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260812-v7"
+    href="css/global.css?v=20260815-v9"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260812-v7"
+    href="css/dashboard.css?v=20260815-v9"
   >
 
 </head>
@@ -49,6 +49,8 @@
         <strong>
           Validação de Materiais
         </strong>
+
+        <small class="build-badge">v9 · consolidado</small>
 
       </div>
 
@@ -524,7 +526,7 @@
           <div class="table-scroll">
             <table class="data-table">
               <thead><tr>
-                <th>Título</th><th>Unidade/Material</th><th>Categoria</th><th>Bloco</th><th>Esteira</th><th>Matriz</th><th>Status</th><th>Gestor</th><th>Revisor</th><th>Professor(es)</th><th>Liberação</th><th>Validação</th>
+                <th>Título</th><th>UA</th><th>Categoria</th><th>Bloco</th><th>Esteira</th><th>Matriz</th><th>Status</th><th>Gestor</th><th>Revisor</th><th>Docente conteudista</th><th>Liberação</th><th>Validação</th>
               </tr></thead>
               <tbody id="tbodyOperacao"></tbody>
             </table>
@@ -548,18 +550,18 @@
           <article class="mini-kpi"><span>Conteudista e DA</span><strong id="ajustesConteudista">0</strong></article>
           <article class="mini-kpi"><span>Modelagem</span><strong id="ajustesModelagem">0</strong></article>
           <article class="mini-kpi"><span>Tecnologia</span><strong id="ajustesTecnologia">0</strong></article>
-          <article class="mini-kpi"><span>Ocorrências registradas</span><strong id="ajustesOcorrencias">0</strong></article>
+          <article class="mini-kpi"><span>UAs atualmente em ajuste</span><strong id="ajustesOcorrencias">0</strong></article>
         </section>
         <section class="charts analytics-grid">
           <article class="chart-card"><h3>Ajustes por tipo</h3><div id="graficoAjustesTipo" class="chart"></div></article>
-          <article class="chart-card"><h3>Top materiais por nº de retornos</h3><div id="graficoAjustesTop" class="chart"></div></article>
+          <article class="chart-card"><h3>UAs em ajuste por bloco</h3><div id="graficoAjustesTop" class="chart"></div></article>
         </section>
         <div id="contadorAjustes" class="table-counter">--</div>
         <div class="table-card">
           <div class="table-scroll">
             <table class="data-table">
               <thead><tr>
-                <th>Título</th><th>Unidade/Material</th><th>Status</th><th>Bloco</th><th>Gestor</th><th>Revisor</th><th>Conteudista/DA</th><th>Modelagem</th><th>Tecnologia</th><th>Total</th>
+                <th>Título</th><th>UA</th><th>Status</th><th>Bloco</th><th>Gestor</th><th>Revisor</th><th>Conteudista/DA</th><th>Modelagem</th><th>Tecnologia</th><th>Em ajuste</th>
               </tr></thead>
               <tbody id="tbodyAjustes"></tbody>
             </table>
@@ -583,7 +585,7 @@
           <article class="mini-kpi"><span>Validadas</span><strong id="opValidadas">0</strong></article>
           <article class="mini-kpi"><span>Em NQ</span><strong id="opNQ">0</strong></article>
           <article class="mini-kpi"><span>Em ajuste</span><strong id="opAjuste">0</strong></article>
-          <article class="mini-kpi"><span>A liberar</span><strong id="opALiberar">0</strong></article>
+          <article class="mini-kpi"><span>Não liberadas</span><strong id="opALiberar">0</strong></article>
         </section>
         <section class="charts analytics-grid">
           <article class="chart-card"><h3>Status por bloco</h3><div id="graficoOperacionalBloco" class="chart"></div></article>
@@ -592,7 +594,7 @@
         <div class="table-card analytics-table-card">
           <div class="table-scroll">
             <table class="data-table">
-              <thead><tr><th>Bloco</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>A liberar</th></tr></thead>
+              <thead><tr><th>Bloco</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>Não liberadas</th></tr></thead>
               <tbody id="tbodyGraficoOperacional"></tbody>
             </table>
           </div>
@@ -681,7 +683,7 @@
           <div class="table-scroll">
             <table class="data-table">
               <thead><tr>
-                <th>Tipo</th><th>Responsável</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>A liberar</th>
+                <th>Tipo</th><th>Responsável</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>Não liberadas</th>
               </tr></thead>
               <tbody id="tbodyEquipe"></tbody>
             </table>
@@ -711,28 +713,28 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260812-v7"></script>
+  <script src="js/config.js?v=20260815-v9"></script>
 
-  <script src="js/supabase.js?v=20260812-v7"></script>
+  <script src="js/supabase.js?v=20260815-v9"></script>
 
-  <script src="js/auth.js?v=20260812-v7"></script>
+  <script src="js/auth.js?v=20260815-v9"></script>
 
-  <script src="js/dados.js?v=20260812-v7"></script>
+  <script src="js/dados.js?v=20260815-v9"></script>
 
-  <script src="js/filtros.js?v=20260812-v7"></script>
+  <script src="js/filtros.js?v=20260815-v9"></script>
 
-  <script src="js/kpis.js?v=20260812-v7"></script>
+  <script src="js/kpis.js?v=20260815-v9"></script>
 
-  <script src="js/graficos.js?v=20260812-v7"></script>
+  <script src="js/graficos.js?v=20260815-v9"></script>
 
-  <script src="js/paginas.js?v=20260812-v7"></script>
+  <script src="js/paginas.js?v=20260815-v9"></script>
 
-  <script src="js/indicadores.js?v=20260812-v7"></script>
+  <script src="js/indicadores.js?v=20260815-v9"></script>
 
-  <script src="js/dashboard.js?v=20260812-v7"></script>
+  <script src="js/dashboard.js?v=20260815-v9"></script>
 
 
-<div data-build-version="20260812-v7" style="display:none"></div>
+<div data-build-version="20260815-v9" style="display:none"></div>
 </body>
 
 </html>

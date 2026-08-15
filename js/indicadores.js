@@ -32,7 +32,7 @@
       if(x.status_validacao==="Validado"){r.validadas++;cats.validadas++;}
       if(ehNQ(x)){r.nq++;cats.nq++;}
       if(ehAjuste(x)){r.ajuste++;cats.ajuste++;}
-      if(x.status_validacao==="A liberar"){r.aLiberar++;cats.aLiberar++;}
+      if(x.nao_liberada === true){r.aLiberar++;cats.aLiberar++;}
     });
     setText("opValidadas",cats.validadas); setText("opNQ",cats.nq); setText("opAjuste",cats.ajuste); setText("opALiberar",cats.aLiberar);
     const arr=Array.from(blocos.entries()).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR",{numeric:true}));
@@ -44,12 +44,12 @@
       {name:"Validadas",type:"bar",stack:"total",data:arr.map(x=>x[1].validadas)},
       {name:"Em NQ",type:"bar",stack:"total",data:arr.map(x=>x[1].nq)},
       {name:"Em ajuste",type:"bar",stack:"total",data:arr.map(x=>x[1].ajuste)},
-      {name:"A liberar",type:"bar",stack:"total",data:arr.map(x=>x[1].aLiberar)}
+      {name:"Não liberadas",type:"bar",stack:"total",data:arr.map(x=>x[1].aLiberar)}
     ]});
 
     chartOpStatus=initChart("graficoOperacionalStatus",chartOpStatus);
     chartOpStatus?.setOption({tooltip:{trigger:"item"},legend:{bottom:0},series:[{type:"pie",radius:["45%","72%"],data:[
-      {name:"Validadas",value:cats.validadas},{name:"Em NQ",value:cats.nq},{name:"Em ajuste",value:cats.ajuste},{name:"A liberar",value:cats.aLiberar}
+      {name:"Validadas",value:cats.validadas},{name:"Em NQ",value:cats.nq},{name:"Em ajuste",value:cats.ajuste},{name:"Não liberadas",value:cats.aLiberar}
     ],label:{formatter:"{b}\n{c}"}}]});
   }
 
@@ -93,7 +93,7 @@
     window.__aj1?.dispose(); window.__aj2?.dispose(); window.__aj1=echarts.init(el1); window.__aj2=echarts.init(el2);
     const tipos=["Ajustes - CONTEUDISTA E DA","Ajustes - MODELAGEM","Ajustes - GERÊNCIA DE TECNOLOGIA"];
     window.__aj1.setOption({tooltip:{trigger:"item"},series:[{type:"pie",radius:["45%","72%"],data:tipos.map(t=>({name:t.replace("Ajustes - ",""),value:rows.filter(x=>x.status_validacao===t).length}))}]});
-    const top=rows.map(x=>({n:`${texto(x.titulo)} · ${texto(x.unidade_material)}`,v:Number(x.qtd_ajustes_total)||0})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,10).reverse();
+    const porBloco=new Map(); rows.forEach(x=>{const b=texto(x.bloco); porBloco.set(b,(porBloco.get(b)||0)+1);}); const top=Array.from(porBloco.entries()).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v).slice(0,10).reverse();
     window.__aj2.setOption({tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},grid:{left:180,right:25,top:15,bottom:30},xAxis:{type:"value",minInterval:1},yAxis:{type:"category",data:top.map(x=>x.n),axisLabel:{width:165,overflow:"truncate"}},series:[{type:"bar",data:top.map(x=>x.v)}]});
   }
 

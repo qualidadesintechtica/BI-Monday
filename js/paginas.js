@@ -207,7 +207,7 @@
       if (item.status_validacao === "Validado") r.validadas += 1;
       if (["Liberado para validação - NQ", "Revalidar - NQ"].includes(item.status_validacao)) r.nq += 1;
       if (ehAjuste(item)) r.ajustes += 1;
-      if (item.status_validacao === "A liberar") r.aLiberar += 1;
+      if (item.nao_liberada === true) r.aLiberar += 1;
     }
 
     (dados || []).forEach(item => {
