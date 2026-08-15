@@ -1,3 +1,0 @@
-BI Monday — Consolidado v9
-Build: 20260815-v9-consolidado
-Fonte principal: public.vw_validacao_bi_consolidada
