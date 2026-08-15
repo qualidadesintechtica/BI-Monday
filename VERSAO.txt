@@ -1,3 +1,10 @@
-BI Monday — Consolidado v9
-Build: 20260815-v9-consolidado
-Fonte principal: public.vw_validacao_bi_consolidada
+BI Monday
+Versão: v10 · categorias
+Build: 20260815-v10-categorias
+Fonte principal: public.vw_materiais_bi_consolidada
+
+Alterações:
+- Filtro Categoria passa a receber todas as categorias da Esteira de Produção.
+- Mantém os KPIs de UA quando o contexto contém Unidade de Aprendizagem.
+- Ao filtrar apenas outras categorias, os cards resumem os materiais selecionados.
+- Preserva suporte a valores Em branco.

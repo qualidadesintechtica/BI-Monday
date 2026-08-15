@@ -1,24 +1,31 @@
-BI Monday - DataHub Validação de Materiais
-Versão: 2026-08-15 v8
+BI Monday - v10 categorias
 
-Fonte principal do dashboard:
-public.vw_validacao_bi_consolidada
+Esta versão usa a view public.vw_materiais_bi_consolidada.
+Antes de publicar no GitHub Pages, execute no Supabase o arquivo:
+  docs/CRIAR_VIEW_V10.sql
 
-Arquitetura:
-- monday_esteira_producao / vw_esteira_uas: universo planejado de UAs.
-- monday_validacao_materiais: execução da validação.
-- vw_validacao_bi_consolidada: uma linha por UA lógica, cruzando planejamento e execução.
+Categorias esperadas no filtro:
+- Unidade de Aprendizagem
+- Avaliação A1
+- Avaliação A2
+- Avaliação A3
+- Avaliação Lato
+- Recurso Audiovisual
+- Roteiro de Mediação (validação)
+- Em branco (quando houver)
 
-KPIs principais usam os flags da view:
-- Total UAs: quantidade de linhas/chave_ua.
-- Liberadas: foi_liberada = true.
-- Não liberadas: nao_liberada = true.
-- Validadas: eh_validada = true.
-- Em NQ: eh_nq = true.
-- Em ajuste: eh_ajuste = true.
+A view mantém planejamento da Esteira de Produção e cruza, quando possível,
+status/revisor/gestor/datas da Validação de Materiais.
 
-Referência validada para Jun a Ago/26 (Regular):
-Total 731 | Liberadas 589 | Não liberadas 142 | Validadas 434 | NQ 91 | Ajustes 33.
+Publicação:
+- Substitua index.html e a pasta js inteira.
+- Recomenda-se também substituir css, login.html, README.txt, VERSAO.txt e docs.
+- Faça Ctrl+F5 após o GitHub Pages atualizar.
 
-Observação:
-A view consolidada não possui a contagem histórica de retornos/ajustes por UA. A página Ajustes representa o estado atual das UAs em ajuste, sem inventar ocorrências históricas.
+Teste no Console:
+  window.BI_CONFIG.BUILD_ID
+  window.BI_CONFIG.VIEW_NAME
+
+Esperado:
+  20260815-v10-categorias
+  vw_materiais_bi_consolidada
