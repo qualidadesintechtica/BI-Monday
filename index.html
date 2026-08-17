@@ -23,7 +23,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260815-v10"
+    href="css/dashboard.css?v=20260817-v12"
   >
 
 </head>
@@ -58,6 +58,7 @@
       <nav class="nav">
 
         <a class="active" href="#resumo" data-view="resumo">Resumo Executivo</a>
+        <a href="#resultados" data-view="resultados">Resultados Alcançados</a>
         <a href="#operacao" data-view="operacao">Operação</a>
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
@@ -322,6 +323,53 @@
 
       </section>
 
+
+      <section id="viewResultados" class="page-view" data-page="resultados">
+        <div class="section-heading">
+          <div>
+            <h2>Resultados Alcançados</h2>
+            <p>Materiais validados e indicadores analisados. Regras: UA × 25, BDQ × 17 e PP × 10.</p>
+          </div>
+        </div>
+
+        <section class="resultados-grid">
+          <article class="resultado-card">
+            <span class="resultado-tipo">UA</span>
+            <strong id="resultadoUaValidados">0</strong>
+            <small>UAs validadas</small>
+            <div class="resultado-indicadores"><b id="resultadoUaIndicadores">0</b><span>indicadores analisados</span></div>
+          </article>
+          <article class="resultado-card">
+            <span class="resultado-tipo">BDQ</span>
+            <strong id="resultadoBdqValidados">0</strong>
+            <small>BDQs validados</small>
+            <div class="resultado-indicadores"><b id="resultadoBdqIndicadores">0</b><span>indicadores analisados</span></div>
+          </article>
+          <article class="resultado-card">
+            <span class="resultado-tipo">PP</span>
+            <strong id="resultadoPpValidados">0</strong>
+            <small>Planos de Produção validados</small>
+            <div class="resultado-indicadores"><b id="resultadoPpIndicadores">0</b><span>indicadores analisados</span></div>
+          </article>
+        </section>
+
+        <section class="resultado-total-card">
+          <div><span>Materiais validados</span><strong id="resultadoTotalMateriais">0</strong></div>
+          <div><span>Indicadores analisados</span><strong id="resultadoTotalIndicadores">0</strong></div>
+        </section>
+
+        <section class="charts">
+          <article class="chart-card">
+            <h3>Materiais validados por tipo</h3>
+            <div id="graficoResultadosMateriais" class="chart"></div>
+          </article>
+          <article class="chart-card">
+            <h3>Indicadores analisados por tipo</h3>
+            <div id="graficoResultadosIndicadores" class="chart"></div>
+          </article>
+        </section>
+        <p class="resultados-nota">Nesta visão, Esteira, Matriz, Bloco, Categoria e Status são aplicados quando compatíveis com a fonte consolidada. Gestor e Revisor não existem na fonte de PP e, por isso, não alteram os resultados desta página.</p>
+      </section>
 
       <section id="viewResumo" class="page-view active" data-page="resumo">
 
@@ -713,7 +761,7 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260815-v10"></script>
+  <script src="js/config.js?v=20260817-v12"></script>
 
   <script src="js/supabase.js?v=20260815-v10"></script>
 
@@ -731,10 +779,12 @@
 
   <script src="js/indicadores.js?v=20260815-v10"></script>
 
-  <script src="js/dashboard.js?v=20260815-v10"></script>
+  <script src="js/resultados.js?v=20260817-v12"></script>
+
+  <script src="js/dashboard.js?v=20260817-v12"></script>
 
 
-<div data-build-version="20260815-v10" style="display:none"></div>
+<div data-build-version="20260817-v12" style="display:none"></div>
 </body>
 
 </html>

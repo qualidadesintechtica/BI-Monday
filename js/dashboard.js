@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const titulosPaginas = {
     resumo: "Resumo Executivo",
+    resultados: "Resultados Alcançados",
     operacao: "Operação",
     ajustes: "Ajustes",
     equipe: "Equipe",
@@ -71,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.atualizarGraficos(dadosFiltrados);
     window.atualizarPaginasBI?.(dadosFiltrados);
     window.atualizarIndicadoresBI?.(dadosFiltrados);
+    window.atualizarResultadosAlcancados?.();
 
     if (quantidadeFiltrada) {
       quantidadeFiltrada.textContent = `${dadosFiltrados.length} registros no filtro atual`;
@@ -92,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (tituloPagina) tituloPagina.textContent = titulosPaginas[nome];
     history.replaceState(null, "", `#${nome}`);
 
-    if (["resumo", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
+    if (["resumo", "resultados", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
       setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
     }
   }

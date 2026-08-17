@@ -1,10 +1,12 @@
-BI Monday
-Versão: v10 · categorias
-Build: 20260815-v10-categorias
-Fonte principal: public.vw_materiais_bi_consolidada
+V12 - Resultados Alcançados
+Build: 20260817-v12-resultados
 
-Alterações:
-- Filtro Categoria passa a receber todas as categorias da Esteira de Produção.
-- Mantém os KPIs de UA quando o contexto contém Unidade de Aprendizagem.
-- Ao filtrar apenas outras categorias, os cards resumem os materiais selecionados.
-- Preserva suporte a valores Em branco.
+Incluído:
+- Nova página Resultados Alcançados
+- Fonte: vw_resultados_alcancados
+- UA: 25 indicadores por material validado
+- BDQ: 17 indicadores por material validado
+- PP: 10 indicadores por material validado
+- Cards de UA, BDQ, PP e totais
+- Gráficos comparativos
+- Integração com filtros compatíveis
