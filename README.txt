@@ -1,31 +1,29 @@
-BI Monday - v10 categorias
+BI Monday - v13 Reunião NQ
 
-Esta versão usa a view public.vw_materiais_bi_consolidada.
-Antes de publicar no GitHub Pages, execute no Supabase o arquivo:
-  docs/CRIAR_VIEW_V10.sql
+Build: 20260827-v13-reuniao-nq
 
-Categorias esperadas no filtro:
-- Unidade de Aprendizagem
-- Avaliação A1
-- Avaliação A2
-- Avaliação A3
-- Avaliação Lato
-- Recurso Audiovisual
-- Roteiro de Mediação (validação)
-- Em branco (quando houver)
+Esta versão mantém o BI de Validação de Materiais e adiciona a página "Reunião NQ".
 
-A view mantém planejamento da Esteira de Produção e cruza, quando possível,
-status/revisor/gestor/datas da Validação de Materiais.
+Fontes principais no Supabase:
+- public.vw_materiais_bi_consolidada
+- public.vw_resultados_alcancados
+- public.vw_nq_reuniao_resumo
+- public.vw_nq_reuniao_nao_conformidades
 
-Publicação:
-- Substitua index.html e a pasta js inteira.
-- Recomenda-se também substituir css, login.html, README.txt, VERSAO.txt e docs.
-- Faça Ctrl+F5 após o GitHub Pages atualizar.
+Página Reunião NQ:
+- Produtividade: UA, PP, A1, A2, A3 e Lato
+- Operação atual: total, validados, liberados, revalidação, ajustes e a liberar
+- Qualidade: critérios avaliados, conformes, não conformes e taxa de conformidade
+- Top 10 de não conformidades
+
+Publicação no GitHub Pages:
+- Envie o CONTEÚDO deste pacote diretamente para a raiz do repositório BI-Monday.
+- A raiz deve conter index.html, login.html, css/, js/, docs/, README.txt e VERSAO.txt.
+- Não envie uma pasta externa contendo esses arquivos.
+- Após o commit, aguarde o GitHub Pages e faça Ctrl+F5.
 
 Teste no Console:
   window.BI_CONFIG.BUILD_ID
-  window.BI_CONFIG.VIEW_NAME
 
 Esperado:
-  20260815-v10-categorias
-  vw_materiais_bi_consolidada
+  20260827-v13-reuniao-nq
