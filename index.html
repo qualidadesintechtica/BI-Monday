@@ -50,7 +50,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v10 · categorias</small>
+        <small class="build-badge">v13 · reunião NQ</small>
 
       </div>
 
@@ -59,6 +59,7 @@
 
         <a class="active" href="#resumo" data-view="resumo">Resumo Executivo</a>
         <a href="#resultados" data-view="resultados">Resultados Alcançados</a>
+        <a href="#reuniao-nq" data-view="reuniao-nq">Reunião NQ</a>
         <a href="#operacao" data-view="operacao">Operação</a>
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
@@ -323,6 +324,79 @@
 
       </section>
 
+
+      <section id="viewReuniaoNQ" class="page-view" data-page="reuniao-nq">
+        <div class="meeting-hero">
+          <div>
+            <span class="meeting-eyebrow">Núcleo de Qualidade · visão executiva</span>
+            <h2>Validação de Materiais</h2>
+            <p>Indicadores consolidados da Monday para apresentação executiva.</p>
+          </div>
+          <div class="meeting-period">
+            <span>Período de produção</span>
+            <strong id="nqPeriodo">01/10/2025 a 31/05/2026</strong>
+          </div>
+        </div>
+
+        <div id="nqStatus" class="meeting-status">Carregando indicadores da reunião...</div>
+
+        <section class="meeting-section">
+          <div class="meeting-section-title"><span>01</span><div><h3>Produtividade no período</h3><p>Materiais validados no intervalo definido para a reunião.</p></div></div>
+          <div class="meeting-kpis meeting-kpis-7">
+            <article><span>UAs validadas</span><strong id="nqUa">--</strong></article>
+            <article><span>PPs validados</span><strong id="nqPp">--</strong></article>
+            <article><span>A1</span><strong id="nqA1">--</strong></article>
+            <article><span>A2</span><strong id="nqA2">--</strong></article>
+            <article><span>A3</span><strong id="nqA3">--</strong></article>
+            <article><span>Lato</span><strong id="nqLato">--</strong></article>
+            <article class="meeting-highlight"><span>Revisores mobilizados</span><strong id="nqRevisores">--</strong><small>revisores distintos no período</small></article>
+          </div>
+        </section>
+
+        <section class="meeting-section">
+          <div class="meeting-section-title"><span>02</span><div><h3>Operação atual</h3><p>Fotografia do fluxo de validação no momento da sincronização.</p></div></div>
+          <div class="meeting-kpis meeting-kpis-6">
+            <article><span>Total de materiais</span><strong id="nqTotal">--</strong></article>
+            <article><span>Validados</span><strong id="nqValidados">--</strong></article>
+            <article><span>Liberados p/ validação</span><strong id="nqLiberados">--</strong></article>
+            <article><span>Revalidação</span><strong id="nqRevalidacao">--</strong></article>
+            <article><span>Ajustes Conteudista/DA</span><strong id="nqAjustes">--</strong></article>
+            <article><span>A liberar</span><strong id="nqALiberar">--</strong></article>
+          </div>
+        </section>
+
+        <section class="meeting-section meeting-quality-grid">
+          <div>
+            <div class="meeting-section-title"><span>03</span><div><h3>Qualidade da validação</h3><p>Critérios classificados pelos especialistas.</p></div></div>
+            <div class="meeting-quality-card">
+              <div class="meeting-rate"><strong id="nqTaxaConformidade">--</strong><span>taxa de conformidade</span></div>
+              <div class="meeting-quality-stats">
+                <div><span>Critérios avaliados</span><b id="nqCriterios">--</b></div>
+                <div><span>Conformes</span><b id="nqConformes">--</b></div>
+                <div><span>Não conformes</span><b id="nqNaoConformes">--</b></div>
+                <div><span>Não conformidade</span><b id="nqTaxaNaoConformidade">--</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="meeting-chart-card">
+            <div class="meeting-section-title compact"><span>04</span><div><h3>Principais não conformidades</h3><p>Top 10 por quantidade de classificações “Não”.</p></div></div>
+            <div id="graficoNQConformidades" class="meeting-chart"></div>
+          </div>
+        </section>
+
+        <section class="meeting-section">
+          <div class="meeting-section-title"><span>05</span><div><h3>Detalhamento dos critérios críticos</h3><p>Volume avaliado e percentual de não conformidade por critério.</p></div></div>
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>Critério</th><th>Não conformidades</th><th>Critérios avaliados</th><th>% não conformidade</th></tr></thead>
+                <tbody id="tbodyNQConformidades"><tr><td colspan="4">Carregando...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase. Produção: 01/10/2025 a 31/05/2026. Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
+      </section>
 
       <section id="viewResultados" class="page-view" data-page="resultados">
         <div class="section-heading">
@@ -781,10 +855,12 @@
 
   <script src="js/resultados.js?v=20260817-v12"></script>
 
+  <script src="js/reuniao-nq.js?v=20260827-v13"></script>
+
   <script src="js/dashboard.js?v=20260817-v12"></script>
 
 
-<div data-build-version="20260817-v12" style="display:none"></div>
+<div data-build-version="20260827-v13" style="display:none"></div>
 </body>
 
 </html>
