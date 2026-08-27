@@ -1,0 +1,1 @@
+IMPORTANTE: envie ESTES arquivos para a RAIZ do repositório BI-Monday. Não envie uma pasta contendo estes arquivos. Após publicar, a raiz deve conter index.html, login.html, css/ e js/.
