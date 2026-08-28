@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260827-v13-reuniao-nq"
+    href="css/global.css?v=20260828-v14-indicadores-uc"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260827-v13-reuniao-nq"
+    href="css/dashboard.css?v=20260828-v14-indicadores-uc"
   >
 
 </head>
@@ -50,7 +50,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v13 · reunião NQ</small>
+        <small class="build-badge">v14 · indicadores UC</small>
 
       </div>
 
@@ -68,6 +68,7 @@
         <a href="#grafico-operacional" data-view="grafico-operacional">Gráfico Operacional</a>
         <a href="#dias-validacao" data-view="dias-validacao">Dias para Validação</a>
         <a href="#historico" data-view="historico">Histórico de Atualizações</a>
+        <a href="#indicadores-uc" data-view="indicadores-uc">Indicadores da UC</a>
 
       </nav>
 
@@ -396,6 +397,64 @@
           </div>
         </section>
         <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase. Produção: 01/10/2025 a 31/05/2026. Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
+      </section>
+
+      <section id="viewIndicadoresUC" class="page-view" data-page="indicadores-uc">
+        <div class="ucx-hero">
+          <div>
+            <span class="ucx-eyebrow">Núcleo de Qualidade · Unidade Curricular</span>
+            <h2>Indicadores da UC</h2>
+            <p>Leitura executiva e detalhada dos 7 indicadores de qualidade, consolidando as avaliações realizadas por UA.</p>
+          </div>
+          <div class="ucx-source-badge">
+            <span class="ucx-source-dot"></span>
+            <div><b>Dados demonstrativos</b><small>Integração com a Monday ainda pendente</small></div>
+          </div>
+        </div>
+
+        <div class="ucx-summary-grid">
+          <article><span>UCs avaliadas</span><strong id="ucxTotal">--</strong><small>unidades curriculares com registros</small></article>
+          <article><span>Média geral</span><strong id="ucxMedia">--</strong><small>média dos 7 indicadores</small></article>
+          <article><span>Excelente + Ótimo</span><strong id="ucxExcelentes">--</strong><small>UCs nos dois níveis superiores</small></article>
+          <article class="ucx-alert-card"><span>UCs incompletas</span><strong id="ucxIncompletas">--</strong><small>com menos de 8 UAs avaliadas</small></article>
+        </div>
+
+        <div class="ucx-toolbar">
+          <div class="ucx-tabs">
+            <button type="button" class="active" data-ucx-view="uc">Detalhe da UC</button>
+            <button type="button" data-ucx-view="comparativo">Comparativo por indicador</button>
+          </div>
+          <div class="ucx-actions">
+            <input id="ucxBusca" type="search" placeholder="Buscar UC por nome ou código" aria-label="Buscar UC">
+            <select id="ucxOrdem" aria-label="Ordenar UCs"></select>
+            <details class="ucx-ruler">
+              <summary>Configurar régua</summary>
+              <div class="ucx-ruler-popover">
+                <label>Excelente <input id="ucxExc" type="number" value="0.90" min="0" max="1" step="0.01"></label>
+                <label>Ótimo <input id="ucxOti" type="number" value="0.70" min="0" max="1" step="0.01"></label>
+                <label>Suficiente <input id="ucxSuf" type="number" value="0.50" min="0" max="1" step="0.01"></label>
+                <button id="ucxApplyCuts" type="button">Aplicar</button>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="ucx-context-line">
+          <span id="ucxResumoConceitos">--</span>
+          <span>Escala: Excelente · Ótimo · Suficiente · Insuficiente</span>
+        </div>
+
+        <div class="ucx-layout">
+          <aside class="ucx-ranking-card">
+            <div class="ucx-card-head"><div><span>Ranking</span><small id="ucxContagem">--</small></div><small>clique em uma UC para detalhar</small></div>
+            <div id="ucxLista" class="ucx-ranking"></div>
+          </aside>
+          <section id="ucxPainel" class="ucx-detail-card"></section>
+        </div>
+
+        <div class="ucx-note">
+          <b>Regra de cálculo:</b> cada indicador é a média das UAs avaliadas. A nota final da UC é a média dos 7 indicadores. “Não se aplica” é desconsiderado da média.
+        </div>
       </section>
 
       <section id="viewResultados" class="page-view" data-page="resultados">
@@ -835,29 +894,30 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/config.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/supabase.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/supabase.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/auth.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/auth.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/dados.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/dados.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/filtros.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/filtros.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/kpis.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/kpis.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/graficos.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/graficos.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/paginas.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/paginas.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/indicadores.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/indicadores.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/resultados.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/resultados.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/reuniao-nq.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/reuniao-nq.js?v=20260828-v14-indicadores-uc"></script>
 
-  <script src="js/dashboard.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/indicadores-uc.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/dashboard.js?v=20260828-v14-indicadores-uc"></script>
 
 
 <div data-build-version="20260827-v13" style="display:none"></div>

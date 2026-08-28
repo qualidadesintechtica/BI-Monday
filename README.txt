@@ -1,6 +1,6 @@
-BI Monday - v13 Reunião NQ
+BI Monday - v14 Indicadores da UC
 
-Build: 20260827-v13-reuniao-nq
+Build: 20260828-v14-indicadores-uc
 
 Esta versão mantém o BI de Validação de Materiais e adiciona a página "Reunião NQ".
 
@@ -26,4 +26,4 @@ Teste no Console:
   window.BI_CONFIG.BUILD_ID
 
 Esperado:
-  20260827-v13-reuniao-nq
+  20260828-v14-indicadores-uc

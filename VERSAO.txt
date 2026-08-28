@@ -1,9 +1,2 @@
-V13 - Reunião NQ
-Build: 20260827-v13-reuniao-nq
-
-Incluído:
-- Nova página Reunião NQ
-- Fonte executiva: vw_nq_reuniao_resumo
-- Top 10 de não conformidades: vw_nq_reuniao_nao_conformidades
-- Mantida a página Resultados Alcançados
-- Cache-busting atualizado para o build v13 em index.html e login.html
+V14 - Indicadores da UC
+Build: 20260828-v14-indicadores-uc
