@@ -123,13 +123,18 @@
     const geral = media(avaliadas.map(u => u.nota));
     const exc = avaliadas.filter(u => conceito(u.nota) === "Excelente").length;
     const oti = avaliadas.filter(u => conceito(u.nota) === "Ótimo").length;
+    const suf = avaliadas.filter(u => conceito(u.nota) === "Suficiente").length;
+    const na = ucs.filter(u => u.uasAvaliadas === 0).length;
     const inc = ucs.filter(u => u.uasNaoAvaliadas > 0).length;
 
     $("ucxTotal").textContent = avaliadas.length;
     $("ucxMedia").textContent = num(geral);
-    $("ucxExcelentes").textContent = exc + oti;
+    $("ucxExcelente").textContent = exc;
+    $("ucxOtimo").textContent = oti;
+    $("ucxSuficiente").textContent = suf;
+    $("ucxNaoAvaliada").textContent = na;
     $("ucxIncompletas").textContent = inc;
-    $("ucxResumoConceitos").textContent = `${exc} excelentes · ${oti} ótimas · ${inc} com UAs pendentes`;
+    $("ucxResumoConceitos").textContent = `${exc} excelentes · ${oti} ótimas · ${suf} suficientes · ${na} não avaliadas`;
   }
 
   function renderRanking() {
