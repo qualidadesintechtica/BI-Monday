@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Entrar | BI Validação de Materiais</title>
+
+  <link rel="stylesheet" href="css/global.css?v=20260827-v13-reuniao-nq" />
+  <link rel="stylesheet" href="css/login.css?v=20260827-v13-reuniao-nq" />
+</head>
+
+<body>
+
+  <main class="login-shell">
+
+    <!-- ==================================================
+         LADO ESQUERDO
+    =================================================== -->
+
+    <section class="login-brand">
+
+      <span>DataHub de Validação</span>
+
+      <h1>
+        BI Validação de Materiais
+      </h1>
+
+      <p>
+        Indicadores operacionais alimentados automaticamente
+        pela Monday via Supabase.
+      </p>
+
+    </section>
+
+
+    <!-- ==================================================
+         CARD
+    =================================================== -->
+
+    <section class="login-card">
+
+
+      <!-- ==================================================
+           LOGIN
+      =================================================== -->
+
+      <div id="loginPanel">
+
+        <h2>Entrar</h2>
+
+        <p>
+          Use seu e-mail institucional e sua senha.
+        </p>
+
+
+        <div
+          id="loginMessage"
+          class="auth-message"
+          hidden
+        ></div>
+
+
+        <form id="loginForm">
+
+          <div class="field">
+
+            <label for="loginEmail">
+              E-mail
+            </label>
+
+            <input
+              id="loginEmail"
+              type="email"
+              autocomplete="email"
+              required
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="loginPassword">
+              Senha
+            </label>
+
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+
+          </div>
+
+
+          <button
+            id="loginButton"
+            class="login-button"
+            type="submit"
+          >
+            Entrar
+          </button>
+
+        </form>
+
+
+        <div class="first-access">
+
+          <p>
+            É seu primeiro acesso?
+          </p>
+
+          <button
+            id="openRegisterButton"
+            type="button"
+            class="secondary-button"
+          >
+            Criar minha conta
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           CADASTRO
+      =================================================== -->
+
+      <div
+        id="registerPanel"
+        hidden
+      >
+
+        <h2>
+          Criar conta
+        </h2>
+
+        <p>
+          Use seu e-mail institucional
+          <strong>@animaeducacao.com.br</strong>.
+        </p>
+
+
+        <div
+          id="registerMessage"
+          class="auth-message"
+          hidden
+        ></div>
+
+
+        <form id="registerForm">
+
+          <div class="field">
+
+            <label for="registerName">
+              Nome completo
+            </label>
+
+            <input
+              id="registerName"
+              type="text"
+              autocomplete="name"
+              required
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="registerEmail">
+              E-mail institucional
+            </label>
+
+            <input
+              id="registerEmail"
+              type="email"
+              autocomplete="email"
+              required
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="registerPassword">
+              Crie uma senha
+            </label>
+
+            <input
+              id="registerPassword"
+              type="password"
+              minlength="6"
+              autocomplete="new-password"
+              required
+            />
+
+          </div>
+
+
+          <button
+            id="registerButton"
+            class="login-button"
+            type="submit"
+          >
+            Criar conta
+          </button>
+
+        </form>
+
+
+        <div class="first-access">
+
+          <p>
+            Já possui uma conta?
+          </p>
+
+          <button
+            id="openLoginButton"
+            type="button"
+            class="secondary-button"
+          >
+            Voltar para entrar
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ==================================================
+       SUPABASE
+  =================================================== -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="js/config.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/supabase.js?v=20260827-v13-reuniao-nq"></script>
+
+
+  <!-- ==================================================
+       LOGIN + CADASTRO
+       TUDO AQUI PARA NÃO DEPENDER DO login.js
+  =================================================== -->
+
+  <script>
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function () {
+
+        "use strict";
+
+
+        /* ================================================
+           ELEMENTOS
+        ================================================= */
+
+        const loginPanel =
+          document.getElementById("loginPanel");
+
+        const registerPanel =
+          document.getElementById("registerPanel");
+
+        const openRegisterButton =
+          document.getElementById(
+            "openRegisterButton"
+          );
+
+        const openLoginButton =
+          document.getElementById(
+            "openLoginButton"
+          );
+
+        const loginForm =
+          document.getElementById("loginForm");
+
+        const registerForm =
+          document.getElementById(
+            "registerForm"
+          );
+
+        const loginMessage =
+          document.getElementById(
+            "loginMessage"
+          );
+
+        const registerMessage =
+          document.getElementById(
+            "registerMessage"
+          );
+
+
+        /* ================================================
+           TROCA DE PAINEL
+        ================================================= */
+
+        function abrirCadastro() {
+
+          loginPanel.hidden = true;
+
+          registerPanel.hidden = false;
+
+          loginMessage.hidden = true;
+
+          registerMessage.hidden = true;
+
+        }
+
+
+        function abrirLogin() {
+
+          registerPanel.hidden = true;
+
+          loginPanel.hidden = false;
+
+          loginMessage.hidden = true;
+
+          registerMessage.hidden = true;
+
+        }
+
+
+        openRegisterButton.addEventListener(
+          "click",
+          abrirCadastro
+        );
+
+
+        openLoginButton.addEventListener(
+          "click",
+          abrirLogin
+        );
+
+
+        /* ================================================
+           MENSAGENS
+        ================================================= */
+
+        function mensagem(
+          elemento,
+          texto,
+          tipo = "error"
+        ) {
+
+          elemento.textContent = texto;
+
+          elemento.className =
+            "auth-message " + tipo;
+
+          elemento.hidden = false;
+
+        }
+
+
+        function limparMensagem(elemento) {
+
+          elemento.textContent = "";
+
+          elemento.hidden = true;
+
+        }
+
+
+        /* ================================================
+           VALIDA DOMÍNIO
+        ================================================= */
+
+        function emailPermitido(email) {
+
+          const partes =
+            String(email || "")
+              .trim()
+              .toLowerCase()
+              .split("@");
+
+
+          return (
+            partes.length === 2 &&
+            partes[1] ===
+              "animaeducacao.com.br"
+          );
+
+        }
+
+
+        /* ================================================
+           LOGIN
+        ================================================= */
+
+        loginForm.addEventListener(
+          "submit",
+          async function (event) {
+
+            event.preventDefault();
+
+            limparMensagem(
+              loginMessage
+            );
+
+
+            const email =
+              document
+                .getElementById(
+                  "loginEmail"
+                )
+                .value
+                .trim()
+                .toLowerCase();
+
+
+            const password =
+              document
+                .getElementById(
+                  "loginPassword"
+                )
+                .value;
+
+
+            const botao =
+              document.getElementById(
+                "loginButton"
+              );
+
+
+            if (!emailPermitido(email)) {
+
+              mensagem(
+                loginMessage,
+                "Use seu e-mail @animaeducacao.com.br."
+              );
+
+              return;
+
+            }
+
+
+            if (!window.biSupabase) {
+
+              mensagem(
+                loginMessage,
+                "A conexão com o DataHub não foi carregada."
+              );
+
+              return;
+
+            }
+
+
+            botao.disabled = true;
+
+            botao.textContent =
+              "Entrando...";
+
+
+            try {
+
+              const {
+                data,
+                error
+              } =
+                await window.biSupabase.auth
+                  .signInWithPassword({
+
+                    email,
+                    password
+
+                  });
+
+
+              if (error) {
+
+                throw error;
+
+              }
+
+
+              if (!data?.session) {
+
+                throw new Error(
+                  "Sessão não iniciada."
+                );
+
+              }
+
+
+              window.location.assign(
+                "index.html"
+              );
+
+
+            } catch (error) {
+
+              console.error(
+                "Erro no login:",
+                error
+              );
+
+
+              const texto =
+                String(
+                  error?.message || ""
+                ).toLowerCase();
+
+
+              let aviso =
+                "Não foi possível entrar.";
+
+
+              if (
+                texto.includes(
+                  "invalid login credentials"
+                )
+              ) {
+
+                aviso =
+                  "E-mail ou senha incorretos.";
+
+              }
+
+
+              if (
+                texto.includes(
+                  "email not confirmed"
+                )
+              ) {
+
+                aviso =
+                  "Confirme seu e-mail antes de entrar.";
+
+              }
+
+
+              mensagem(
+                loginMessage,
+                aviso
+              );
+
+
+            } finally {
+
+              botao.disabled = false;
+
+              botao.textContent =
+                "Entrar";
+
+            }
+
+          }
+        );
+
+
+        /* ================================================
+           CADASTRO
+        ================================================= */
+
+        registerForm.addEventListener(
+          "submit",
+          async function (event) {
+
+            event.preventDefault();
+
+            limparMensagem(
+              registerMessage
+            );
+
+
+            const nome =
+              document
+                .getElementById(
+                  "registerName"
+                )
+                .value
+                .trim();
+
+
+            const email =
+              document
+                .getElementById(
+                  "registerEmail"
+                )
+                .value
+                .trim()
+                .toLowerCase();
+
+
+            const password =
+              document
+                .getElementById(
+                  "registerPassword"
+                )
+                .value;
+
+
+            const botao =
+              document.getElementById(
+                "registerButton"
+              );
+
+
+            if (!nome) {
+
+              mensagem(
+                registerMessage,
+                "Digite seu nome completo."
+              );
+
+              return;
+
+            }
+
+
+            if (!emailPermitido(email)) {
+
+              mensagem(
+                registerMessage,
+                "O cadastro é permitido somente para e-mails @animaeducacao.com.br."
+              );
+
+              return;
+
+            }
+
+
+            if (password.length < 6) {
+
+              mensagem(
+                registerMessage,
+                "A senha precisa ter pelo menos 6 caracteres."
+              );
+
+              return;
+
+            }
+
+
+            if (!window.biSupabase) {
+
+              mensagem(
+                registerMessage,
+                "A conexão com o DataHub não foi carregada."
+              );
+
+              return;
+
+            }
+
+
+            botao.disabled = true;
+
+            botao.textContent =
+              "Criando conta...";
+
+
+            try {
+
+              const redirectUrl =
+                window.location.origin +
+                window.location.pathname;
+
+
+              const {
+                data,
+                error
+              } =
+                await window.biSupabase.auth
+                  .signUp({
+
+                    email,
+                    password,
+
+                    options: {
+
+                      data: {
+
+                        nome,
+                        nome_completo:
+                          nome,
+
+                        full_name:
+                          nome
+
+                      },
+
+                      emailRedirectTo:
+                        redirectUrl
+
+                    }
+
+                  });
+
+
+              if (error) {
+
+                throw error;
+
+              }
+
+
+              registerForm.reset();
+
+
+              mensagem(
+                registerMessage,
+                "Cadastro realizado. Verifique seu e-mail institucional para confirmar a conta.",
+                "success"
+              );
+
+
+            } catch (error) {
+
+              console.error(
+                "Erro no cadastro:",
+                error
+              );
+
+
+              mensagem(
+                registerMessage,
+                error?.message ||
+                  "Não foi possível criar sua conta."
+              );
+
+
+            } finally {
+
+              botao.disabled = false;
+
+              botao.textContent =
+                "Criar conta";
+
+            }
+
+          }
+        );
+
+
+        /* ================================================
+           INICIALIZA
+        ================================================= */
+
+        abrirLogin();
+
+      }
+    );
+
+  </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js?v=20260827-v13-reuniao-nq"></script>
+<script src="js/supabase.js?v=20260827-v13-reuniao-nq"></script>
+
+</body>
+</html>
