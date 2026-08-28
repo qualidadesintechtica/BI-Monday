@@ -1,0 +1,11 @@
+V14 - REUNIÃO NQ
+
+Envie ESTES arquivos diretamente para a RAIZ do repositório BI-Monday.
+Não crie nem envie uma pasta BI_Monday_Reuniao_NQ_v13 dentro do repositório.
+
+Depois do commit:
+1. aguarde o GitHub Pages publicar;
+2. abra o BI;
+3. faça Ctrl+F5;
+4. confirme no Console: window.BI_CONFIG.BUILD_ID
+5. o resultado deve ser: 20260828-v14-indicadores-uc
