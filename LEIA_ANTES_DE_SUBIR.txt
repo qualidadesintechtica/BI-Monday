@@ -1,7 +1,7 @@
-V16 - INDICADORES DA UC COM DADOS REAIS
+V17 - INDICADORES DA UC COM DADOS REAIS
 
 Envie ESTES arquivos diretamente para a RAIZ do repositório BI-Monday.
-Não crie uma pasta V16 dentro do repositório.
+Não crie uma pasta V17 dentro do repositório.
 
 Principais alterações:
 - js/indicadores-uc.js consulta vw_indicadores_uc_dashboard e vw_indicadores_uc no Supabase;
@@ -14,4 +14,4 @@ Depois do commit:
 2. abra o BI;
 3. faça Ctrl+F5;
 4. confirme no Console: window.BI_CONFIG.BUILD_ID
-5. o resultado deve ser: 20260828-v16-indicadores-uc-live
+5. o resultado deve ser: 20260828-v17-nomes-uc-cores
