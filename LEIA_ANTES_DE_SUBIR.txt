@@ -1,11 +1,17 @@
-V14 - REUNIÃO NQ
+V15 - INDICADORES DA UC COM DADOS REAIS
 
 Envie ESTES arquivos diretamente para a RAIZ do repositório BI-Monday.
-Não crie nem envie uma pasta BI_Monday_Reuniao_NQ_v13 dentro do repositório.
+Não crie uma pasta V15 dentro do repositório.
+
+Principais alterações:
+- js/indicadores-uc.js consulta vw_indicadores_uc_dashboard e vw_indicadores_uc no Supabase;
+- removidos os dados demonstrativos;
+- ranking, KPIs, detalhe por UA e comparativo usam dados reais;
+- indicador de fonte mostra Monday → Supabase e a última sincronização disponível.
 
 Depois do commit:
 1. aguarde o GitHub Pages publicar;
 2. abra o BI;
 3. faça Ctrl+F5;
 4. confirme no Console: window.BI_CONFIG.BUILD_ID
-5. o resultado deve ser: 20260828-v14-indicadores-uc
+5. o resultado deve ser: 20260828-v15-indicadores-uc-live

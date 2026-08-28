@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260828-v14-indicadores-uc"
+    href="css/global.css?v=20260828-v15-indicadores-uc-live"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260828-v14-indicadores-uc"
+    href="css/dashboard.css?v=20260828-v15-indicadores-uc-live"
   >
 
 </head>
@@ -408,15 +408,15 @@
           </div>
           <div class="ucx-source-badge">
             <span class="ucx-source-dot"></span>
-            <div><b>Dados demonstrativos</b><small>Integração com a Monday ainda pendente</small></div>
+            <div><b id="ucxSourceTitle">Dados reais</b><small id="ucxSourceText">Monday → Supabase</small></div>
           </div>
         </div>
 
         <div class="ucx-summary-grid">
-          <article><span>UCs avaliadas</span><strong id="ucxTotal">--</strong><small>unidades curriculares com registros</small></article>
+          <article><span>UCs avaliadas</span><strong id="ucxTotal">--</strong><small>unidades curriculares com ao menos uma UA avaliada</small></article>
           <article><span>Média geral</span><strong id="ucxMedia">--</strong><small>média dos 7 indicadores</small></article>
           <article><span>Excelente + Ótimo</span><strong id="ucxExcelentes">--</strong><small>UCs nos dois níveis superiores</small></article>
-          <article class="ucx-alert-card"><span>UCs incompletas</span><strong id="ucxIncompletas">--</strong><small>com menos de 8 UAs avaliadas</small></article>
+          <article class="ucx-alert-card"><span>UCs incompletas</span><strong id="ucxIncompletas">--</strong><small>com UAs ainda não avaliadas</small></article>
         </div>
 
         <div class="ucx-toolbar">
@@ -453,7 +453,7 @@
         </div>
 
         <div class="ucx-note">
-          <b>Regra de cálculo:</b> cada indicador é a média das UAs avaliadas. A nota final da UC é a média dos 7 indicadores. “Não se aplica” é desconsiderado da média.
+          <b>Regra de cálculo:</b> cada indicador é a média das UAs avaliadas. A nota final da UC é a média dos 7 indicadores. campos sem avaliação são desconsiderados da média.
         </div>
       </section>
 
@@ -894,33 +894,33 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/config.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/supabase.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/supabase.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/auth.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/auth.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/dados.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/dados.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/filtros.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/filtros.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/kpis.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/kpis.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/graficos.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/graficos.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/paginas.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/paginas.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/indicadores.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/indicadores.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/resultados.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/resultados.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/reuniao-nq.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/reuniao-nq.js?v=20260828-v15-indicadores-uc-live"></script>
 
-  <script src="js/indicadores-uc.js?v=20260828-v14-indicadores-uc"></script>
-  <script src="js/dashboard.js?v=20260828-v14-indicadores-uc"></script>
+  <script src="js/indicadores-uc.js?v=20260828-v15-indicadores-uc-live"></script>
+  <script src="js/dashboard.js?v=20260828-v15-indicadores-uc-live"></script>
 
 
-<div data-build-version="20260827-v13" style="display:none"></div>
+<div data-build-version="20260828-v15-indicadores-uc-live" style="display:none"></div>
 </body>
 
 </html>
