@@ -1,3 +1,0 @@
-:root{--bg:#f5f6fb;--card:#fff;--text:#2a2540;--muted:#766f88;--purple:#2d1553;--deep:#1d0e42;--magenta:#db007d;--pink:#a30085;--line:#e7e2ef}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
-button,input,select{font:inherit}
