@@ -1023,3 +1023,10 @@
 .ucx-summary-grid-results .ucx-alert-card{border-top-color:#a25f00;background:#fffaf2}
 .ucx-concept.exc{background:#2f7d32;color:#fff}.ucx-concept.oti{background:#2c6fb7;color:#fff}.ucx-concept.suf{background:#d48719;color:#fff}.ucx-concept.ins{background:#b23a35;color:#fff}
 .ucx-strip i.exc,.ucx-cell.exc,.ucx-heat.exc{background:#2f7d32;color:#fff}.ucx-strip i.oti,.ucx-cell.oti,.ucx-heat.oti{background:#2c6fb7;color:#fff}.ucx-strip i.suf,.ucx-cell.suf,.ucx-heat.suf{background:#d48719;color:#fff}.ucx-strip i.ins,.ucx-cell.ins,.ucx-heat.ins{background:#b23a35;color:#fff}.ucx-strip i.na,.ucx-cell.na,.ucx-heat.na{background:#ece8f0;color:#6f667a}
+
+
+/* V17 — nomes das UCs + escala intuitiva */
+.ucx-summary-grid-results .ucx-result-oti{border-top-color:#F2C94C;background:#FFFBEA}.ucx-summary-grid-results .ucx-result-oti strong{color:#9A7300}
+.ucx-summary-grid-results .ucx-result-suf{border-top-color:#C9A27E;background:#FBF7F2}.ucx-summary-grid-results .ucx-result-suf strong{color:#8A6242}
+.ucx-concept.oti{background:#F2C94C;color:#5F4900}.ucx-concept.suf{background:#C9A27E;color:#4F3828}
+.ucx-strip i.oti,.ucx-cell.oti,.ucx-heat.oti{background:#F2C94C;color:#5F4900}.ucx-strip i.suf,.ucx-cell.suf,.ucx-heat.suf{background:#C9A27E;color:#4F3828}
