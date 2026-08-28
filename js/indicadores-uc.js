@@ -46,7 +46,7 @@
     resumo.forEach(r => {
       porUc.set(r.codigo_uc, {
         cod: r.codigo_uc,
-        nome: r.codigo_uc,
+        nome: r.nome_uc || r.codigo_uc,
         totalUas: Number(r.total_uas || 0),
         uasAvaliadas: Number(r.uas_avaliadas || 0),
         uasNaoAvaliadas: Number(r.uas_nao_avaliadas || 0),
@@ -155,7 +155,7 @@
       b.className = "ucx-rank-row" + (uc.cod === selecionada ? " active" : "");
       b.onclick = () => { selecionada = uc.cod; render(); };
       const pendencia = uc.uasNaoAvaliadas > 0 ? ` · ${uc.uasAvaliadas}/${uc.totalUas} UAs avaliadas` : "";
-      b.innerHTML = `<span class="ucx-pos">${i + 1}</span><span class="ucx-rank-name"><b>${esc(uc.cod)}</b><small>${uc.uasAvaliadas} UA${uc.uasAvaliadas === 1 ? "" : "s"} avaliada${uc.uasAvaliadas === 1 ? "" : "s"}${pendencia}</small></span><span class="ucx-strip">${uc.porIndicador.map(m => `<i class="${nivel(m)}"></i>`).join("")}</span><strong>${num(valor)}</strong><span class="ucx-concept ${nivel(valor)}">${c ? c.slice(0, 3).toUpperCase() : "—"}</span>`;
+      b.innerHTML = `<span class="ucx-pos">${i + 1}</span><span class="ucx-rank-name"><b>${esc(uc.nome)}</b><small>${uc.uasAvaliadas} UA${uc.uasAvaliadas === 1 ? "" : "s"} avaliada${uc.uasAvaliadas === 1 ? "" : "s"}${pendencia}</small></span><span class="ucx-strip">${uc.porIndicador.map(m => `<i class="${nivel(m)}"></i>`).join("")}</span><strong>${num(valor)}</strong><span class="ucx-concept ${nivel(valor)}">${c ? c.slice(0, 3).toUpperCase() : "—"}</span>`;
       list.appendChild(b);
     });
   }
@@ -180,14 +180,14 @@
     const datas = uc.linhas.map(l => l.data).filter(Boolean).sort();
     const periodo = datas.length ? `${datas[0]}${datas.length > 1 && datas.at(-1) !== datas[0] ? ` a ${datas.at(-1)}` : ""}` : "—";
 
-    return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Detalhe da UC</span><h3>${esc(uc.cod)}</h3><p>${uc.uasAvaliadas}/${uc.totalUas} UAs avaliadas · ${uc.uasNaoAvaliadas} pendentes</p></div><div class="ucx-score"><strong>${num(uc.nota)}</strong><span>${conceito(uc.nota) || "Não avaliada"}</span></div></div>
+    return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Detalhe da UC</span><h3>${esc(uc.nome)}</h3><p>${uc.uasAvaliadas}/${uc.totalUas} UAs avaliadas · ${uc.uasNaoAvaliadas} pendentes</p></div><div class="ucx-score"><strong>${num(uc.nota)}</strong><span>${conceito(uc.nota) || "Não avaliada"}</span></div></div>
       <div class="ucx-table-wrap"><table class="ucx-matrix"><thead><tr><th>Indicador</th>${uas.map(u => `<th>UA${String(u).padStart(2, "0")}</th>`).join("")}<th>Média</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="ucx-meta"><span><b>Avaliador(es):</b> ${esc(avaliadores.join(", ") || "—")}</span><span><b>Período:</b> ${esc(periodo)}</span><span><b>Legenda:</b> E Excelente · Ó Ótimo · S Suficiente</span></div>`;
   }
 
   function renderComparativo() {
     const itens = ordenadas();
-    const rows = itens.map((uc, i) => `<tr><th><span>${i + 1}</span>${esc(uc.cod)}<small>${uc.uasAvaliadas}/${uc.totalUas} UAs avaliadas</small></th>${uc.porIndicador.map(m => `<td><span class="ucx-heat ${nivel(m)}">${num(m)}</span></td>`).join("")}<td><b>${num(uc.nota)}</b></td></tr>`).join("");
+    const rows = itens.map((uc, i) => `<tr><th><span>${i + 1}</span>${esc(uc.nome)}<small>${uc.uasAvaliadas}/${uc.totalUas} UAs avaliadas</small></th>${uc.porIndicador.map(m => `<td><span class="ucx-heat ${nivel(m)}">${num(m)}</span></td>`).join("")}<td><b>${num(uc.nota)}</b></td></tr>`).join("");
     const medias = INDICADORES.map((_, j) => num(media(itens.map(u => u.porIndicador[j]))));
     return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Visão comparativa</span><h3>Comparativo por indicador</h3><p>Dados reais sincronizados da Monday via Supabase.</p></div></div><div class="ucx-table-wrap"><table class="ucx-compare"><thead><tr><th>Unidade Curricular</th>${INDICADORES.map(i => `<th title="${esc(i.curto)}">${i.id}<small>${esc(i.curto)}</small></th>`).join("")}<th>Nota</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th>Média</th>${medias.map(m => `<td>${m}</td>`).join("")}<td>${num(media(itens.map(u => u.nota)))}</td></tr></tfoot></table></div>`;
   }
@@ -239,7 +239,7 @@
       const [resumoResp, detalheResp] = await Promise.all([
         window.biSupabase
           .from("vw_indicadores_uc_dashboard")
-          .select("codigo_uc,total_uas,uas_avaliadas,uas_nao_avaliadas,indicador_1_media,indicador_2_media,indicador_3_media,indicador_4_media,indicador_5_media,indicador_6_media,indicador_7_media,media_geral_uc,media_percentual,classificacao_uc,percentual_conclusao,ranking_uc")
+          .select("codigo_uc,total_uas,uas_avaliadas,uas_nao_avaliadas,indicador_1_media,indicador_2_media,indicador_3_media,indicador_4_media,indicador_5_media,indicador_6_media,indicador_7_media,media_geral_uc,media_percentual,classificacao_uc,percentual_conclusao,ranking_uc,nome_uc")
           .order("ranking_uc", { ascending: true }),
         window.biSupabase
           .from("vw_indicadores_uc")
