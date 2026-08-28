@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     resumo: "Resumo Executivo",
     resultados: "Resultados Alcançados",
     "reuniao-nq": "Reunião NQ | Indicadores Executivos",
+    "indicadores-uc": "Indicadores da Unidade Curricular",
     operacao: "Operação",
     ajustes: "Ajustes",
     equipe: "Equipe",
@@ -75,6 +76,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.atualizarIndicadoresBI?.(dadosFiltrados);
     window.atualizarResultadosAlcancados?.();
     window.atualizarReuniaoNQ?.();
+    window.inicializarIndicadoresUC?.();
 
     if (quantidadeFiltrada) {
       quantidadeFiltrada.textContent = `${dadosFiltrados.length} registros no filtro atual`;
@@ -96,7 +98,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (tituloPagina) tituloPagina.textContent = titulosPaginas[nome];
     history.replaceState(null, "", `#${nome}`);
 
-    if (["resumo", "resultados", "reuniao-nq", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
+    const filtrosGlobais = document.querySelector(".filters");
+    const statusGlobal = document.querySelector(".status-line");
+    const paginaUc = nome === "indicadores-uc";
+    filtrosGlobais?.classList.toggle("page-filters-hidden", paginaUc);
+    statusGlobal?.classList.toggle("page-status-hidden", paginaUc);
+
+    if (["resumo", "resultados", "reuniao-nq", "indicadores-uc", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
       setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
     }
   }
