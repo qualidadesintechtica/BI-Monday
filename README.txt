@@ -16,4 +16,6 @@ Mantém:
 - cores: Excelente verde, Ótimo amarelo, Suficiente marrom claro
 - demais páginas e recursos da V17
 
-Build: 20260901-v19-gestores-materiais-limpa
+Build: 20260901-v20-ordenacao-colunas
+
+V20: tabela Gestores e Materiais com ordenação crescente/decrescente em cada coluna pelo cabeçalho.

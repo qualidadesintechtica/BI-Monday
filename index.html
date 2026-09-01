@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260901-v19-gestores-materiais-limpa"
+    href="css/global.css?v=20260901-v20-ordenacao-colunas"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260901-v19-gestores-materiais-limpa"
+    href="css/dashboard.css?v=20260901-v20-ordenacao-colunas"
   >
 
 </head>
@@ -50,7 +50,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v19 · gestores e materiais</small>
+        <small class="build-badge">v20 · ordenação por colunas</small>
 
       </div>
 
@@ -733,7 +733,13 @@
           <div class="table-scroll">
             <table class="data-table">
               <thead><tr>
-                <th>Gestor</th><th>Nome da UC</th><th>Material / UA</th><th>Categoria</th><th>Status</th><th>Matriz</th><th>Bloco</th>
+                <th data-gm-sort="gestor" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="gestor">Gestor <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="titulo" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="titulo">Nome da UC <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="material" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="material">Material / UA <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="categoria" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="categoria">Categoria <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="status" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="status">Status <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="matriz" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="matriz">Matriz <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
+                <th data-gm-sort="bloco" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="bloco">Bloco <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
               </tr></thead>
               <tbody id="tbodyGestoresMateriais"></tbody>
             </table>
@@ -947,34 +953,34 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/config.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/supabase.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/auth.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/auth.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/dados.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/dados.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/filtros.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/filtros.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/kpis.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/kpis.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/graficos.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/graficos.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/paginas.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/paginas.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/indicadores.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/indicadores.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/resultados.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/reuniao-nq.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/reuniao-nq.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/indicadores-uc.js?v=20260901-v19-gestores-materiais-limpa"></script>
-  <script src="js/gestores-materiais.js?v=20260901-v19-gestores-materiais-limpa"></script>
-  <script src="js/dashboard.js?v=20260901-v19-gestores-materiais-limpa"></script>
+  <script src="js/indicadores-uc.js?v=20260901-v20-ordenacao-colunas"></script>
+  <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
+  <script src="js/dashboard.js?v=20260901-v20-ordenacao-colunas"></script>
 
 
-<div data-build-version="20260901-v19-gestores-materiais-limpa" style="display:none"></div>
+<div data-build-version="20260901-v20-ordenacao-colunas" style="display:none"></div>
 </body>
 
 </html>

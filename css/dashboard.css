@@ -1034,3 +1034,14 @@
 
 /* V18 · Gestores e Materiais */
 .gm-layout{display:grid;grid-template-columns:1fr;gap:18px;margin:18px 0}.gm-chart-card{min-height:430px}.gm-chart{height:380px}.gm-card-head{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:8px}.gm-card-head h3{margin:0 0 6px}.gm-card-head p{margin:0;color:var(--muted,#667085);font-size:.9rem}.gm-active{display:inline-flex;align-items:center;max-width:360px;padding:7px 11px;border-radius:999px;background:#f4f1f8;color:#4b2a68;font-size:.8rem;font-weight:700;text-align:center}.gm-kpis{margin-top:6px}@media(max-width:900px){.gm-card-head{flex-direction:column}.gm-active{max-width:100%}.gm-chart{height:460px}}
+
+/* ==================================================
+   V20 · ORDENAÇÃO DA TABELA GESTORES E MATERIAIS
+================================================== */
+#viewGestoresMateriais .data-table th[data-gm-sort]{padding:0;background:#f7f4fb}
+.gm-sort-button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:42px;padding:11px 12px;border:0;background:transparent;color:#2d1553;font:inherit;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap}
+.gm-sort-button:hover{background:#efe9f6;color:#64037e}
+.gm-sort-button:focus-visible{outline:2px solid #db007d;outline-offset:-2px}
+.gm-sort-icon{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;color:#8a8095;font-size:12px;line-height:1}
+#viewGestoresMateriais th.gm-sort-active .gm-sort-button{background:#f5ebf6;color:#64037e}
+#viewGestoresMateriais th.gm-sort-active .gm-sort-icon{background:#64037e;color:#fff}

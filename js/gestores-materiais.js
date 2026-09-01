@@ -4,6 +4,7 @@
   let chart = null;
   let dadosAtuais = [];
   let gestorSelecionado = null;
+  let ordenacao = { campo: "gestor", direcao: "asc" };
 
   function texto(v, padrao = "Em branco") {
     const s = String(v ?? "").trim();
@@ -127,6 +128,61 @@
     return texto(item?.unidade_material || item?.titulo_ua || item?.item_name || item?.titulo);
   }
 
+  function valorOrdenacao(item, campo) {
+    const mapa = {
+      gestor: () => gestor(item),
+      titulo: () => texto(item?.titulo),
+      material: () => materialNome(item),
+      categoria: () => texto(item?.categoria_material),
+      status: () => texto(item?.status_validacao),
+      matriz: () => texto(item?.matriz_oferta),
+      bloco: () => texto(item?.bloco)
+    };
+    return mapa[campo] ? mapa[campo]() : "";
+  }
+
+  function compararItens(a, b) {
+    const va = valorOrdenacao(a, ordenacao.campo);
+    const vb = valorOrdenacao(b, ordenacao.campo);
+    const principal = String(va).localeCompare(String(vb), "pt-BR", {
+      numeric: true,
+      sensitivity: "base"
+    });
+    if (principal !== 0) return ordenacao.direcao === "asc" ? principal : -principal;
+
+    // desempates previsíveis para a tabela não "pular" entre cliques
+    const dg = gestor(a).localeCompare(gestor(b), "pt-BR", { sensitivity: "base" });
+    if (dg !== 0) return dg;
+    return texto(a?.titulo).localeCompare(texto(b?.titulo), "pt-BR", { sensitivity: "base" });
+  }
+
+  function atualizarCabecalhosOrdenacao() {
+    document.querySelectorAll('#viewGestoresMateriais th[data-gm-sort]').forEach(th => {
+      const campo = th.dataset.gmSort;
+      const ativo = campo === ordenacao.campo;
+      const icone = th.querySelector(".gm-sort-icon");
+      th.setAttribute("aria-sort", ativo ? (ordenacao.direcao === "asc" ? "ascending" : "descending") : "none");
+      th.classList.toggle("gm-sort-active", ativo);
+      if (icone) icone.textContent = ativo ? (ordenacao.direcao === "asc" ? "↑" : "↓") : "↕";
+      const button = th.querySelector(".gm-sort-button");
+      if (button) {
+        const rotulo = button.textContent.replace(/[↕↑↓]/g, "").trim();
+        button.setAttribute("aria-label", `${rotulo}. ${ativo ? (ordenacao.direcao === "asc" ? "Ordenado crescente. Clique para ordenar decrescente." : "Ordenado decrescente. Clique para ordenar crescente.") : "Clique para ordenar."}`);
+      }
+    });
+  }
+
+  function definirOrdenacao(campo) {
+    if (!campo) return;
+    if (ordenacao.campo === campo) {
+      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    } else {
+      ordenacao = { campo, direcao: "asc" };
+    }
+    atualizarCabecalhosOrdenacao();
+    renderTabela(dadosAtuais);
+  }
+
   function renderTabela(dados) {
     const tbody = document.getElementById("tbodyGestoresMateriais");
     const contador = document.getElementById("contadorGestoresMateriais");
@@ -141,10 +197,20 @@
       ].join(" ")).includes(busca));
     }
 
-    linhas.sort((a, b) => gestor(a).localeCompare(gestor(b), "pt-BR") || texto(a?.titulo).localeCompare(texto(b?.titulo), "pt-BR"));
+    linhas.sort(compararItens);
 
     if (contador) {
-      contador.textContent = `${linhas.length.toLocaleString("pt-BR")} material(is) no recorte atual${linhas.length > 500 ? " · exibindo os primeiros 500" : ""}`;
+      const nomeCampo = {
+        gestor: "Gestor",
+        titulo: "Nome da UC",
+        material: "Material / UA",
+        categoria: "Categoria",
+        status: "Status",
+        matriz: "Matriz",
+        bloco: "Bloco"
+      }[ordenacao.campo] || ordenacao.campo;
+      const sentido = ordenacao.direcao === "asc" ? "crescente" : "decrescente";
+      contador.textContent = `${linhas.length.toLocaleString("pt-BR")} material(is) no recorte atual · ordenado por ${nomeCampo} (${sentido})${linhas.length > 500 ? " · exibindo os primeiros 500" : ""}`;
     }
 
     if (!linhas.length) {
@@ -170,6 +236,7 @@
     if (gestorSelecionado && !dadosAtuais.some(x => gestor(x) === gestorSelecionado)) gestorSelecionado = null;
     renderKPIs(dadosAtuais);
     renderChart(dadosAtuais);
+    atualizarCabecalhosOrdenacao();
     renderTabela(dadosAtuais);
     setText("gmGestorAtivo", gestorSelecionado ? `Gestor selecionado: ${gestorSelecionado}` : "Todos os gestores do filtro atual");
   }
@@ -181,6 +248,12 @@
       renderTabela(dadosAtuais);
       setText("gmGestorAtivo", "Todos os gestores do filtro atual");
     });
+
+    document.querySelectorAll('#viewGestoresMateriais .gm-sort-button[data-gm-sort]').forEach(button => {
+      button.addEventListener("click", () => definirOrdenacao(button.dataset.gmSort));
+    });
+
+    atualizarCabecalhosOrdenacao();
     window.addEventListener("resize", () => chart?.resize());
   });
 
