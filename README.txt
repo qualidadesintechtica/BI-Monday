@@ -1,32 +1,19 @@
-BI Monday - v14 Indicadores da UC
+BI Monday — V19
 
-Build: 20260828-v14-indicadores-uc
+Versão limpa baseada na V17 estável, com a tela Gestores e Materiais integrada sem marcadores de conflito.
 
-Esta versão mantém o BI de Validação de Materiais e adiciona a página "Reunião NQ".
+Nova tela: Gestores e Materiais
+- UAs por gestor
+- UCs por gestor
+- nomes das UCs e materiais
+- gráfico UAs x UCs por gestor
+- clique no gestor para filtrar a tabela
+- respeita os filtros globais existentes do BI
+- busca por gestor, UC ou material
 
-Fontes principais no Supabase:
-- public.vw_materiais_bi_consolidada
-- public.vw_resultados_alcancados
-- public.vw_nq_reuniao_resumo
-- public.vw_nq_reuniao_nao_conformidades
+Mantém:
+- Indicadores da UC com nomes reais
+- cores: Excelente verde, Ótimo amarelo, Suficiente marrom claro
+- demais páginas e recursos da V17
 
-Página Reunião NQ:
-- Produtividade: UA, PP, A1, A2, A3 e Lato
-- Operação atual: total, validados, liberados, revalidação, ajustes e a liberar
-- Qualidade: critérios avaliados, conformes, não conformes e taxa de conformidade
-- Top 10 de não conformidades
-
-Publicação no GitHub Pages:
-- Envie o CONTEÚDO deste pacote diretamente para a raiz do repositório BI-Monday.
-- A raiz deve conter index.html, login.html, css/, js/, docs/, README.txt e VERSAO.txt.
-- Não envie uma pasta externa contendo esses arquivos.
-- Após o commit, aguarde o GitHub Pages e faça Ctrl+F5.
-
-Teste no Console:
-  window.BI_CONFIG.BUILD_ID
-
-Esperado:
-  20260828-v14-indicadores-uc
-
-
-V18: nova tela Gestores e Materiais, com contagem distinta de UAs/UCs por gestor e lista de materiais vinculada aos filtros globais.
+Build: 20260901-v19-gestores-materiais-limpa
