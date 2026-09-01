@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260827-v13-reuniao-nq"
+    href="css/global.css?v=20260901-v18-gestores-materiais"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260827-v13-reuniao-nq"
+    href="css/dashboard.css?v=20260901-v18-gestores-materiais"
   >
 
 </head>
@@ -50,7 +50,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v13 · reunião NQ</small>
+        <small class="build-badge">v18 · gestores e materiais</small>
 
       </div>
 
@@ -63,11 +63,13 @@
         <a href="#operacao" data-view="operacao">Operação</a>
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
+        <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
 
         <div class="nav-section-title">Indicadores</div>
         <a href="#grafico-operacional" data-view="grafico-operacional">Gráfico Operacional</a>
         <a href="#dias-validacao" data-view="dias-validacao">Dias para Validação</a>
         <a href="#historico" data-view="historico">Histórico de Atualizações</a>
+        <a href="#indicadores-uc" data-view="indicadores-uc">Indicadores da UC</a>
 
       </nav>
 
@@ -398,6 +400,67 @@
         <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase. Produção: 01/10/2025 a 31/05/2026. Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
       </section>
 
+      <section id="viewIndicadoresUC" class="page-view" data-page="indicadores-uc">
+        <div class="ucx-hero">
+          <div>
+            <span class="ucx-eyebrow">Núcleo de Qualidade · Unidade Curricular</span>
+            <h2>Indicadores da UC</h2>
+            <p>Leitura executiva e detalhada dos 7 indicadores de qualidade, consolidando as avaliações realizadas por UA.</p>
+          </div>
+          <div class="ucx-source-badge">
+            <span class="ucx-source-dot"></span>
+            <div><b id="ucxSourceTitle">Dados reais</b><small id="ucxSourceText">Monday → Supabase</small></div>
+          </div>
+        </div>
+
+        <div class="ucx-summary-grid ucx-summary-grid-results">
+          <article class="ucx-summary-neutral"><span>UCs avaliadas</span><strong id="ucxTotal">--</strong><small>com ao menos uma UA avaliada</small></article>
+          <article class="ucx-summary-neutral"><span>Média geral</span><strong id="ucxMedia">--</strong><small>média dos 7 indicadores</small></article>
+          <article class="ucx-result-card ucx-result-exc"><span>Excelente</span><strong id="ucxExcelente">--</strong><small>UCs com média ≥ 90%</small></article>
+          <article class="ucx-result-card ucx-result-oti"><span>Ótimo</span><strong id="ucxOtimo">--</strong><small>UCs com média de 70% a 89,9%</small></article>
+          <article class="ucx-result-card ucx-result-suf"><span>Suficiente</span><strong id="ucxSuficiente">--</strong><small>UCs com média de 50% a 69,9%</small></article>
+          <article class="ucx-result-card ucx-result-na"><span>Não avaliada</span><strong id="ucxNaoAvaliada">--</strong><small>UCs ainda sem avaliação</small></article>
+          <article class="ucx-alert-card"><span>UCs incompletas</span><strong id="ucxIncompletas">--</strong><small>com UAs ainda não avaliadas</small></article>
+        </div>
+
+        <div class="ucx-toolbar">
+          <div class="ucx-tabs">
+            <button type="button" class="active" data-ucx-view="uc">Detalhe da UC</button>
+            <button type="button" data-ucx-view="comparativo">Comparativo por indicador</button>
+          </div>
+          <div class="ucx-actions">
+            <input id="ucxBusca" type="search" placeholder="Buscar UC por nome ou código" aria-label="Buscar UC">
+            <select id="ucxOrdem" aria-label="Ordenar UCs"></select>
+            <details class="ucx-ruler">
+              <summary>Configurar régua</summary>
+              <div class="ucx-ruler-popover">
+                <label>Excelente <input id="ucxExc" type="number" value="0.90" min="0" max="1" step="0.01"></label>
+                <label>Ótimo <input id="ucxOti" type="number" value="0.70" min="0" max="1" step="0.01"></label>
+                <label>Suficiente <input id="ucxSuf" type="number" value="0.50" min="0" max="1" step="0.01"></label>
+                <button id="ucxApplyCuts" type="button">Aplicar</button>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="ucx-context-line">
+          <span id="ucxResumoConceitos">--</span>
+          <span>Escala: Excelente · Ótimo · Suficiente · Insuficiente</span>
+        </div>
+
+        <div class="ucx-layout">
+          <aside class="ucx-ranking-card">
+            <div class="ucx-card-head"><div><span>Ranking</span><small id="ucxContagem">--</small></div><small>clique em uma UC para detalhar</small></div>
+            <div id="ucxLista" class="ucx-ranking"></div>
+          </aside>
+          <section id="ucxPainel" class="ucx-detail-card"></section>
+        </div>
+
+        <div class="ucx-note">
+          <b>Regra de cálculo:</b> cada indicador é a média das UAs avaliadas. A nota final da UC é a média dos 7 indicadores. campos sem avaliação são desconsiderados da média.
+        </div>
+      </section>
+
       <section id="viewResultados" class="page-view" data-page="resultados">
         <div class="section-heading">
           <div>
@@ -629,6 +692,55 @@
 
       </section>
 
+
+      <!-- =============================================
+           GESTORES E MATERIAIS
+      ============================================== -->
+      <section id="viewGestoresMateriais" class="page-view" data-page="gestores-materiais">
+        <div class="section-heading">
+          <div>
+            <h2>Gestores e Materiais</h2>
+            <p>Quantidade de UAs e UCs por gestor, com os nomes dos materiais respeitando todos os filtros globais do BI.</p>
+          </div>
+          <div class="section-actions">
+            <input id="buscaGestoresMateriais" class="table-search" type="search" placeholder="Buscar gestor, UC ou material...">
+            <button id="gmLimparGestor" class="action-button" type="button">Limpar seleção</button>
+          </div>
+        </div>
+
+        <section class="mini-kpis four gm-kpis">
+          <article class="mini-kpi"><span>UAs no filtro</span><strong id="gmTotalUAs">0</strong></article>
+          <article class="mini-kpi"><span>UCs no filtro</span><strong id="gmTotalUCs">0</strong></article>
+          <article class="mini-kpi"><span>Gestores</span><strong id="gmTotalGestores">0</strong></article>
+          <article class="mini-kpi"><span>Registros de materiais</span><strong id="gmTotalMateriais">0</strong></article>
+        </section>
+
+        <section class="gm-layout">
+          <article class="chart-card gm-chart-card">
+            <div class="gm-card-head">
+              <div>
+                <h3>UAs e UCs por gestor</h3>
+                <p>Clique em um gestor no gráfico para destacar os materiais dele na tabela.</p>
+              </div>
+              <span id="gmGestorAtivo" class="gm-active">Todos os gestores do filtro atual</span>
+            </div>
+            <div id="graficoGestoresMateriais" class="chart gm-chart"></div>
+          </article>
+        </section>
+
+        <div id="contadorGestoresMateriais" class="table-counter">--</div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr>
+                <th>Gestor</th><th>Nome da UC</th><th>Material / UA</th><th>Categoria</th><th>Status</th><th>Matriz</th><th>Bloco</th>
+              </tr></thead>
+              <tbody id="tbodyGestoresMateriais"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- =============================================
            OPERAÇÃO
       ============================================== -->
@@ -835,32 +947,34 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/config.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/supabase.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/supabase.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/auth.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/auth.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/dados.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/dados.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/filtros.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/filtros.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/kpis.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/kpis.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/graficos.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/graficos.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/paginas.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/paginas.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/indicadores.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/indicadores.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/resultados.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/resultados.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/reuniao-nq.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/reuniao-nq.js?v=20260901-v18-gestores-materiais"></script>
 
-  <script src="js/dashboard.js?v=20260827-v13-reuniao-nq"></script>
+  <script src="js/indicadores-uc.js?v=20260901-v18-gestores-materiais"></script>
+  <script src="js/gestores-materiais.js?v=20260901-v18-gestores-materiais"></script>
+  <script src="js/dashboard.js?v=20260901-v18-gestores-materiais"></script>
 
 
-<div data-build-version="20260827-v13" style="display:none"></div>
+<div data-build-version="20260901-v18-gestores-materiais" style="display:none"></div>
 </body>
 
 </html>
