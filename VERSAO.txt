@@ -1,1 +1,1 @@
-V21 — Reunião NQ sem período (removida a data 'Período de produção' da tela executiva) | BUILD_ID: 20260903-v21-nq-sem-periodo
+V22 — Sincronização automática 3x ao dia + histórico de sincronizações (Indicadores da UC) | BUILD_ID: 20260903-v22-sync-automatica

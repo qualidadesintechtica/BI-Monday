@@ -271,10 +271,54 @@
     }
   }
 
+  // V22: histórico de sincronizações automáticas (tabela sync_log)
+  async function carregarSyncLog() {
+    const tbody = $("ucxSyncTbody");
+    const resumo = $("ucxSyncResumo");
+    if (!tbody) return;
+
+    try {
+      if (!window.biSupabase) throw new Error("Cliente Supabase não disponível.");
+
+      const { data, error } = await window.biSupabase
+        .from("sync_log")
+        .select("executado_em,sucesso,itens_lidos,itens_gravados,erros,mensagem_erro")
+        .order("executado_em", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const linhas = data || [];
+
+      if (!linhas.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="ucx-empty">Nenhuma sincronização registrada ainda.</td></tr>';
+        if (resumo) resumo.textContent = "Aguardando a primeira execução automática";
+        return;
+      }
+
+      tbody.innerHTML = linhas.map(l => {
+        const quando = l.executado_em ? new Date(l.executado_em).toLocaleString("pt-BR") : "—";
+        const status = l.sucesso
+          ? '<span class="ucx-sync-status ok">Sucesso</span>'
+          : `<span class="ucx-sync-status fail" title="${esc(l.mensagem_erro || "")}">Falha</span>`;
+        return `<tr><td>${esc(quando)}</td><td>${status}</td><td>${l.itens_lidos ?? "—"}</td><td>${l.itens_gravados ?? "—"}</td><td>${l.erros ?? "—"}</td></tr>`;
+      }).join("");
+
+      const ultima = linhas[0];
+      const quandoUltima = ultima.executado_em ? new Date(ultima.executado_em).toLocaleString("pt-BR") : "—";
+      if (resumo) resumo.textContent = `Última execução: ${quandoUltima} · ${ultima.sucesso ? "sucesso" : "falha"}`;
+    } catch (erro) {
+      console.error("Sync log:", erro);
+      tbody.innerHTML = `<tr><td colspan="5" class="ucx-empty">Não foi possível carregar o histórico de sincronizações.<br><small>${esc(erro?.message || erro)}</small></td></tr>`;
+      if (resumo) resumo.textContent = "Falha ao carregar histórico";
+    }
+  }
+
   function init() {
     if (!$("viewIndicadoresUC")) return;
     ligarEventos();
     carregarDados();
+    carregarSyncLog();
   }
 
   window.inicializarIndicadoresUC = init;

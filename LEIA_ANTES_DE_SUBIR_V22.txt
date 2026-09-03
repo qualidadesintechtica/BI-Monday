@@ -1,0 +1,68 @@
+V22 — Sincronização automática 3x ao dia + Histórico de sincronizações
+(parte 1 da evolução dos Indicadores da UC — a parte 2, "Análise das
+respostas", ainda não está incluída nesta versão)
+
+O QUE MUDOU
+------------
+1. Novo painel "Sincronização automática" na tela Indicadores da UC,
+   mostrando as últimas 10 execuções (data/hora, status, itens lidos,
+   itens gravados, erros).
+2. Nova tabela sync_log no Supabase, para registrar cada execução da
+   Edge Function.
+3. Edge Function sync-criterios-avaliacao-uas atualizada para gravar
+   um registro em sync_log a cada execução (sucesso ou falha).
+4. Agendamento automático via pg_cron, 3x ao dia: 08:00, 13:00 e 18:00
+   (horário de Brasília).
+
+PASSO A PASSO PARA SUBIR
+--------------------------
+1) Banco de dados (Supabase → SQL Editor)
+   Rode o arquivo docs/CRIAR_SYNC_LOG_V22.sql inteiro, uma única vez.
+   Ele cria a tabela sync_log, habilita pg_cron/pg_net e agenda as
+   3 execuções diárias.
+
+   IMPORTANTE: antes de rodar, troque as 3 ocorrências de
+   '<SUPABASE_ANON_OU_SERVICE_KEY>' pela sua chave (a publishable key
+   que já está em js/config.js funciona).
+
+2) Edge Function (Supabase → Edge Functions)
+   Substitua o código da função "sync-criterios-avaliacao-uas" pelo
+   conteúdo de supabase/functions/sync-criterios-avaliacao-uas/index.ts
+   e faça o deploy. As variáveis de ambiente (SUPABASE_URL,
+   SUPABASE_SERVICE_ROLE_KEY, MONDAY_API_TOKEN) continuam as mesmas —
+   não precisa mexer nelas.
+
+3) Front-end (GitHub Pages)
+   Envie estes arquivos diretamente para a RAIZ do repositório
+   BI-Monday (mesma lógica das versões anteriores):
+   - index.html
+   - js/config.js
+   - js/indicadores-uc.js
+   - css/dashboard.css
+
+4) Depois do commit
+   - aguarde o GitHub Pages publicar;
+   - abra o BI, vá em "Indicadores da UC";
+   - faça Ctrl+F5;
+   - confirme no Console: window.BI_CONFIG.BUILD_ID deve ser
+     20260903-v22-sync-automatica;
+   - role até o final da página: deve aparecer o card "Sincronização
+     automática". Ele só mostra dados depois que a primeira
+     sincronização automática (ou uma chamada manual da Edge Function
+     já atualizada) rodar pelo menos uma vez.
+
+CONFERÊNCIA NO SUPABASE
+-------------------------
+- Ver os jobs agendados:
+    select jobid, jobname, schedule, active from cron.job order by jobname;
+- Ver o histórico de sincronizações (o mesmo que aparece no BI):
+    select * from sync_log order by executado_em desc limit 20;
+- Ver o log interno do pg_cron/pg_net (para depurar falha na chamada
+  HTTP, não confundir com sync_log):
+    select * from cron.job_run_details order by start_time desc limit 20;
+
+PRÓXIMOS PASSOS (ainda não incluídos nesta versão)
+----------------------------------------------------
+- Área "Análise das respostas" nos Indicadores da UC (gráfico de
+  respostas mais repetidas, respostas semelhantes via "Parecer do
+  Especialista sobre a UA", e análise por Avaliador).
