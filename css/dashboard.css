@@ -1045,3 +1045,14 @@
 .gm-sort-icon{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;color:#8a8095;font-size:12px;line-height:1}
 #viewGestoresMateriais th.gm-sort-active .gm-sort-button{background:#f5ebf6;color:#64037e}
 #viewGestoresMateriais th.gm-sort-active .gm-sort-icon{background:#64037e;color:#fff}
+
+
+/* V21.1 — respostas dos professores + sincronização */
+.ucx-sync-card{margin-top:14px;background:#fff;border:1px solid #e6e0ef;border-radius:16px;overflow:hidden}
+.ucx-sync-head{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:16px 18px;border-bottom:1px solid #eee8f4}
+.ucx-sync-head h3{margin:0;color:#2d1553;font-size:15px}.ucx-sync-head small,.ucx-sync-head>span{color:#746a80;font-size:11px}
+.ucx-sync-table,.ucx-response-table{width:100%;border-collapse:collapse;font-size:11px}.ucx-sync-table th,.ucx-sync-table td,.ucx-response-table th,.ucx-response-table td{padding:10px 12px;border-bottom:1px solid #eee8f4;text-align:left;vertical-align:top}
+.ucx-response-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 18px}.ucx-response-kpis article{border:1px solid #e8e0ef;border-radius:12px;padding:12px}.ucx-response-kpis span{display:block;font-size:10px;color:#746a80}.ucx-response-kpis strong{font-size:22px;color:#2d1553}
+.ucx-response-chart{padding:8px 18px 18px}.ucx-response-chart h4{margin:4px 0 12px;color:#2d1553}
+.ucx-response-bar{display:grid;grid-template-columns:24px minmax(220px,2fr) minmax(120px,1fr) 40px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #f0ebf5}.ucx-response-rank{font-size:10px;color:#8b8195}.ucx-response-text b{display:block;font-size:11px;color:#2d1553}.ucx-response-text small{font-size:9px;color:#81768d}.ucx-response-meter{height:8px;background:#f0e9f5;border-radius:999px;overflow:hidden}.ucx-response-meter i{display:block;height:100%;background:#7b168f;border-radius:999px}
+@media(max-width:900px){.ucx-response-kpis{grid-template-columns:repeat(2,1fr)}.ucx-response-bar{grid-template-columns:22px 1fr 40px}.ucx-response-meter{display:none}.ucx-sync-head{align-items:flex-start;flex-direction:column}}

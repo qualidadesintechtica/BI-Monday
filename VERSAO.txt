@@ -1,1 +1,11 @@
-V20 — Gestores e Materiais — ordenação individual por coluna
+BI Monday V21.1
+Data: 04/09/2026
+
+Novidades:
+- Aba Respostas dos professores nos Indicadores da UC.
+- Leitura automática da coluna de formulário/resposta/comentário da tabela monday_criterios_avaliacao_uas.
+- Frequência de respostas repetidas.
+- Quantidade de professores, UCs e UAs relacionadas a cada resposta.
+- Histórico de sincronização com tratamento amigável quando sync_log ainda não existir.
+- Horários de referência: 08:00, 13:00 e 18:00 (Brasília).
+- Script SQL de preparação incluído em docs/CONFIGURAR_SYNC_V21_1.sql.

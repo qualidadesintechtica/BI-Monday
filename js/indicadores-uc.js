@@ -21,6 +21,8 @@
   let carregado = false;
   let eventosLigados = false;
   let ultimaSincronizacao = null;
+  let respostasProfessores = [];
+  let syncHistorico = [];
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
@@ -192,12 +194,102 @@
     return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Visão comparativa</span><h3>Comparativo por indicador</h3><p>Dados reais sincronizados da Monday via Supabase.</p></div></div><div class="ucx-table-wrap"><table class="ucx-compare"><thead><tr><th>Unidade Curricular</th>${INDICADORES.map(i => `<th title="${esc(i.curto)}">${i.id}<small>${esc(i.curto)}</small></th>`).join("")}<th>Nota</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th>Média</th>${medias.map(m => `<td>${m}</td>`).join("")}<td>${num(media(itens.map(u => u.nota)))}</td></tr></tfoot></table></div>`;
   }
 
+  function normalizarTexto(v) {
+    return String(v || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+
+  function campoProvavel(obj, termos) {
+    const keys = Object.keys(obj || {});
+    return keys.find(k => termos.some(t => normalizarTexto(k).includes(normalizarTexto(t))));
+  }
+
+  function extrairRespostas(rows) {
+    return (rows || []).map(r => {
+      const kResp = campoProvavel(r, ["formulario de avaliacao","formulario_avaliacao","resposta","comentario","observacao"]);
+      const kProf = campoProvavel(r, ["professor","avaliador","docente"]);
+      const kUc = campoProvavel(r, ["codigo_uc","uc"]);
+      const kUa = campoProvavel(r, ["numero_ua","nome_item","ua"]);
+      const resposta = kResp ? r[kResp] : null;
+      return {
+        resposta: String(resposta || "").trim(),
+        professor: kProf ? String(r[kProf] || "Não informado") : "Não informado",
+        uc: kUc ? String(r[kUc] || "—") : "—",
+        ua: kUa ? String(r[kUa] || "—") : "—"
+      };
+    }).filter(x => x.resposta && x.resposta.length > 2);
+  }
+
+  function agruparRespostas() {
+    const grupos = new Map();
+    respostasProfessores.forEach(r => {
+      const chave = normalizarTexto(r.resposta);
+      if (!grupos.has(chave)) grupos.set(chave, { texto: r.resposta, total: 0, professores: new Set(), ucs: new Set(), uas: new Set() });
+      const g = grupos.get(chave);
+      g.total++;
+      g.professores.add(r.professor);
+      g.ucs.add(r.uc);
+      g.uas.add(r.ua);
+    });
+    return [...grupos.values()].sort((a,b) => b.total - a.total);
+  }
+
+  function renderRespostas() {
+    if (!respostasProfessores.length) {
+      return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Formulário de avaliação</span><h3>Respostas dos professores</h3><p>Nenhuma resposta textual foi localizada na fonte atual. A tela procura automaticamente campos de formulário, resposta, comentário ou observação.</p></div></div>
+      <div class="ucx-empty">Quando a coluna “Formulário de avaliação” estiver disponível na tabela sincronizada, as frequências aparecerão aqui automaticamente.</div>`;
+    }
+    const grupos = agruparRespostas();
+    const repetidas = grupos.filter(g => g.total > 1);
+    const max = Math.max(...grupos.map(g => g.total), 1);
+    const cards = `<div class="ucx-response-kpis">
+      <article><span>Respostas</span><strong>${respostasProfessores.length}</strong></article>
+      <article><span>Respostas distintas</span><strong>${grupos.length}</strong></article>
+      <article><span>Repetidas</span><strong>${repetidas.length}</strong></article>
+      <article><span>Professores</span><strong>${new Set(respostasProfessores.map(r => r.professor)).size}</strong></article>
+    </div>`;
+    const bars = grupos.slice(0,10).map((g,i) => `<div class="ucx-response-bar">
+      <span class="ucx-response-rank">${i+1}</span>
+      <div class="ucx-response-text"><b>${esc(g.texto)}</b><small>${g.professores.size} professor(es) · ${g.ucs.size} UC(s) · ${g.uas.size} UA(s)</small></div>
+      <div class="ucx-response-meter"><i style="width:${Math.max(6,(g.total/max)*100)}%"></i></div>
+      <strong>${g.total}×</strong>
+    </div>`).join("");
+    const rows = grupos.slice(0,30).map(g => `<tr><td>${esc(g.texto)}</td><td>${g.total}</td><td>${esc([...g.professores].join(", "))}</td><td>${esc([...g.ucs].join(", "))}</td><td>${esc([...g.uas].join(", "))}</td></tr>`).join("");
+    return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Formulário de avaliação</span><h3>Respostas dos professores</h3><p>Frequência das respostas iguais após normalização de maiúsculas, acentos e pontuação.</p></div></div>
+      ${cards}
+      <div class="ucx-response-chart"><h4>Respostas mais frequentes</h4>${bars}</div>
+      <div class="ucx-table-wrap"><table class="ucx-response-table"><thead><tr><th>Resposta</th><th>Vezes</th><th>Professor(es)</th><th>UC(s)</th><th>UA(s)</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  async function carregarHistoricoSync() {
+    const body = $("ucxSyncBody"), status = $("ucxSyncStatus");
+    if (!window.biSupabase || !body) return;
+    try {
+      const resp = await window.biSupabase.from("sync_log").select("*").order("created_at", { ascending: false }).limit(15);
+      if (resp.error) throw resp.error;
+      syncHistorico = resp.data || [];
+      status.textContent = syncHistorico.length ? "Últimas execuções registradas" : "Ainda não há execuções registradas";
+      body.innerHTML = syncHistorico.length ? syncHistorico.map(r => {
+        const quando = r.created_at || r.sincronizado_em || r.quando || r.executado_em;
+        return `<tr><td>${quando ? new Date(quando).toLocaleString("pt-BR") : "—"}</td><td>${esc(r.status || (r.success === false ? "Erro" : "Sucesso"))}</td><td>${r.itens_lidos ?? "—"}</td><td>${r.itens_gravados ?? "—"}</td><td>${r.erros ?? 0}</td></tr>`;
+      }).join("") : '<tr><td colspan="5">Nenhuma sincronização registrada ainda.</td></tr>';
+    } catch (e) {
+      status.textContent = "Histórico ainda não configurado no Supabase";
+      body.innerHTML = '<tr><td colspan="5">A tabela sync_log ainda não está disponível. Use o arquivo docs/CONFIGURAR_SYNC_V21_1.sql incluído nesta versão.</td></tr>';
+    }
+  }
+
   function renderPainel() {
     const el = $("ucxPainel");
     if (!el) return;
     el.innerHTML = vista === "comparativo"
       ? renderComparativo()
-      : renderDetalhe(ucs.find(u => u.cod === selecionada) || ordenadas()[0]);
+      : vista === "respostas"
+        ? renderRespostas()
+        : renderDetalhe(ucs.find(u => u.cod === selecionada) || ordenadas()[0]);
   }
 
   function render() {
@@ -236,7 +328,7 @@
     try {
       if (!window.biSupabase) throw new Error("Cliente Supabase não disponível.");
 
-      const [resumoResp, detalheResp] = await Promise.all([
+      const [resumoResp, detalheResp, respostasResp] = await Promise.all([
         window.biSupabase
           .from("vw_indicadores_uc_dashboard")
           .select("codigo_uc,total_uas,uas_avaliadas,uas_nao_avaliadas,indicador_1_media,indicador_2_media,indicador_3_media,indicador_4_media,indicador_5_media,indicador_6_media,indicador_7_media,media_geral_uc,media_percentual,classificacao_uc,percentual_conclusao,ranking_uc,nome_uc")
@@ -245,11 +337,16 @@
           .from("vw_indicadores_uc")
           .select("nome_item,codigo_uc,numero_ua,data_avaliacao,avaliador,categoria_material,conceito_final,indicador_1,indicador_2,indicador_3,indicador_4,indicador_5,indicador_6,indicador_7,media_indicadores,avaliacao_completa,classificacao_ua,synced_at")
           .order("codigo_uc", { ascending: true })
-          .order("numero_ua", { ascending: true })
+          .order("numero_ua", { ascending: true }),
+        window.biSupabase
+          .from("monday_criterios_avaliacao_uas")
+          .select("*")
+          .limit(5000)
       ]);
 
       if (resumoResp.error) throw resumoResp.error;
       if (detalheResp.error) throw detalheResp.error;
+      respostasProfessores = respostasResp?.error ? [] : extrairRespostas(respostasResp?.data || []);
 
       ultimaSincronizacao = null;
       ucs = montarUCs(resumoResp.data || [], detalheResp.data || []);
@@ -275,6 +372,7 @@
     if (!$("viewIndicadoresUC")) return;
     ligarEventos();
     carregarDados();
+    carregarHistoricoSync();
   }
 
   window.inicializarIndicadoresUC = init;

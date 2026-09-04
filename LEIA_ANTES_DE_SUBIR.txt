@@ -15,3 +15,6 @@ Depois do commit:
 3. faça Ctrl+F5;
 4. confirme no Console: window.BI_CONFIG.BUILD_ID
 5. o resultado deve ser: 20260828-v17-nomes-uc-cores
+
+
+V21.1: antes de publicar, execute docs/CONFIGURAR_SYNC_V21_1.sql no Supabase para criar o histórico e o cron 3x/dia.
