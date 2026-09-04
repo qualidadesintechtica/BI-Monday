@@ -22,6 +22,7 @@
   let eventosLigados = false;
   let ultimaSincronizacao = null;
   let respostasProfessores = [];
+  let criteriosRaw = [];
   let syncHistorico = [];
 
   const $ = id => document.getElementById(id);
@@ -347,6 +348,180 @@
   }
 
 
+
+  const NOMES_INDICADORES_V221 = [
+    "Fundamentação científica",
+    "Taxonomia da Neuroaprendizagem",
+    "Jornada contínua e integrada",
+    "Atualização de conhecimentos",
+    "Competências profissionais",
+    "Diversidade de recursos multimídia",
+    "Recursos inovadores"
+  ];
+
+  function conceitoCanonicoV221(v) {
+    const n = normalizarTexto(v);
+    if (n.includes("excelente")) return "Excelente";
+    if (n.includes("otimo")) return "Ótimo";
+    if (n.includes("suficiente")) return "Suficiente";
+    return null;
+  }
+
+  function renderResultadoAmostraV221() {
+    const cats = ["Excelente", "Ótimo", "Suficiente"];
+    const dados = NOMES_INDICADORES_V221.map((nome, idx) => {
+      const campo = `indicador_${idx + 1}`;
+      const cont = { Excelente: 0, "Ótimo": 0, Suficiente: 0 };
+      criteriosRaw.forEach(r => {
+        const c = conceitoCanonicoV221(r[campo]);
+        if (c) cont[c]++;
+      });
+      return { nome, cont };
+    });
+
+    const max = Math.max(1, ...dados.flatMap(d => cats.map(c => d.cont[c])));
+    const avaliadas = criteriosRaw.filter(r =>
+      NOMES_INDICADORES_V221.some((_, i) => conceitoCanonicoV221(r[`indicador_${i+1}`]))
+    ).length;
+
+    const grupos = dados.map(d => `
+      <div class="v221-sample-group">
+        <div class="v221-bars">
+          ${cats.map(c => {
+            const val = d.cont[c];
+            const h = Math.max(val ? 8 : 0, (val / max) * 250);
+            const cls = c === "Excelente" ? "exc" : c === "Ótimo" ? "oti" : "suf";
+            return `<div class="v221-bar-wrap"><span>${val}</span><i class="${cls}" style="height:${h}px"></i></div>`;
+          }).join("")}
+        </div>
+        <div class="v221-sample-label">${esc(d.nome)}</div>
+      </div>
+    `).join("");
+
+    return `
+      <section class="v221-section">
+        <div class="v221-title-row">
+          <div>
+            <h2>O resultado da amostra</h2>
+            <p>${avaliadas} unidades de aprendizagem avaliadas, distribuídas nos sete indicadores.</p>
+          </div>
+          <div class="v221-legend">
+            <span><i class="exc"></i>Excelente</span>
+            <span><i class="oti"></i>Ótimo</span>
+            <span><i class="suf"></i>Suficiente</span>
+          </div>
+        </div>
+        <small class="v221-axis-label">Nº de unidades</small>
+        <div class="v221-sample-chart">${grupos}</div>
+      </section>`;
+  }
+
+  function palavrasChaveV221(texto) {
+    const stop = new Set(["para","com","sem","uma","umas","uns","que","dos","das","de","do","da","em","no","na","nos","nas","por","como","mais","menos","muito","muita","sobre","entre","este","esta","esse","essa","seu","sua","aos","ao","ou","e","o","a","os","as","um"]);
+    return normalizarTexto(texto).split(" ").filter(w => w.length >= 5 && !stop.has(w));
+  }
+
+  function similaridadeV221(a, b) {
+    const A = new Set(palavrasChaveV221(a));
+    const B = new Set(palavrasChaveV221(b));
+    if (!A.size || !B.size) return 0;
+    const inter = [...A].filter(x => B.has(x)).length;
+    const uniao = new Set([...A, ...B]).size;
+    return inter / uniao;
+  }
+
+  function localizarCampoRespostaV221(r) {
+    return campoProvavel(r, [
+      "formulario de avaliacao",
+      "formulario_avaliacao",
+      "resposta",
+      "comentario",
+      "observacao"
+    ]);
+  }
+
+  function indicadorRelacionadoV221(grupo) {
+    const cont = Array(7).fill(0);
+    grupo.itens.forEach(item => {
+      const raw = item.raw || {};
+      for (let i = 0; i < 7; i++) {
+        if (conceitoCanonicoV221(raw[`indicador_${i+1}`])) cont[i]++;
+      }
+    });
+    const max = Math.max(...cont);
+    return max ? NOMES_INDICADORES_V221[cont.indexOf(max)] : "Avaliação geral";
+  }
+
+  function agruparParecidasV221() {
+    const base = criteriosRaw.map(r => {
+      const k = localizarCampoRespostaV221(r);
+      return {
+        texto: k ? String(r[k] || "").trim() : "",
+        raw: r,
+        avaliador: r.avaliador || "Não informado",
+        uc: r.codigo_uc || r.uc || "—",
+        ua: r.nome_item || r.numero_ua || "—"
+      };
+    }).filter(x => x.texto.length > 8);
+
+    const grupos = [];
+    base.forEach(item => {
+      let alvo = grupos.find(g => similaridadeV221(g.texto, item.texto) >= 0.55);
+      if (!alvo) {
+        alvo = { texto: item.texto, itens: [] };
+        grupos.push(alvo);
+      }
+      alvo.itens.push(item);
+    });
+
+    return grupos.sort((a, b) => b.itens.length - a.itens.length);
+  }
+
+  function renderPadroesV221() {
+    const grupos = agruparParecidasV221().filter(g => g.itens.length > 1).slice(0, 6);
+
+    if (!grupos.length) {
+      return `
+        <section class="v221-section">
+          <h2>Padrões recorrentes nas avaliações</h2>
+          <div class="v221-empty">
+            Ainda não há respostas textuais repetidas ou suficientemente parecidas para formar padrões.
+          </div>
+        </section>`;
+    }
+
+    const cards = grupos.map((g, idx) => {
+      const indicador = indicadorRelacionadoV221(g);
+      const professores = new Set(g.itens.map(x => x.avaliador)).size;
+      const titulo = g.texto.length > 72 ? g.texto.slice(0, 69) + "..." : g.texto;
+      return `
+        <article class="v221-pattern ${idx === grupos.length - 1 && grupos.length >= 5 ? "alert" : ""}">
+          <h3>${esc(titulo)}</h3>
+          <b>${g.itens.length} ocorrência(s) · ${professores} professor(es)</b>
+          <p>${esc(g.texto)}</p>
+          <em>${esc(indicador)}</em>
+        </article>`;
+    }).join("");
+
+    return `
+      <section class="v221-section">
+        <div class="v221-title-row">
+          <div>
+            <h2>Padrões recorrentes nas avaliações</h2>
+            <p>Comentários iguais ou semelhantes agrupados automaticamente a partir do formulário de avaliação.</p>
+          </div>
+        </div>
+        <div class="v221-pattern-grid">${cards}</div>
+      </section>`;
+  }
+
+  function renderVisoesExecutivasV221() {
+    const alvo = document.getElementById("ucxV22Executive");
+    if (!alvo) return;
+    alvo.innerHTML = renderResultadoAmostraV221() + renderPadroesV221();
+  }
+
+
   function renderPainel() {
     const el = $("ucxPainel");
     if (!el) return;
@@ -411,7 +586,8 @@
 
       if (resumoResp.error) throw resumoResp.error;
       if (detalheResp.error) throw detalheResp.error;
-      respostasProfessores = respostasResp?.error ? [] : extrairRespostas(respostasResp?.data || []);
+      criteriosRaw = respostasResp?.error ? [] : (respostasResp?.data || []);
+      respostasProfessores = extrairRespostas(criteriosRaw);
 
       ultimaSincronizacao = null;
       ucs = montarUCs(resumoResp.data || [], detalheResp.data || []);
@@ -439,7 +615,10 @@
     carregarDados();
     carregarHistoricoSync();
     atualizarSeloDadosReais();
+      renderVisoesExecutivasV221();
   }
 
   window.inicializarIndicadoresUC = init;
 })();
+
+window.addEventListener("DOMContentLoaded", () => setTimeout(renderVisoesExecutivasV221, 1000));
