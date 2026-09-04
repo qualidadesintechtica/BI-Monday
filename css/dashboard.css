@@ -1132,3 +1132,40 @@
   .v221-title-row{flex-direction:column}
   .v221-legend{flex-wrap:wrap}
 }
+
+
+/* V22.2 — pareceres reais */
+.v222-pattern-summary{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.v222-pattern-summary span{
+  border:1px solid #e6e0ef;
+  border-radius:999px;
+  padding:7px 10px;
+  font-size:10px;
+  color:#665b70;
+  white-space:nowrap;
+}
+.v222-pattern-summary b{
+  color:#2d1553;
+  font-size:12px;
+}
+.v222-subtitle{
+  margin:18px 0 8px;
+  color:#2d1553;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.ucx-response-table td:nth-child(5){
+  min-width:320px;
+  max-width:560px;
+  white-space:normal;
+  line-height:1.45;
+}
+@media(max-width:900px){
+  .v222-pattern-summary{justify-content:flex-start}
+}

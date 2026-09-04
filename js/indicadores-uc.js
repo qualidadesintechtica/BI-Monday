@@ -23,6 +23,7 @@
   let ultimaSincronizacao = null;
   let respostasProfessores = [];
   let criteriosRaw = [];
+  let pareceresRaw = [];
   let syncHistorico = [];
 
   const $ = id => document.getElementById(id);
@@ -238,31 +239,100 @@
     return [...grupos.values()].sort((a,b) => b.total - a.total);
   }
 
+  function agruparPareceresLiteraisV222() {
+    const grupos = new Map();
+
+    pareceresRaw.forEach(r => {
+      const texto = String(r.parecer || "").trim();
+      if (!texto) return;
+
+      const chave = normalizarTexto(texto);
+
+      if (!grupos.has(chave)) {
+        grupos.set(chave, {
+          texto,
+          total: 0,
+          professores: new Set(),
+          criterios: new Set(),
+          materiais: new Set(),
+          tipos: new Set()
+        });
+      }
+
+      const g = grupos.get(chave);
+      g.total++;
+      g.professores.add(r.avaliador || "Não informado");
+      g.criterios.add(r.criterio_titulo || `Critério ${r.numero_criterio || "—"}`);
+      g.materiais.add(r.nome_item || "—");
+      g.tipos.add(r.tipo_formulario || "Geral");
+    });
+
+    return [...grupos.values()].sort((a, b) => b.total - a.total);
+  }
+
   function renderRespostas() {
-    if (!respostasProfessores.length) {
-      return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Formulário de avaliação</span><h3>Respostas dos professores</h3><p>Nenhuma resposta textual foi localizada na fonte atual. A tela procura automaticamente campos de formulário, resposta, comentário ou observação.</p></div></div>
-      <div class="ucx-empty">Quando a coluna “Formulário de avaliação” estiver disponível na tabela sincronizada, as frequências aparecerão aqui automaticamente.</div>`;
+    if (!pareceresRaw.length) {
+      return `<div class="ucx-panel-head"><div>
+        <span class="ucx-kicker">Pareceres da Monday</span>
+        <h3>Respostas dos professores</h3>
+        <p>Nenhum parecer textual foi localizado em <b>monday_criterios_pareceres</b>.</p>
+      </div></div>
+      <div class="ucx-empty">A sincronização já está preparada para preencher essa tabela quando houver pareceres na Monday.</div>`;
     }
-    const grupos = agruparRespostas();
+
+    const grupos = agruparPareceresLiteraisV222();
     const repetidas = grupos.filter(g => g.total > 1);
     const max = Math.max(...grupos.map(g => g.total), 1);
+    const professores = new Set(pareceresRaw.map(r => r.avaliador || "Não informado")).size;
+
     const cards = `<div class="ucx-response-kpis">
-      <article><span>Respostas</span><strong>${respostasProfessores.length}</strong></article>
-      <article><span>Respostas distintas</span><strong>${grupos.length}</strong></article>
-      <article><span>Repetidas</span><strong>${repetidas.length}</strong></article>
-      <article><span>Professores</span><strong>${new Set(respostasProfessores.map(r => r.professor)).size}</strong></article>
+      <article><span>Pareceres</span><strong>${pareceresRaw.length}</strong></article>
+      <article><span>Textos distintos</span><strong>${grupos.length}</strong></article>
+      <article><span>Repetições literais</span><strong>${repetidas.length}</strong></article>
+      <article><span>Avaliadores</span><strong>${professores}</strong></article>
     </div>`;
-    const bars = grupos.slice(0,10).map((g,i) => `<div class="ucx-response-bar">
-      <span class="ucx-response-rank">${i+1}</span>
-      <div class="ucx-response-text"><b>${esc(g.texto)}</b><small>${g.professores.size} professor(es) · ${g.ucs.size} UC(s) · ${g.uas.size} UA(s)</small></div>
-      <div class="ucx-response-meter"><i style="width:${Math.max(6,(g.total/max)*100)}%"></i></div>
-      <strong>${g.total}×</strong>
-    </div>`).join("");
-    const rows = grupos.slice(0,30).map(g => `<tr><td>${esc(g.texto)}</td><td>${g.total}</td><td>${esc([...g.professores].join(", "))}</td><td>${esc([...g.ucs].join(", "))}</td><td>${esc([...g.uas].join(", "))}</td></tr>`).join("");
-    return `<div class="ucx-panel-head"><div><span class="ucx-kicker">Formulário de avaliação</span><h3>Respostas dos professores</h3><p>Frequência das respostas iguais após normalização de maiúsculas, acentos e pontuação.</p></div></div>
-      ${cards}
-      <div class="ucx-response-chart"><h4>Respostas mais frequentes</h4>${bars}</div>
-      <div class="ucx-table-wrap"><table class="ucx-response-table"><thead><tr><th>Resposta</th><th>Vezes</th><th>Professor(es)</th><th>UC(s)</th><th>UA(s)</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+
+    const bars = grupos.slice(0, 10).map((g, i) => `
+      <div class="ucx-response-bar">
+        <span class="ucx-response-rank">${i + 1}</span>
+        <div class="ucx-response-text">
+          <b>${esc(g.texto)}</b>
+          <small>${g.professores.size} avaliador(es) · ${g.criterios.size} critério(s) · ${g.materiais.size} material(is)</small>
+        </div>
+        <div class="ucx-response-meter"><i style="width:${Math.max(6, (g.total / max) * 100)}%"></i></div>
+        <strong>${g.total}×</strong>
+      </div>
+    `).join("");
+
+    const rows = pareceresRaw
+      .slice()
+      .sort((a, b) => String(b.synced_at || "").localeCompare(String(a.synced_at || "")))
+      .slice(0, 100)
+      .map(r => `<tr>
+        <td>${esc(r.avaliador || "Não informado")}</td>
+        <td>${esc(r.nome_item || "—")}</td>
+        <td>${esc(r.numero_criterio ?? "—")}</td>
+        <td>${esc(r.criterio_titulo || "—")}</td>
+        <td>${esc(r.parecer || "—")}</td>
+        <td>${esc(r.tipo_formulario || "Geral")}</td>
+      </tr>`).join("");
+
+    return `<div class="ucx-panel-head"><div>
+      <span class="ucx-kicker">Pareceres da Monday</span>
+      <h3>Respostas dos professores</h3>
+      <p>Os pareceres abaixo vêm diretamente de <b>monday_criterios_pareceres</b>. Repetição literal e similaridade temática são tratadas separadamente.</p>
+    </div></div>
+    ${cards}
+    <div class="ucx-response-chart">
+      <h4>Respostas mais frequentes — repetição literal</h4>
+      ${bars || '<div class="ucx-empty">Nenhuma repetição literal encontrada.</div>'}
+    </div>
+    <div class="ucx-table-wrap">
+      <table class="ucx-response-table">
+        <thead><tr><th>Avaliador</th><th>Material / UA</th><th>Nº</th><th>Critério</th><th>Parecer</th><th>Formulário</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
   }
 
   async function carregarHistoricoSync() {
@@ -275,7 +345,7 @@
       status.textContent = syncHistorico.length ? "Últimas execuções registradas" : "Ainda não há execuções registradas";
       body.innerHTML = syncHistorico.length ? syncHistorico.map(r => {
         const quando = r.created_at || r.sincronizado_em || r.quando || r.executado_em;
-        return `<tr><td>${quando ? new Date(quando).toLocaleString("pt-BR") : "—"}</td><td>${esc(r.status || (r.success === false ? "Erro" : "Sucesso"))}</td><td>${r.itens_lidos ?? "—"}</td><td>${r.itens_gravados ?? "—"}</td><td>${r.erros ?? 0}</td></tr>`;
+        return `<tr><td>${quando ? new Date(quando).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}</td><td>${esc(r.status || (r.success === false ? "Erro" : "Sucesso"))}</td><td>${r.itens_lidos ?? "—"}</td><td>${r.itens_gravados ?? "—"}</td><td>${r.erros ?? 0}</td></tr>`;
       }).join("") : '<tr><td colspan="5">Nenhuma sincronização registrada ainda.</td></tr>';
     } catch (e) {
       status.textContent = "Histórico ainda não configurado no Supabase";
@@ -522,6 +592,157 @@
   }
 
 
+
+  function palavrasTemaV222(texto) {
+    const stop = new Set([
+      "para","com","sem","uma","umas","uns","que","dos","das","de","do","da",
+      "em","no","na","nos","nas","por","como","mais","menos","muito","muita",
+      "sobre","entre","este","esta","esse","essa","seu","sua","aos","ao","ou",
+      "e","o","a","os","as","um","ser","foi","sao","tem","ter","deve","esta"
+    ]);
+
+    return normalizarTexto(texto)
+      .split(" ")
+      .filter(w => w.length >= 5 && !stop.has(w));
+  }
+
+  function similaridadeTemaV222(a, b) {
+    const A = new Set(palavrasTemaV222(a));
+    const B = new Set(palavrasTemaV222(b));
+
+    if (!A.size || !B.size) return 0;
+
+    const inter = [...A].filter(x => B.has(x)).length;
+    const uniao = new Set([...A, ...B]).size;
+
+    return inter / uniao;
+  }
+
+  function agruparTematicamenteV222() {
+    const base = pareceresRaw
+      .map(r => ({
+        texto: String(r.parecer || "").trim(),
+        avaliador: r.avaliador || "Não informado",
+        nome_item: r.nome_item || "—",
+        criterio: r.criterio_titulo || `Critério ${r.numero_criterio || "—"}`,
+        numero: r.numero_criterio,
+        tipo: r.tipo_formulario || "Geral"
+      }))
+      .filter(x => x.texto.length > 8);
+
+    const grupos = [];
+
+    base.forEach(item => {
+      let melhor = null;
+      let melhorScore = 0;
+
+      for (const g of grupos) {
+        const s = similaridadeTemaV222(g.representante, item.texto);
+        if (s > melhorScore) {
+          melhorScore = s;
+          melhor = g;
+        }
+      }
+
+      // Limiar conservador para não inventar recorrência temática.
+      if (melhor && melhorScore >= 0.38) {
+        melhor.itens.push(item);
+        melhor.scoreMax = Math.max(melhor.scoreMax, melhorScore);
+      } else {
+        grupos.push({
+          representante: item.texto,
+          itens: [item],
+          scoreMax: 1
+        });
+      }
+    });
+
+    return grupos
+      .filter(g => g.itens.length > 1)
+      .sort((a, b) => b.itens.length - a.itens.length);
+  }
+
+  function resumoTemaV222(grupo) {
+    const frequencia = new Map();
+
+    grupo.itens.forEach(item => {
+      palavrasTemaV222(item.texto).forEach(w => {
+        frequencia.set(w, (frequencia.get(w) || 0) + 1);
+      });
+    });
+
+    const termos = [...frequencia.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([w]) => w);
+
+    return termos.length ? termos.join(" · ") : "Tema recorrente";
+  }
+
+  function renderPadroesV222() {
+    if (!pareceresRaw.length) {
+      return `<section class="v221-section">
+        <h2>Padrões recorrentes nas avaliações</h2>
+        <div class="v221-empty">Nenhum parecer textual disponível para análise.</div>
+      </section>`;
+    }
+
+    const literais = agruparPareceresLiteraisV222().filter(g => g.total > 1);
+    const temas = agruparTematicamenteV222();
+
+    const cardsLiterais = literais.slice(0, 4).map(g => `
+      <article class="v221-pattern">
+        <h3>Repetição literal</h3>
+        <b>${g.total} ocorrência(s)</b>
+        <p>${esc(g.texto)}</p>
+        <em>${g.professores.size} avaliador(es) · ${g.criterios.size} critério(s)</em>
+      </article>
+    `).join("");
+
+    const cardsTemas = temas.slice(0, 6).map(g => {
+      const criterios = new Set(g.itens.map(x => x.criterio));
+      const avaliadores = new Set(g.itens.map(x => x.avaliador));
+      const materiais = new Set(g.itens.map(x => x.nome_item));
+
+      return `<article class="v221-pattern">
+        <h3>${esc(resumoTemaV222(g))}</h3>
+        <b>${g.itens.length} parecer(es) semanticamente próximos</b>
+        <p>${esc(g.itens[0].texto)}</p>
+        <em>${avaliadores.size} avaliador(es) · ${criterios.size} critério(s) · ${materiais.size} material(is)</em>
+      </article>`;
+    }).join("");
+
+    const semPadrao = !cardsLiterais && !cardsTemas;
+
+    return `<section class="v221-section">
+      <div class="v221-title-row">
+        <div>
+          <h2>Padrões recorrentes nas avaliações</h2>
+          <p>Repetições literais e aproximações temáticas são apresentadas separadamente para preservar a leitura dos dados reais.</p>
+        </div>
+        <div class="v222-pattern-summary">
+          <span><b>${pareceresRaw.length}</b> pareceres</span>
+          <span><b>${literais.length}</b> repetições literais</span>
+          <span><b>${temas.length}</b> grupos temáticos</span>
+        </div>
+      </div>
+
+      ${cardsLiterais ? `<h4 class="v222-subtitle">Repetições literais</h4><div class="v221-pattern-grid">${cardsLiterais}</div>` : ""}
+      ${cardsTemas ? `<h4 class="v222-subtitle">Similaridade temática</h4><div class="v221-pattern-grid">${cardsTemas}</div>` : ""}
+      ${semPadrao ? '<div class="v221-empty">Os pareceres atuais ainda não formam grupos recorrentes com segurança. Os textos continuam disponíveis na aba “Respostas dos professores”.</div>' : ""}
+    </section>`;
+  }
+
+  function renderVisoesExecutivasV222() {
+    const alvo = document.getElementById("ucxV22Executive");
+    if (!alvo) return;
+
+    alvo.innerHTML =
+      renderResultadoAmostraV221() +
+      renderPadroesV222();
+  }
+
+
   function renderPainel() {
     const el = $("ucxPainel");
     if (!el) return;
@@ -568,7 +789,7 @@
     try {
       if (!window.biSupabase) throw new Error("Cliente Supabase não disponível.");
 
-      const [resumoResp, detalheResp, respostasResp] = await Promise.all([
+      const [resumoResp, detalheResp, respostasResp, pareceresResp] = await Promise.all([
         window.biSupabase
           .from("vw_indicadores_uc_dashboard")
           .select("codigo_uc,total_uas,uas_avaliadas,uas_nao_avaliadas,indicador_1_media,indicador_2_media,indicador_3_media,indicador_4_media,indicador_5_media,indicador_6_media,indicador_7_media,media_geral_uc,media_percentual,classificacao_uc,percentual_conclusao,ranking_uc,nome_uc")
@@ -581,13 +802,29 @@
         window.biSupabase
           .from("monday_criterios_avaliacao_uas")
           .select("*")
+          .limit(5000),
+        window.biSupabase
+          .from("monday_criterios_pareceres")
+          .select("monday_item_id,nome_item,avaliador,numero_criterio,criterio_id,criterio_titulo,parecer_id,parecer_titulo,parecer,tipo_formulario,data_avaliacao,data_avaliacao_hora,synced_at")
+          .order("synced_at", { ascending: false })
           .limit(5000)
       ]);
 
       if (resumoResp.error) throw resumoResp.error;
       if (detalheResp.error) throw detalheResp.error;
       criteriosRaw = respostasResp?.error ? [] : (respostasResp?.data || []);
-      respostasProfessores = extrairRespostas(criteriosRaw);
+      pareceresRaw = pareceresResp?.error ? [] : (pareceresResp?.data || []);
+
+      if (pareceresResp?.error) {
+        console.warn("Pareceres UC:", pareceresResp.error);
+      }
+
+      respostasProfessores = pareceresRaw.map(r => ({
+        resposta: String(r.parecer || "").trim(),
+        professor: r.avaliador || "Não informado",
+        uc: "—",
+        ua: r.nome_item || "—"
+      })).filter(x => x.resposta);
 
       ultimaSincronizacao = null;
       ucs = montarUCs(resumoResp.data || [], detalheResp.data || []);
@@ -599,6 +836,9 @@
         : "sincronização disponível";
       atualizarFonte("Dados reais", `Monday → Supabase · ${quando}`);
       render();
+      renderVisoesExecutivasV222();
+      carregarHistoricoSync();
+      atualizarSeloDadosReais();
     } catch (erro) {
       console.error("Indicadores UC:", erro);
       atualizarFonte("Falha ao carregar", "Verifique acesso às views no Supabase");
@@ -612,13 +852,21 @@
   function init() {
     if (!$("viewIndicadoresUC")) return;
     ligarEventos();
+
+    const exec = $("ucxV22Executive");
+    if (exec && !carregado) {
+      exec.innerHTML = '<section class="v221-section"><div class="v221-empty">Carregando resultado da amostra e padrões recorrentes...</div></section>';
+    }
+
     carregarDados();
     carregarHistoricoSync();
     atualizarSeloDadosReais();
-      renderVisoesExecutivasV221();
+
+    if (carregado) {
+      renderVisoesExecutivasV222();
+    }
   }
 
   window.inicializarIndicadoresUC = init;
 })();
 
-window.addEventListener("DOMContentLoaded", () => setTimeout(renderVisoesExecutivasV221, 1000));

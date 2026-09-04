@@ -1,19 +1,16 @@
-BI Monday V22.1
+BI Monday V22.2
 Data: 04/09/2026
 
-Correção principal:
-- Corrigida a renderização das duas novas visões executivas.
+Fonte nova integrada:
+- public.monday_criterios_pareceres
 
-Visões:
-1. O resultado da amostra
-   - 7 indicadores
-   - Excelente, Ótimo e Suficiente
-   - contagens dinâmicas com dados reais
-
-2. Padrões recorrentes nas avaliações
-   - respostas repetidas ou semelhantes
-   - frequência
-   - quantidade de professores
-   - indicador relacionado
-
-Mantém todos os recursos da V22.
+Correções e melhorias:
+- A aba "Respostas dos professores" passa a consumir os pareceres reais da Monday.
+- Exibe avaliador, material/UA, número do critério, critério, parecer e tipo de formulário.
+- "O resultado da amostra" continua calculado pelos 7 indicadores reais.
+- "Padrões recorrentes nas avaliações" usa os pareceres reais.
+- Separa repetição literal de similaridade temática.
+- A similaridade temática usa limiar conservador para evitar criar recorrências artificiais.
+- Histórico de sincronização continua usando public.sync_log.
+- Renderização das duas visões ocorre somente depois que os dados terminam de carregar.
+- Corrigida a chamada de renderização que podia deixar as visões vazias na V22.1.
