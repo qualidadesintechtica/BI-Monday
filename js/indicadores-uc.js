@@ -282,6 +282,71 @@
     }
   }
 
+
+  function proximaAtualizacaoBRT() {
+    const agora = new Date();
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        hour12: false
+      }).formatToParts(agora).filter(x => x.type !== "literal").map(x => [x.type, x.value])
+    );
+    const hora = Number(p.hour);
+    if (hora < 8) return "hoje às 08:00";
+    if (hora < 13) return "hoje às 13:00";
+    if (hora < 18) return "hoje às 18:00";
+    return "amanhã às 08:00";
+  }
+
+  async function atualizarSeloDadosReais() {
+    const selo =
+      document.querySelector("[data-uc-live-badge]") ||
+      document.querySelector(".uc-live-badge") ||
+      document.querySelector(".ucx-live-badge") ||
+      document.querySelector("#ucLiveBadge");
+
+    if (!window.biSupabase || !selo) return;
+
+    try {
+      const resp = await window.biSupabase
+        .from("monday_criterios_avaliacao_uas")
+        .select("synced_at")
+        .not("synced_at", "is", null)
+        .order("synced_at", { ascending: false })
+        .limit(1);
+
+      if (resp.error) throw resp.error;
+
+      const synced = resp.data?.[0]?.synced_at;
+      if (!synced) return;
+
+      const ultima = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(new Date(synced));
+
+      selo.innerHTML = `
+        <span class="ucx-live-dot"></span>
+        <span>
+          <b>Dados reais</b><br>
+          <small>Última sincronização: ${ultima}</small><br>
+          <small>Próxima atualização: ${proximaAtualizacaoBRT()}</small>
+        </span>
+      `;
+      selo.title = `Monday → Supabase · ${ultima}`;
+    } catch (err) {
+      console.warn("Erro ao atualizar selo de dados reais:", err);
+    }
+  }
+
+
   function renderPainel() {
     const el = $("ucxPainel");
     if (!el) return;
@@ -373,6 +438,7 @@
     ligarEventos();
     carregarDados();
     carregarHistoricoSync();
+    atualizarSeloDadosReais();
   }
 
   window.inicializarIndicadoresUC = init;

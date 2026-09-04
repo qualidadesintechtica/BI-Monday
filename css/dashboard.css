@@ -1056,3 +1056,24 @@
 .ucx-response-chart{padding:8px 18px 18px}.ucx-response-chart h4{margin:4px 0 12px;color:#2d1553}
 .ucx-response-bar{display:grid;grid-template-columns:24px minmax(220px,2fr) minmax(120px,1fr) 40px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #f0ebf5}.ucx-response-rank{font-size:10px;color:#8b8195}.ucx-response-text b{display:block;font-size:11px;color:#2d1553}.ucx-response-text small{font-size:9px;color:#81768d}.ucx-response-meter{height:8px;background:#f0e9f5;border-radius:999px;overflow:hidden}.ucx-response-meter i{display:block;height:100%;background:#7b168f;border-radius:999px}
 @media(max-width:900px){.ucx-response-kpis{grid-template-columns:repeat(2,1fr)}.ucx-response-bar{grid-template-columns:22px 1fr 40px}.ucx-response-meter{display:none}.ucx-sync-head{align-items:flex-start;flex-direction:column}}
+
+
+/* V21.2 — selo de sincronização real */
+.ucx-live-dot{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  margin-right:8px;
+  vertical-align:top;
+  background:currentColor;
+}
+[data-uc-live-badge], .uc-live-badge, .ucx-live-badge, #ucLiveBadge{
+  display:flex;
+  align-items:flex-start;
+  gap:4px;
+}
+[data-uc-live-badge] small, .uc-live-badge small, .ucx-live-badge small, #ucLiveBadge small{
+  font-size:10px;
+  line-height:1.35;
+}
