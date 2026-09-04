@@ -1169,3 +1169,63 @@
 @media(max-width:900px){
   .v222-pattern-summary{justify-content:flex-start}
 }
+
+
+/* V22.3 — limpeza definitiva do legado V22/V22.1 */
+.v223-legend{
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  font-size:11px;
+  color:#473f50;
+}
+.v223-legend span{display:flex;align-items:center;gap:6px}
+.v223-legend i{width:14px;height:14px;border-radius:2px;display:inline-block}
+.v223-legend .excelente,.v223-bar.excelente{background:#233b63}
+.v223-legend .otimo,.v223-bar.otimo{background:#6f8fc2}
+.v223-legend .suficiente,.v223-bar.suficiente{background:#d9dfeb}
+.v223-axis-label{font-size:11px;color:#665f70;margin:14px 0 8px}
+.v223-sample-chart{
+  min-height:250px;
+  display:grid;
+  grid-template-columns:repeat(7,minmax(110px,1fr));
+  gap:18px;
+  align-items:end;
+  border-bottom:1px solid #d9d3e2;
+  padding:0 12px 12px;
+  overflow-x:auto;
+}
+.v223-sample-group{
+  min-width:110px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:center;
+}
+.v223-bars{
+  height:190px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:7px;
+}
+.v223-bar-col{
+  width:24px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+}
+.v223-bar-col b{font-size:10px;color:#302738}
+.v223-bar{width:18px;border-radius:3px 3px 0 0;min-height:2px;display:block}
+.v223-sample-label{
+  min-height:42px;
+  margin-top:8px;
+  text-align:center;
+  font-size:10px;
+  line-height:1.25;
+  color:#2f2935;
+}

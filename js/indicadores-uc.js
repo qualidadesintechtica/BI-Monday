@@ -437,311 +437,335 @@
     return null;
   }
 
-  function renderResultadoAmostraV221() {
-    const cats = ["Excelente", "Ótimo", "Suficiente"];
-    const dados = NOMES_INDICADORES_V221.map((nome, idx) => {
-      const campo = `indicador_${idx + 1}`;
-      const cont = { Excelente: 0, "Ótimo": 0, Suficiente: 0 };
-      criteriosRaw.forEach(r => {
-        const c = conceitoCanonicoV221(r[campo]);
-        if (c) cont[c]++;
-      });
-      return { nome, cont };
+
+  function obterIndicadoresAmostraV223() {
+    const nomes = [
+      "Fundamentação científica",
+      "Taxonomia da Neuroaprendizagem",
+      "Jornada contínua e integrada",
+      "Atualização de conhecimentos",
+      "Competências profissionais",
+      "Diversidade de recursos multimídia",
+      "Recursos inovadores"
+    ];
+
+    const saida = nomes.map((nome, idx) => ({
+      nome,
+      excelente: 0,
+      otimo: 0,
+      suficiente: 0,
+      total: 0
+    }));
+
+    criteriosRaw.forEach(r => {
+      for (let i = 1; i <= 7; i++) {
+        const valor = String(r[`indicador_${i}`] || "").trim();
+        const alvo = saida[i - 1];
+
+        if (!valor) continue;
+
+        alvo.total++;
+
+        const n = normalizarTexto(valor);
+
+        if (n === "excelente") alvo.excelente++;
+        else if (n === "otimo") alvo.otimo++;
+        else if (n === "suficiente") alvo.suficiente++;
+      }
     });
 
-    const max = Math.max(1, ...dados.flatMap(d => cats.map(c => d.cont[c])));
-    const avaliadas = criteriosRaw.filter(r =>
-      NOMES_INDICADORES_V221.some((_, i) => conceitoCanonicoV221(r[`indicador_${i+1}`]))
-    ).length;
+    return saida;
+  }
+
+  function renderResultadoAmostraV223() {
+    const dados = obterIndicadoresAmostraV223();
+    const uasAvaliadas = new Set(
+      criteriosRaw
+        .filter(r => Array.from({length:7}, (_,i) => r[`indicador_${i+1}`]).some(Boolean))
+        .map(r => r.monday_item_id || r.nome_item)
+        .filter(Boolean)
+    ).size;
+
+    const max = Math.max(
+      1,
+      ...dados.flatMap(d => [d.excelente, d.otimo, d.suficiente])
+    );
 
     const grupos = dados.map(d => `
-      <div class="v221-sample-group">
-        <div class="v221-bars">
-          ${cats.map(c => {
-            const val = d.cont[c];
-            const h = Math.max(val ? 8 : 0, (val / max) * 250);
-            const cls = c === "Excelente" ? "exc" : c === "Ótimo" ? "oti" : "suf";
-            return `<div class="v221-bar-wrap"><span>${val}</span><i class="${cls}" style="height:${h}px"></i></div>`;
-          }).join("")}
+      <div class="v223-sample-group">
+        <div class="v223-bars">
+          <div class="v223-bar-col">
+            <b>${d.excelente}</b>
+            <span class="v223-bar excelente" style="height:${Math.max(2, (d.excelente/max)*170)}px"></span>
+          </div>
+          <div class="v223-bar-col">
+            <b>${d.otimo}</b>
+            <span class="v223-bar otimo" style="height:${Math.max(2, (d.otimo/max)*170)}px"></span>
+          </div>
+          <div class="v223-bar-col">
+            <b>${d.suficiente}</b>
+            <span class="v223-bar suficiente" style="height:${Math.max(2, (d.suficiente/max)*170)}px"></span>
+          </div>
         </div>
-        <div class="v221-sample-label">${esc(d.nome)}</div>
+        <div class="v223-sample-label">${esc(d.nome)}</div>
       </div>
     `).join("");
 
-    return `
-      <section class="v221-section">
-        <div class="v221-title-row">
-          <div>
-            <h2>O resultado da amostra</h2>
-            <p>${avaliadas} unidades de aprendizagem avaliadas, distribuídas nos sete indicadores.</p>
-          </div>
-          <div class="v221-legend">
-            <span><i class="exc"></i>Excelente</span>
-            <span><i class="oti"></i>Ótimo</span>
-            <span><i class="suf"></i>Suficiente</span>
-          </div>
+    return `<section class="v221-section">
+      <div class="v221-title-row">
+        <div>
+          <h2>O resultado da amostra</h2>
+          <p>${uasAvaliadas} unidades de aprendizagem avaliadas, distribuídas nos sete indicadores.</p>
         </div>
-        <small class="v221-axis-label">Nº de unidades</small>
-        <div class="v221-sample-chart">${grupos}</div>
-      </section>`;
+        <div class="v223-legend">
+          <span><i class="excelente"></i>Excelente</span>
+          <span><i class="otimo"></i>Ótimo</span>
+          <span><i class="suficiente"></i>Suficiente</span>
+        </div>
+      </div>
+
+      <div class="v223-axis-label">Nº de unidades</div>
+      <div class="v223-sample-chart">${grupos}</div>
+    </section>`;
   }
 
-  function palavrasChaveV221(texto) {
-    const stop = new Set(["para","com","sem","uma","umas","uns","que","dos","das","de","do","da","em","no","na","nos","nas","por","como","mais","menos","muito","muita","sobre","entre","este","esta","esse","essa","seu","sua","aos","ao","ou","e","o","a","os","as","um"]);
-    return normalizarTexto(texto).split(" ").filter(w => w.length >= 5 && !stop.has(w));
-  }
+  function agruparPareceresLiteraisV223() {
+    const mapa = new Map();
 
-  function similaridadeV221(a, b) {
-    const A = new Set(palavrasChaveV221(a));
-    const B = new Set(palavrasChaveV221(b));
-    if (!A.size || !B.size) return 0;
-    const inter = [...A].filter(x => B.has(x)).length;
-    const uniao = new Set([...A, ...B]).size;
-    return inter / uniao;
-  }
+    pareceresRaw.forEach(r => {
+      const texto = String(r.parecer || "").trim();
+      if (!texto) return;
 
-  function localizarCampoRespostaV221(r) {
-    return campoProvavel(r, [
-      "formulario de avaliacao",
-      "formulario_avaliacao",
-      "resposta",
-      "comentario",
-      "observacao"
-    ]);
-  }
+      const chave = normalizarTexto(texto);
 
-  function indicadorRelacionadoV221(grupo) {
-    const cont = Array(7).fill(0);
-    grupo.itens.forEach(item => {
-      const raw = item.raw || {};
-      for (let i = 0; i < 7; i++) {
-        if (conceitoCanonicoV221(raw[`indicador_${i+1}`])) cont[i]++;
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          texto,
+          total: 0,
+          professores: new Set(),
+          criterios: new Set(),
+          materiais: new Set()
+        });
       }
-    });
-    const max = Math.max(...cont);
-    return max ? NOMES_INDICADORES_V221[cont.indexOf(max)] : "Avaliação geral";
-  }
 
-  function agruparParecidasV221() {
-    const base = criteriosRaw.map(r => {
-      const k = localizarCampoRespostaV221(r);
-      return {
-        texto: k ? String(r[k] || "").trim() : "",
-        raw: r,
-        avaliador: r.avaliador || "Não informado",
-        uc: r.codigo_uc || r.uc || "—",
-        ua: r.nome_item || r.numero_ua || "—"
-      };
-    }).filter(x => x.texto.length > 8);
-
-    const grupos = [];
-    base.forEach(item => {
-      let alvo = grupos.find(g => similaridadeV221(g.texto, item.texto) >= 0.55);
-      if (!alvo) {
-        alvo = { texto: item.texto, itens: [] };
-        grupos.push(alvo);
-      }
-      alvo.itens.push(item);
+      const g = mapa.get(chave);
+      g.total++;
+      g.professores.add(r.avaliador || "Não informado");
+      g.criterios.add(r.criterio_titulo || `Critério ${r.numero_criterio || "—"}`);
+      g.materiais.add(r.nome_item || "—");
     });
 
-    return grupos.sort((a, b) => b.itens.length - a.itens.length);
+    return [...mapa.values()].sort((a,b) => b.total - a.total);
   }
 
-  function renderPadroesV221() {
-    const grupos = agruparParecidasV221().filter(g => g.itens.length > 1).slice(0, 6);
-
-    if (!grupos.length) {
-      return `
-        <section class="v221-section">
-          <h2>Padrões recorrentes nas avaliações</h2>
-          <div class="v221-empty">
-            Ainda não há respostas textuais repetidas ou suficientemente parecidas para formar padrões.
-          </div>
-        </section>`;
-    }
-
-    const cards = grupos.map((g, idx) => {
-      const indicador = indicadorRelacionadoV221(g);
-      const professores = new Set(g.itens.map(x => x.avaliador)).size;
-      const titulo = g.texto.length > 72 ? g.texto.slice(0, 69) + "..." : g.texto;
-      return `
-        <article class="v221-pattern ${idx === grupos.length - 1 && grupos.length >= 5 ? "alert" : ""}">
-          <h3>${esc(titulo)}</h3>
-          <b>${g.itens.length} ocorrência(s) · ${professores} professor(es)</b>
-          <p>${esc(g.texto)}</p>
-          <em>${esc(indicador)}</em>
-        </article>`;
-    }).join("");
-
-    return `
-      <section class="v221-section">
-        <div class="v221-title-row">
-          <div>
-            <h2>Padrões recorrentes nas avaliações</h2>
-            <p>Comentários iguais ou semelhantes agrupados automaticamente a partir do formulário de avaliação.</p>
-          </div>
-        </div>
-        <div class="v221-pattern-grid">${cards}</div>
-      </section>`;
-  }
-
-  function renderVisoesExecutivasV221() {
-    const alvo = document.getElementById("ucxV22Executive");
-    if (!alvo) return;
-    alvo.innerHTML = renderResultadoAmostraV221() + renderPadroesV221();
-  }
-
-
-
-  function palavrasTemaV222(texto) {
+  function palavrasTemaV223(texto) {
     const stop = new Set([
       "para","com","sem","uma","umas","uns","que","dos","das","de","do","da",
       "em","no","na","nos","nas","por","como","mais","menos","muito","muita",
       "sobre","entre","este","esta","esse","essa","seu","sua","aos","ao","ou",
-      "e","o","a","os","as","um","ser","foi","sao","tem","ter","deve","esta"
+      "e","o","a","os","as","um","ser","foi","sao","tem","ter","deve","esta",
+      "material","conteudo","unidade","atividade","atividades"
     ]);
 
     return normalizarTexto(texto)
-      .split(" ")
+      .split(/\s+/)
+      .map(w => w.replace(/[^\p{L}\p{N}-]/gu, ""))
       .filter(w => w.length >= 5 && !stop.has(w));
   }
 
-  function similaridadeTemaV222(a, b) {
-    const A = new Set(palavrasTemaV222(a));
-    const B = new Set(palavrasTemaV222(b));
-
+  function similaridadeV223(a,b) {
+    const A = new Set(palavrasTemaV223(a));
+    const B = new Set(palavrasTemaV223(b));
     if (!A.size || !B.size) return 0;
-
     const inter = [...A].filter(x => B.has(x)).length;
     const uniao = new Set([...A, ...B]).size;
-
     return inter / uniao;
   }
 
-  function agruparTematicamenteV222() {
-    const base = pareceresRaw
+  function agruparTemasV223() {
+    const itens = pareceresRaw
       .map(r => ({
         texto: String(r.parecer || "").trim(),
         avaliador: r.avaliador || "Não informado",
-        nome_item: r.nome_item || "—",
         criterio: r.criterio_titulo || `Critério ${r.numero_criterio || "—"}`,
-        numero: r.numero_criterio,
-        tipo: r.tipo_formulario || "Geral"
+        material: r.nome_item || "—"
       }))
       .filter(x => x.texto.length > 8);
 
     const grupos = [];
 
-    base.forEach(item => {
+    for (const item of itens) {
       let melhor = null;
-      let melhorScore = 0;
+      let score = 0;
 
       for (const g of grupos) {
-        const s = similaridadeTemaV222(g.representante, item.texto);
-        if (s > melhorScore) {
-          melhorScore = s;
+        const s = similaridadeV223(g.representante, item.texto);
+        if (s > score) {
+          score = s;
           melhor = g;
         }
       }
 
-      // Limiar conservador para não inventar recorrência temática.
-      if (melhor && melhorScore >= 0.38) {
+      if (melhor && score >= 0.28) {
         melhor.itens.push(item);
-        melhor.scoreMax = Math.max(melhor.scoreMax, melhorScore);
       } else {
-        grupos.push({
-          representante: item.texto,
-          itens: [item],
-          scoreMax: 1
-        });
+        grupos.push({ representante: item.texto, itens: [item] });
       }
-    });
+    }
 
     return grupos
       .filter(g => g.itens.length > 1)
-      .sort((a, b) => b.itens.length - a.itens.length);
+      .sort((a,b) => b.itens.length - a.itens.length);
   }
 
-  function resumoTemaV222(grupo) {
-    const frequencia = new Map();
+  function tituloTemaV223(grupo) {
+    const freq = new Map();
 
     grupo.itens.forEach(item => {
-      palavrasTemaV222(item.texto).forEach(w => {
-        frequencia.set(w, (frequencia.get(w) || 0) + 1);
+      palavrasTemaV223(item.texto).forEach(w => {
+        freq.set(w, (freq.get(w) || 0) + 1);
       });
     });
 
-    const termos = [...frequencia.entries()]
-      .sort((a, b) => b[1] - a[1])
+    const termos = [...freq.entries()]
+      .sort((a,b) => b[1] - a[1])
       .slice(0, 4)
       .map(([w]) => w);
 
     return termos.length ? termos.join(" · ") : "Tema recorrente";
   }
 
-  function renderPadroesV222() {
+  function renderPadroesV223() {
     if (!pareceresRaw.length) {
       return `<section class="v221-section">
         <h2>Padrões recorrentes nas avaliações</h2>
-        <div class="v221-empty">Nenhum parecer textual disponível para análise.</div>
+        <div class="v221-empty">Nenhum parecer textual foi carregado da tabela monday_criterios_pareceres.</div>
       </section>`;
     }
 
-    const literais = agruparPareceresLiteraisV222().filter(g => g.total > 1);
-    const temas = agruparTematicamenteV222();
+    const literais = agruparPareceresLiteraisV223().filter(g => g.total > 1);
+    const temas = agruparTemasV223();
 
-    const cardsLiterais = literais.slice(0, 4).map(g => `
-      <article class="v221-pattern">
-        <h3>Repetição literal</h3>
-        <b>${g.total} ocorrência(s)</b>
-        <p>${esc(g.texto)}</p>
-        <em>${g.professores.size} avaliador(es) · ${g.criterios.size} critério(s)</em>
-      </article>
-    `).join("");
+    const cards = [];
 
-    const cardsTemas = temas.slice(0, 6).map(g => {
-      const criterios = new Set(g.itens.map(x => x.criterio));
+    literais.slice(0,4).forEach(g => {
+      cards.push(`
+        <article class="v221-pattern">
+          <h3>Repetição literal</h3>
+          <b>${g.total} ocorrência(s)</b>
+          <p>${esc(g.texto)}</p>
+          <em>${g.professores.size} avaliador(es) · ${g.criterios.size} critério(s) · ${g.materiais.size} material(is)</em>
+        </article>
+      `);
+    });
+
+    temas.slice(0,6).forEach(g => {
       const avaliadores = new Set(g.itens.map(x => x.avaliador));
-      const materiais = new Set(g.itens.map(x => x.nome_item));
+      const criterios = new Set(g.itens.map(x => x.criterio));
+      const materiais = new Set(g.itens.map(x => x.material));
 
-      return `<article class="v221-pattern">
-        <h3>${esc(resumoTemaV222(g))}</h3>
-        <b>${g.itens.length} parecer(es) semanticamente próximos</b>
-        <p>${esc(g.itens[0].texto)}</p>
-        <em>${avaliadores.size} avaliador(es) · ${criterios.size} critério(s) · ${materiais.size} material(is)</em>
-      </article>`;
-    }).join("");
+      cards.push(`
+        <article class="v221-pattern">
+          <h3>${esc(tituloTemaV223(g))}</h3>
+          <b>${g.itens.length} parecer(es) relacionados</b>
+          <p>${esc(g.itens[0].texto)}</p>
+          <em>${avaliadores.size} avaliador(es) · ${criterios.size} critério(s) · ${materiais.size} material(is)</em>
+        </article>
+      `);
+    });
 
-    const semPadrao = !cardsLiterais && !cardsTemas;
+    if (!cards.length) {
+      const todos = pareceresRaw.slice(0,6).map(r => `
+        <article class="v221-pattern">
+          <h3>${esc(r.criterio_titulo || `Critério ${r.numero_criterio || "—"}`)}</h3>
+          <b>1 ocorrência</b>
+          <p>${esc(r.parecer || "")}</p>
+          <em>${esc(r.avaliador || "Não informado")} · ${esc(r.nome_item || "—")}</em>
+        </article>
+      `).join("");
+
+      return `<section class="v221-section">
+        <div class="v221-title-row">
+          <div>
+            <h2>Padrões recorrentes nas avaliações</h2>
+            <p>Os pareceres atuais ainda não formam recorrências fortes. Abaixo estão os registros mais recentes, sem inferir um padrão inexistente.</p>
+          </div>
+        </div>
+        <div class="v221-pattern-grid">${todos}</div>
+      </section>`;
+    }
 
     return `<section class="v221-section">
       <div class="v221-title-row">
         <div>
           <h2>Padrões recorrentes nas avaliações</h2>
-          <p>Repetições literais e aproximações temáticas são apresentadas separadamente para preservar a leitura dos dados reais.</p>
-        </div>
-        <div class="v222-pattern-summary">
-          <span><b>${pareceresRaw.length}</b> pareceres</span>
-          <span><b>${literais.length}</b> repetições literais</span>
-          <span><b>${temas.length}</b> grupos temáticos</span>
+          <p>Repetições literais e aproximações temáticas calculadas sobre os pareceres reais sincronizados da Monday.</p>
         </div>
       </div>
-
-      ${cardsLiterais ? `<h4 class="v222-subtitle">Repetições literais</h4><div class="v221-pattern-grid">${cardsLiterais}</div>` : ""}
-      ${cardsTemas ? `<h4 class="v222-subtitle">Similaridade temática</h4><div class="v221-pattern-grid">${cardsTemas}</div>` : ""}
-      ${semPadrao ? '<div class="v221-empty">Os pareceres atuais ainda não formam grupos recorrentes com segurança. Os textos continuam disponíveis na aba “Respostas dos professores”.</div>' : ""}
+      <div class="v221-pattern-grid">${cards.join("")}</div>
     </section>`;
   }
 
-  function renderVisoesExecutivasV222() {
-    const alvo = document.getElementById("ucxV22Executive");
-    if (!alvo) return;
+  function renderRespostas() {
+    if (!pareceresRaw.length) {
+      return `<div class="ucx-panel-head"><div>
+        <span class="ucx-kicker">PARECERES DA MONDAY</span>
+        <h3>Respostas dos professores</h3>
+        <p>Nenhum parecer textual foi carregado da tabela monday_criterios_pareceres.</p>
+      </div></div>`;
+    }
 
-    alvo.innerHTML =
-      renderResultadoAmostraV221() +
-      renderPadroesV222();
+    const grupos = agruparPareceresLiteraisV223();
+    const repetidas = grupos.filter(g => g.total > 1);
+    const professores = new Set(pareceresRaw.map(r => r.avaliador || "Não informado")).size;
+
+    const rows = pareceresRaw
+      .slice()
+      .sort((a,b) => String(b.synced_at || "").localeCompare(String(a.synced_at || "")))
+      .map(r => `<tr>
+        <td>${esc(r.avaliador || "Não informado")}</td>
+        <td>${esc(r.nome_item || "—")}</td>
+        <td>${esc(r.numero_criterio ?? "—")}</td>
+        <td>${esc(r.criterio_titulo || "—")}</td>
+        <td>${esc(r.parecer || "—")}</td>
+        <td>${esc(r.tipo_formulario || "Geral")}</td>
+      </tr>`).join("");
+
+    return `<div class="ucx-panel-head"><div>
+      <span class="ucx-kicker">PARECERES DA MONDAY</span>
+      <h3>Respostas dos professores</h3>
+      <p>${pareceresRaw.length} parecer(es) reais sincronizados.</p>
+    </div></div>
+
+    <div class="ucx-response-kpis">
+      <article><span>Pareceres</span><strong>${pareceresRaw.length}</strong></article>
+      <article><span>Textos distintos</span><strong>${grupos.length}</strong></article>
+      <article><span>Repetições literais</span><strong>${repetidas.length}</strong></article>
+      <article><span>Avaliadores</span><strong>${professores}</strong></article>
+    </div>
+
+    <div class="ucx-table-wrap">
+      <table class="ucx-response-table">
+        <thead>
+          <tr>
+            <th>Avaliador</th>
+            <th>Material / UA</th>
+            <th>Nº</th>
+            <th>Critério</th>
+            <th>Parecer</th>
+            <th>Formulário</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
   }
 
+  function renderVisoesExecutivasV223() {
+    const alvo = document.getElementById("ucxV22Executive");
+    if (!alvo) return;
+    alvo.innerHTML = renderResultadoAmostraV223() + renderPadroesV223();
+  }
 
   function renderPainel() {
     const el = $("ucxPainel");
@@ -836,7 +860,8 @@
         : "sincronização disponível";
       atualizarFonte("Dados reais", `Monday → Supabase · ${quando}`);
       render();
-      renderVisoesExecutivasV222();
+      renderVisoesExecutivasV223();
+      
       carregarHistoricoSync();
       atualizarSeloDadosReais();
     } catch (erro) {
@@ -863,7 +888,7 @@
     atualizarSeloDadosReais();
 
     if (carregado) {
-      renderVisoesExecutivasV222();
+      
     }
   }
 
