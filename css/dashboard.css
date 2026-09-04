@@ -1077,3 +1077,21 @@
   font-size:10px;
   line-height:1.35;
 }
+
+
+/* V22 — Resultado da amostra + padrões recorrentes */
+.ucx-v22-executive{margin-top:18px}
+.v22-section{background:#fff;border:1px solid #e6e0ef;border-radius:16px;padding:22px;margin-bottom:16px}
+.v22-title-row{display:flex;justify-content:space-between;gap:24px;align-items:flex-start}
+.v22-title-row h2{margin:0 0 4px;font-size:24px;color:#17131d}.v22-title-row p{margin:0;color:#5f5668;font-size:13px}
+.v22-legend{display:flex;gap:20px;font-size:12px;white-space:nowrap}.v22-legend span{display:flex;gap:7px;align-items:center}.v22-legend i{width:16px;height:16px;border-radius:2px}
+.v22-legend .exc,.v22-bar-wrap .exc{background:#243f6b}.v22-legend .oti,.v22-bar-wrap .oti{background:#7891bd}.v22-legend .suf,.v22-bar-wrap .suf{background:#d7deea}
+.v22-axis-label{display:block;margin-top:20px;color:#6e6575}
+.v22-sample-chart{display:grid;grid-template-columns:repeat(7,1fr);gap:18px;align-items:end;min-height:330px;border-bottom:1px solid #ccc;padding:20px 18px 0}
+.v22-sample-group{height:305px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}.v22-bars{height:260px;display:flex;gap:6px;justify-content:center;align-items:flex-end}
+.v22-bar-wrap{height:260px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.v22-bar-wrap span{font-size:10px}.v22-bar-wrap i{display:block;width:23px;border-radius:2px 2px 0 0}
+.v22-sample-label{text-align:center;font-size:10px;line-height:1.25;padding:10px 2px;min-height:36px}
+.v22-pattern-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 34px;margin-top:18px}
+.v22-pattern{padding:12px 0 16px;border-top:2px solid #243f6b}.v22-pattern h3{font-size:15px;margin:0 0 3px;color:#17131d}.v22-pattern>b{display:block;font-size:10px;color:#243f6b;margin-bottom:7px}.v22-pattern p{font-size:11px;line-height:1.45;margin:0 0 7px}.v22-pattern em{font-size:10px;color:#746a80}.v22-pattern.alert{border-top-color:#b32828}.v22-pattern.alert h3,.v22-pattern.alert>b{color:#b32828}
+.v22-empty{padding:22px 0;color:#746a80;font-size:12px}
+@media(max-width:1050px){.v22-sample-chart{overflow-x:auto;grid-template-columns:repeat(7,130px)}.v22-pattern-grid{grid-template-columns:1fr}.v22-title-row{flex-direction:column}.v22-legend{flex-wrap:wrap}}

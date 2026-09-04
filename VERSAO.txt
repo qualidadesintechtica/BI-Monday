@@ -1,9 +1,12 @@
-BI Monday V21.2
+BI Monday V22
 Data: 04/09/2026
 
-Correções:
-- Selo "Dados reais" busca a última sincronização real em monday_criterios_avaliacao_uas.synced_at.
-- Conversão para America/Sao_Paulo.
-- Exibe última sincronização e próxima atualização prevista.
-- Agenda considerada: 08:00, 13:00 e 18:00 (Brasília).
-- Mantém todas as funcionalidades da V21.1.
+Novidades:
+- Visão executiva "O resultado da amostra".
+- Gráfico agrupado dos 7 indicadores com Excelente, Ótimo e Suficiente.
+- Quantidades calculadas dinamicamente a partir dos dados reais sincronizados.
+- Visão "Padrões recorrentes nas avaliações".
+- Agrupamento de comentários iguais ou semelhantes do formulário de avaliação.
+- Frequência de ocorrências e quantidade de professores.
+- Associação dos padrões aos indicadores.
+- Mantém ranking, detalhe da UC, comparativo, respostas dos professores, sincronização e selo de dados reais da V21.2.
