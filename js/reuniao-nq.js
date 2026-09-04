@@ -63,6 +63,7 @@
   }
 
   function renderResumo() {
+    setText("nqPeriodo", `${dataBR(resumo.periodo_inicio)} a ${dataBR(resumo.periodo_fim)}`);
     setText("nqUa", n(resumo.uas_validadas));
     setText("nqPp", n(resumo.pp_validados));
     setText("nqA1", n(resumo.a1_validadas));

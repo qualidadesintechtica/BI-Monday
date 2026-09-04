@@ -1045,11 +1045,3 @@
 .gm-sort-icon{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;color:#8a8095;font-size:12px;line-height:1}
 #viewGestoresMateriais th.gm-sort-active .gm-sort-button{background:#f5ebf6;color:#64037e}
 #viewGestoresMateriais th.gm-sort-active .gm-sort-icon{background:#64037e;color:#fff}
-.ucx-sync-card{margin-top:12px;background:#fff;border:1px solid #e7e2ef;border-radius:18px;box-shadow:0 10px 30px rgba(45,21,83,.05);overflow:hidden}
-.ucx-sync-table{width:100%;border-collapse:separate;border-spacing:0;min-width:520px}
-.ucx-sync-table th,.ucx-sync-table td{border-bottom:1px solid #f0ebf4;padding:8px 10px;text-align:left;font-size:10.5px}
-.ucx-sync-table thead th{font-size:9px;color:#887f94;text-transform:uppercase;letter-spacing:.04em}
-.ucx-sync-table tbody td{color:#2d1553}
-.ucx-sync-status{display:inline-block;padding:3px 8px;border-radius:20px;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.03em}
-.ucx-sync-status.ok{background:#e9f7ef;color:#1f8a4c}
-.ucx-sync-status.fail{background:#fdecea;color:#c0392b}
