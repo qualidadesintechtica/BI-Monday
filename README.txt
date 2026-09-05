@@ -1,3 +1,20 @@
+BI Monday — V23
+
+Nova área: Importar Projetos da Qualidade
+- leitura local de arquivos XLSX/XLS;
+- detecção automática da aba e dos 11 cabeçalhos esperados;
+- prévia, contagens e alertas antes da gravação;
+- autenticação pelo login existente do BI;
+- bloqueio de arquivo repetido por SHA-256;
+- envio direto para a Edge Function sem Power Automate Premium.
+
+Para instalar do zero, abra COMECE_AQUI_PROJETOS_QUALIDADE.txt e execute
+docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql no projeto xgtzyinfinjehxzojafn.
+
+Mantém integralmente as telas e recursos anteriores.
+
+Histórico anterior:
+
 BI Monday — V19
 
 Versão limpa baseada na V17 estável, com a tela Gestores e Materiais integrada sem marcadores de conflito.

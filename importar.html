@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Projetos | DataHub</title>
+    <link
+      rel="stylesheet"
+      href="css/global.css?v=20260905-v23-importador-projetos"
+    >
+    <link
+      rel="stylesheet"
+      href="css/dashboard.css?v=20260905-v23-importador-projetos"
+    >
+    <link
+      rel="stylesheet"
+      href="css/importador.css?v=20260905-v23-importador-projetos"
+    >
+  </head>
+
+  <body>
+    <div class="dashboard-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>DataHub</small>
+          <strong>Validação de Materiais</strong>
+          <small class="build-badge">v23 · importação de projetos</small>
+        </div>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <a href="index.html#resumo">Resumo Executivo</a>
+          <a href="index.html#resultados">Resultados Alcançados</a>
+          <a href="index.html#reuniao-nq">Reunião NQ</a>
+          <a href="index.html#operacao">Operação</a>
+          <a href="index.html#ajustes">Ajustes</a>
+          <a href="index.html#equipe">Equipe</a>
+          <a href="index.html#gestores-materiais">Gestores e Materiais</a>
+
+          <div class="nav-section-title">Indicadores</div>
+          <a href="index.html#grafico-operacional">Gráfico Operacional</a>
+          <a href="index.html#dias-validacao">Dias para Validação</a>
+          <a href="index.html#historico">Histórico de Atualizações</a>
+          <a href="index.html#indicadores-uc">Indicadores da UC</a>
+
+          <div class="nav-section-title">Projetos da Qualidade</div>
+          <a class="active" href="importar.html" aria-current="page"
+            >Importar Excel</a
+          >
+        </nav>
+      </aside>
+
+      <main class="main import-main">
+        <header class="topbar">
+          <div>
+            <h1>Importar Projetos da Qualidade</h1>
+            <p class="import-subtitle">
+              Confira a planilha antes de atualizar o banco e o histórico.
+            </p>
+          </div>
+
+          <div class="user-area">
+            <span>Olá, <strong data-user-name>Usuário</strong></span>
+            <button id="logoutButton" class="logout-button" type="button">
+              Sair
+            </button>
+          </div>
+        </header>
+
+        <ol class="import-steps" aria-label="Etapas da importação">
+          <li class="active" data-step="1">
+            <span>1</span>
+            <div><strong>Selecionar</strong><small>Escolha o Excel</small></div>
+          </li>
+          <li data-step="2">
+            <span>2</span>
+            <div><strong>Conferir</strong><small>Revise os dados</small></div>
+          </li>
+          <li data-step="3">
+            <span>3</span>
+            <div><strong>Importar</strong><small>Atualize a base</small></div>
+          </li>
+        </ol>
+
+        <section class="import-card" aria-labelledby="selectTitle">
+          <div class="import-card-head">
+            <div>
+              <span class="eyebrow">Arquivo recebido do Ajure</span>
+              <h2 id="selectTitle">Selecione a planilha</h2>
+              <p>
+                O arquivo é lido neste navegador. Somente os campos necessários
+                são enviados ao Supabase.
+              </p>
+            </div>
+            <span class="secure-badge">Acesso autenticado</span>
+          </div>
+
+          <input
+            id="excelInput"
+            class="sr-only"
+            type="file"
+            accept=".xlsx,.xls"
+            aria-describedby="fileHelp"
+          >
+
+          <label id="dropZone" class="drop-zone" for="excelInput" tabindex="0">
+            <span class="file-icon" aria-hidden="true">XLSX</span>
+            <strong>Arraste a planilha aqui</strong>
+            <span>ou clique para escolher no computador</span>
+            <small id="fileHelp">Formato XLSX ou XLS · máximo de 10 MB</small>
+          </label>
+
+          <div
+            id="readStatus"
+            class="import-message"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+        </section>
+
+        <section
+          id="previewSection"
+          class="import-preview"
+          hidden
+          aria-labelledby="previewTitle"
+        >
+          <div class="section-heading import-preview-heading">
+            <div>
+              <span class="eyebrow">Conferência</span>
+              <h2 id="previewTitle">Resumo da planilha</h2>
+              <p id="fileSummary">—</p>
+            </div>
+            <button
+              id="changeFileButton"
+              class="secondary-action"
+              type="button"
+            >
+              Trocar arquivo
+            </button>
+          </div>
+
+          <div class="import-kpis">
+            <article>
+              <span>Linhas encontradas</span><strong id="totalRows">0</strong>
+            </article>
+            <article>
+              <span>Projetos</span><strong id="totalProjects">0</strong>
+            </article>
+            <article>
+              <span>Tarefas e ações</span><strong id="totalTasks">0</strong>
+            </article>
+            <article class="attention">
+              <span>Linhas com alerta</span><strong id="totalIssues">0</strong>
+            </article>
+          </div>
+
+          <div
+            id="validationMessage"
+            class="import-message"
+            role="alert"
+            hidden
+          ></div>
+
+          <div class="preview-table-card">
+            <div class="preview-table-title">
+              <div>
+                <h3>Prévia dos dados</h3>
+                <p>Primeiras linhas úteis identificadas automaticamente.</p>
+              </div>
+              <span id="sheetBadge" class="sheet-badge">—</span>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table import-table">
+                <thead>
+                  <tr>
+                    <th>Linha</th>
+                    <th>ID</th>
+                    <th>Tipo</th>
+                    <th>Projeto</th>
+                    <th>Ação</th>
+                    <th>Status</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                  </tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="import-actions">
+            <div>
+              <strong>Revise antes de continuar.</strong>
+              <span id="importHint">Nenhuma alteração foi feita no banco.</span>
+            </div>
+            <button
+              id="importButton"
+              class="primary-action"
+              type="button"
+              disabled
+            >
+              Importar para o Supabase
+            </button>
+          </div>
+        </section>
+
+        <section
+          id="resultSection"
+          class="import-result"
+          hidden
+          aria-labelledby="resultTitle"
+        >
+          <span id="resultMark" class="result-mark" aria-hidden="true">✓</span>
+          <div>
+            <span class="eyebrow">Resultado</span>
+            <h2 id="resultTitle">Importação concluída</h2>
+            <p id="resultText">—</p>
+            <dl id="resultDetails" class="result-details"></dl>
+            <button id="newImportButton" class="secondary-action" type="button">
+              Importar outra planilha
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/config.js?v=20260905-v23-importador-projetos"></script>
+    <script src="js/supabase.js?v=20260905-v23-importador-projetos"></script>
+    <script src="js/auth.js?v=20260905-v23-importador-projetos"></script>
+    <script src="js/importador.js?v=20260905-v23-importador-projetos"></script>
+  </body>
+</html>

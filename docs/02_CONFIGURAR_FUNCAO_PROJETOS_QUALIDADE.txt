@@ -1,0 +1,31 @@
+EDGE FUNCTION: sincronizar-projetos-qualidade
+PROJETO: xgtzyinfinjehxzojafn
+
+CONFIGURACAO OBRIGATORIA
+
+Verificacao JWT da plataforma: DESATIVADA
+
+Variaveis da funcao:
+
+BI_AUTH_SUPABASE_URL
+https://nkjmgzyjjbepebzurowy.supabase.co
+
+BI_AUTH_SUPABASE_PUBLISHABLE_KEY
+Copie o valor SUPABASE_PUBLISHABLE_KEY existente em js/config.js.
+
+PQ_ALLOWED_DOMAINS
+animaeducacao.com.br
+
+PQ_ALLOWED_ORIGINS
+https://qualidadesintechtica.github.io
+
+PQ_ALLOWED_EMAILS
+Opcional. Deixe ausente para aceitar qualquer conta autenticada do dominio
+animaeducacao.com.br. Para restringir, use e-mails completos separados por
+virgula.
+
+IMPORTANTE
+A verificacao JWT automatica fica desativada porque o token foi emitido pelo
+projeto nkjmgzyjjbepebzurowy, enquanto a funcao esta no projeto
+xgtzyinfinjehxzojafn. A funcao nao fica aberta: ela propria valida o token, o
+dominio e, quando configurado, a lista de e-mails.

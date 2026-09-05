@@ -1,0 +1,2 @@
+[functions.sincronizar-projetos-qualidade]
+verify_jwt = false

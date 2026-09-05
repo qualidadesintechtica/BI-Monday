@@ -1,13 +1,14 @@
-BI Monday V22.3
-Data: 04/09/2026
+BI Monday V23
+Data: 05/09/2026
 
 Objetivo:
-- Remover definitivamente a lógica legada da V22/V22.1 que ainda procurava 'Formulário de avaliação'.
-- Corrigir a leitura do gráfico 'O resultado da amostra'.
-- Consumir diretamente os pareceres reais em public.monday_criterios_pareceres.
-- Manter ranking, indicadores, UCs e sincronização que já estavam funcionando.
+- Adicionar importação manual e segura da planilha de Projetos da Qualidade.
+- Eliminar a dependência da ação HTTP Premium do Power Automate.
+- Validar estrutura, linhas e duplicidade antes de atualizar o banco.
+- Preservar todas as páginas e indicadores existentes.
 
 Fontes:
 - public.monday_criterios_avaliacao_uas -> gráfico dos 7 indicadores
 - public.monday_criterios_pareceres -> respostas e padrões
 - public.sync_log -> sincronização automática
+- planilha recebida do Ajure -> importador autenticado -> tabelas public.pq_*

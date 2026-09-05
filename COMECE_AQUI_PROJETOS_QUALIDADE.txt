@@ -1,0 +1,45 @@
+PROJETOS DA QUALIDADE - INSTALACAO DO ZERO
+
+Objetivo
+Receber a planilha semanal do Ajure, selecionar o Excel dentro do BI e importar
+os dados para o Supabase sem Power Automate Premium.
+
+PROJETO CORRETO DO BANCO
+xgtzyinfinjehxzojafn
+
+ORDEM OBRIGATORIA
+
+1. No SQL Editor do projeto acima, execute:
+   docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql
+
+2. Confirme que o resultado final mostra cinco tabelas com existe = true.
+
+3. No mesmo projeto, crie ou atualize a Edge Function com o nome:
+   sincronizar-projetos-qualidade
+
+4. Cole na funcao o conteudo de:
+   supabase/functions/sincronizar-projetos-qualidade/index.ts
+
+5. Desative a verificacao JWT automatica dessa funcao. Isso e necessario porque
+   o login do BI esta em outro projeto. A funcao valida manualmente a sessao.
+
+6. Configure as variaveis descritas em:
+   docs/02_CONFIGURAR_FUNCAO_PROJETOS_QUALIDADE.txt
+
+7. Publique a funcao.
+
+8. Envie os arquivos do BI para a raiz do repositorio GitHub:
+   qualidadesintechtica/BI-Monday
+
+9. Aguarde o GitHub Pages publicar, entre no BI e abra:
+   Projetos da Qualidade > Importar Excel
+
+10. Selecione uma copia da planilha PROJETOS_QUALIDADE.xlsx, confira a previa e
+    clique em Importar para o Supabase.
+
+NAO FACA
+- Nao execute o SQL no projeto nkjmgzyjjbepebzurowy. Ele e o projeto do login e
+  dos dados antigos do BI, nao o banco dos Projetos da Qualidade.
+- Nao coloque service_role, senha ou segredo no GitHub.
+- Nao apague tabelas para repetir um teste.
+- Nao volte ao Power Automate: a chamada HTTP e Premium.

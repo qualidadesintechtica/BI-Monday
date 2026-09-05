@@ -1,3 +1,18 @@
+V23 - IMPORTADOR DE PROJETOS DA QUALIDADE
+
+ANTES DE ENVIAR OS ARQUIVOS AO GITHUB:
+1. Leia COMECE_AQUI_PROJETOS_QUALIDADE.txt.
+2. Execute docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql no projeto Supabase xgtzyinfinjehxzojafn.
+3. Publique a função contida em supabase/functions/sincronizar-projetos-qualidade/index.ts.
+4. Configure os segredos descritos no manual.
+
+Depois envie os arquivos diretamente para a RAIZ do repositório BI-Monday.
+Não crie uma pasta "BI Monday" dentro do repositório.
+
+A página nova ficará disponível em importar.html e também pelo menu lateral.
+
+HISTÓRICO ANTERIOR
+
 V17 - INDICADORES DA UC COM DADOS REAIS
 
 Envie ESTES arquivos diretamente para a RAIZ do repositório BI-Monday.
