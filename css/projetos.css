@@ -164,8 +164,9 @@
 
 .project-filters {
   display: grid;
-  grid-template-columns: 1.1fr 0.65fr 1.65fr;
+  grid-template-columns: 1fr 0.72fr 1.45fr auto;
   gap: 14px;
+  align-items: end;
   margin-top: 20px;
 }
 
@@ -180,7 +181,7 @@
 .field > span,
 .evidence-row label > span {
   color: #4e3b64;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
@@ -215,6 +216,159 @@
 .field b,
 .evidence-fieldset b { color: var(--magenta); }
 .match-count { margin: 10px 0 0; color: var(--muted); font-size: 0.8rem; }
+
+.filter-clear {
+  white-space: nowrap;
+}
+
+.project-results-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.project-results-heading h3 {
+  margin: 0;
+  color: var(--purple);
+  font-size: 1rem;
+}
+
+.project-results-heading small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.project-results-table-wrap {
+  max-height: 650px;
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid #e3dce9;
+  border-radius: 13px;
+}
+
+.project-results-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+}
+
+.project-results-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 11px 10px;
+  border-bottom: 1px solid #dcd3e5;
+  background: #f4f0f7;
+  color: var(--purple);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.project-results-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ece7f0;
+  color: #4a4151;
+  line-height: 1.4;
+  vertical-align: top;
+}
+
+.project-results-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.project-results-table tbody tr:hover,
+.project-results-table tbody tr:focus-visible {
+  background: #fff3fa;
+  outline: none;
+}
+
+.project-results-table tr.project-main-row td {
+  border-top: 2px solid #d7c9e2;
+  background: #f8f4fb;
+  color: var(--purple);
+}
+
+.project-results-table tr.project-main-row:first-child td {
+  border-top: 0;
+}
+
+.project-results-table tr.selected td {
+  background: #fff0f8;
+}
+
+.project-results-table tr.project-main-row.selected td:first-child {
+  box-shadow: inset 4px 0 var(--magenta);
+}
+
+.project-results-table td:nth-child(1),
+.project-results-table td:nth-child(2),
+.project-results-table td:nth-child(6),
+.project-results-table td:nth-child(7),
+.project-results-table td:nth-child(8) {
+  white-space: nowrap;
+}
+
+.project-results-table td:nth-child(3) {
+  min-width: 230px;
+}
+
+.project-results-table td:nth-child(4) {
+  min-width: 280px;
+}
+
+.project-results-table td strong,
+.project-results-table td small {
+  display: block;
+}
+
+.project-results-table td small {
+  margin-top: 4px;
+  color: #85788f;
+}
+
+.row-type,
+.row-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.row-type.project {
+  background: #e8ddf0;
+  color: #51276b;
+}
+
+.row-type.task {
+  background: #f1edf4;
+  color: #6f6179;
+}
+
+.row-status {
+  background: #f7eff5;
+  color: #75265e;
+}
+
+.parent-project-name {
+  color: #776780;
+}
+
+.empty-project-results {
+  margin: 0;
+  padding: 28px;
+  color: var(--muted);
+  text-align: center;
+}
 
 .editor-toolbar {
   align-items: center;
@@ -404,7 +558,6 @@
   .editor-grid { grid-template-columns: 1fr; }
   .history-column { position: static; grid-template-columns: 1fr 1fr; }
   .project-filters { grid-template-columns: 1fr 1fr; }
-  .project-filters label:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 900px) {
@@ -420,8 +573,8 @@
   .projects-main { padding: 18px; }
   .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
   .project-filters, .history-column { grid-template-columns: 1fr; }
-  .project-filters label:last-child { grid-column: auto; }
   .project-kpis { grid-template-columns: 1fr 1fr; }
+  .project-results-heading { align-items: flex-start; flex-direction: column; }
   .toolbar-actions { width: 100%; }
   .toolbar-actions button { width: 100%; }
   .evidence-row { grid-template-columns: 1fr; }

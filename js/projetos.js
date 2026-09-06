@@ -144,7 +144,7 @@
       estado.importacaoAtual = importacaoResp.data || null;
 
       renderizarResumo();
-      preencherStatus();
+      preencherFiltros();
       filtrarProjetos();
 
       $("loadingState").hidden = true;
@@ -163,9 +163,12 @@
     $("issueCount").textContent = estado.importacaoAtual?.linhas_com_erro || 0;
   }
 
-  function preencherStatus() {
+  function preencherFiltros() {
     const atual = $("statusFilter").value;
-    const status = [...new Set(estado.projetos.map((p) => texto(p.status)).filter(Boolean))]
+    const status = [...new Set([
+      ...estado.projetos.map((p) => texto(p.status)),
+      ...estado.tarefas.map((t) => texto(t.status)),
+    ].filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
     $("statusFilter").innerHTML = '<option value="">Todos</option>';
     status.forEach((valor) => {
@@ -175,26 +178,94 @@
       $("statusFilter").appendChild(option);
     });
     $("statusFilter").value = atual;
+
+    const responsaveis = [...new Set([
+      ...estado.projetos.map((p) => texto(p.sponsor)),
+      ...estado.tarefas.map((t) => texto(t.sponsor)),
+    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    $("responsibleOptions").innerHTML = responsaveis
+      .map((valor) => `<option value="${escapar(valor)}"></option>`)
+      .join("");
+
+    $("projectOptions").innerHTML = estado.projetos
+      .map((projeto) => `<option value="${escapar(projeto.nome)}">ID ${escapar(projeto.azure_id)}</option>`)
+      .join("");
   }
 
   function filtrarProjetos() {
-    const busca = normalizar($("projectSearch").value);
+    const responsavel = normalizar($("responsibleFilter").value);
     const status = $("statusFilter").value;
+    const projetoBuscado = normalizar($("projectFilter").value);
+
     const filtrados = estado.projetos.filter((projeto) => {
-      const pilha = normalizar(`${projeto.nome} ${projeto.azure_id} ${projeto.sponsor}`);
-      return (!busca || pilha.includes(busca)) && (!status || projeto.status === status);
+      const tarefas = estado.tarefas.filter((tarefa) => tarefa.projeto_id === projeto.id);
+      const responsaveis = [projeto.sponsor, ...tarefas.map((tarefa) => tarefa.sponsor)]
+        .map(normalizar)
+        .filter(Boolean);
+      const statusDoGrupo = [projeto.status, ...tarefas.map((tarefa) => tarefa.status)];
+      const identificacao = normalizar(`${projeto.nome} ${projeto.azure_id}`);
+
+      return (
+        (!responsavel || responsaveis.some((nome) => nome.includes(responsavel)))
+        && (!status || statusDoGrupo.includes(status))
+        && (!projetoBuscado || identificacao.includes(projetoBuscado))
+      );
     });
 
-    const selecionado = estado.projetoId;
-    $("projectSelect").innerHTML = '<option value="">Selecione um projeto…</option>';
-    filtrados.forEach((projeto) => {
-      const option = document.createElement("option");
-      option.value = projeto.id;
-      option.textContent = `${projeto.nome} · ${projeto.status || "Sem status"}`;
-      $("projectSelect").appendChild(option);
+    renderizarTabelaProjetos(filtrados);
+  }
+
+  function renderizarTabelaProjetos(projetos) {
+    let totalTarefas = 0;
+    const linhas = [];
+
+    projetos.forEach((projeto) => {
+      const tarefas = estado.tarefas.filter((tarefa) => tarefa.projeto_id === projeto.id);
+      totalTarefas += tarefas.length;
+      const selecionado = projeto.id === estado.projetoId ? " selected" : "";
+
+      linhas.push(`
+        <tr class="project-main-row${selecionado}" data-project-id="${escapar(projeto.id)}" tabindex="0">
+          <td><strong>${escapar(projeto.azure_id || "—")}</strong></td>
+          <td><span class="row-type project">Projeto principal</span></td>
+          <td><strong>${escapar(projeto.nome || "—")}</strong><small>${tarefas.length} tarefa(s)</small></td>
+          <td>—</td>
+          <td>${escapar(projeto.sponsor || "—")}</td>
+          <td><span class="row-status">${escapar(projeto.status || "—")}</span></td>
+          <td>${escapar(formatarData(projeto.data_inicio))}</td>
+          <td>${escapar(formatarData(projeto.data_fim))}</td>
+        </tr>`);
+
+      tarefas.forEach((tarefa) => {
+        linhas.push(`
+          <tr class="project-task-row${selecionado}" data-project-id="${escapar(projeto.id)}" tabindex="0">
+            <td>${escapar(tarefa.azure_id || "—")}</td>
+            <td><span class="row-type task">${escapar(tarefa.tipo || "Tarefa")}</span></td>
+            <td><span class="parent-project-name">↳ ${escapar(projeto.nome || "—")}</span></td>
+            <td>${escapar(tarefa.descricao || "—")}</td>
+            <td>${escapar(tarefa.sponsor || projeto.sponsor || "—")}</td>
+            <td><span class="row-status">${escapar(tarefa.status || "—")}</span></td>
+            <td>${escapar(formatarData(tarefa.data_inicio))}</td>
+            <td>${escapar(formatarData(tarefa.data_fim))}</td>
+          </tr>`);
+      });
     });
-    if (filtrados.some((p) => p.id === selecionado)) $("projectSelect").value = selecionado;
-    $("projectMatchCount").textContent = `${filtrados.length} de ${estado.projetos.length} projeto(s) exibido(s).`;
+
+    $("projectResultsBody").innerHTML = linhas.join("");
+    $("emptyProjectResults").hidden = projetos.length > 0;
+    $("projectMatchCount").textContent = `${projetos.length} projeto(s) e ${totalTarefas} tarefa(s) encontrados.`;
+
+    $("projectResultsBody").querySelectorAll("[data-project-id]").forEach((linha) => {
+      const abrir = () => selecionarProjeto(linha.dataset.projectId);
+      linha.addEventListener("click", abrir);
+      linha.addEventListener("keydown", (evento) => {
+        if (evento.key === "Enter" || evento.key === " ") {
+          evento.preventDefault();
+          abrir();
+        }
+      });
+    });
   }
 
   function selecionarProjeto(id) {
@@ -220,6 +291,7 @@
       $("editionBadge").textContent = "Primeira versão";
     }
     atualizarPreview();
+    filtrarProjetos();
     $("editorWorkspace").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -553,9 +625,15 @@
   function ligarEventos() {
     $("logoutButton").addEventListener("click", window.sairBI);
     $("retryButton").addEventListener("click", carregarDados);
-    $("projectSearch").addEventListener("input", filtrarProjetos);
+    $("responsibleFilter").addEventListener("input", filtrarProjetos);
     $("statusFilter").addEventListener("change", filtrarProjetos);
-    $("projectSelect").addEventListener("change", (evento) => selecionarProjeto(evento.target.value));
+    $("projectFilter").addEventListener("input", filtrarProjetos);
+    $("clearFiltersButton").addEventListener("click", () => {
+      $("responsibleFilter").value = "";
+      $("statusFilter").value = "";
+      $("projectFilter").value = "";
+      filtrarProjetos();
+    });
     $("addEvidenceButton").addEventListener("click", () => {
       adicionarEvidencia();
       atualizarPreview();

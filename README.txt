@@ -1,4 +1,10 @@
-BI Monday — V24.1
+BI Monday — V24.2
+
+Melhoria de consulta:
+- filtros independentes por responsável, status e projeto;
+- qualquer combinação de filtros funciona sem preencher todos;
+- tabela hierárquica com projeto principal e tarefas vinculadas;
+- clique em qualquer linha para abrir o projeto no editor.
 
 Correção rápida:
 - avisos de carregamento e erro agora desaparecem corretamente após a consulta.
