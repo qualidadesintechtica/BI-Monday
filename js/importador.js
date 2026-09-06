@@ -590,30 +590,40 @@
         return;
       }
 
-      const url = window.BI_CONFIG.PQ_IMPORT_FUNCTION_URL;
-      if (!url) throw new Error("A função de importação não foi configurada.");
+      const nomeFuncao =
+        window.BI_CONFIG.PQ_IMPORT_FUNCTION_NAME ||
+        "sincronizar-projetos-qualidade";
 
-      const resposta = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${data.session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          arquivo: estado.arquivo.name,
-          origem_url: null,
-          aba: estado.aba,
-          arquivo_hash: estado.hash,
-          linhas: prepararLinhasEnvio(),
-        }),
-      });
+      const { data: resultado, error: erroFuncao } =
+        await window.biSupabase.functions.invoke(nomeFuncao, {
+          body: {
+            arquivo: estado.arquivo.name,
+            origem_url: null,
+            aba: estado.aba,
+            arquivo_hash: estado.hash,
+            linhas: prepararLinhasEnvio(),
+          },
+        });
 
-      const resultado = await resposta.json().catch(() => ({
-        success: false,
-        error: "A função retornou uma resposta inválida.",
-      }));
+      if (erroFuncao) {
+        let respostaErro = null;
 
-      if (!resposta.ok || !resultado.success) {
+        if (erroFuncao.context instanceof Response) {
+          respostaErro = await erroFuncao.context.json().catch(() => null);
+        }
+
+        mostrarResultado(
+          respostaErro || {
+            error:
+              erroFuncao.message ||
+              "A função de importação recusou a solicitação.",
+          },
+          true,
+        );
+        return;
+      }
+
+      if (!resultado?.success) {
         mostrarResultado(resultado, true);
         return;
       }
