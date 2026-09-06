@@ -3,6 +3,11 @@
   max-width: 1680px;
 }
 
+/* Impede que regras de layout sobrescrevam o atributo HTML hidden. */
+.projects-main [hidden] {
+  display: none !important;
+}
+
 .page-subtitle {
   margin: 7px 0 0;
   color: var(--muted);

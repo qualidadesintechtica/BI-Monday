@@ -1,4 +1,4 @@
-BI Monday V24
+BI Monday V24.1
 Data: 06/09/2026
 
 Objetivo:
@@ -10,6 +10,10 @@ Objetivo:
 Instalação complementar:
 - Executar docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no projeto
   nkjmgzyjjbepebzurowy.
+
+Correção V24.1:
+- Oculta corretamente os avisos de carregamento e erro depois que os dados
+  forem carregados.
 
 Histórico V23:
 

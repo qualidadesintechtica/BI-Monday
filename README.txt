@@ -1,4 +1,7 @@
-BI Monday — V24
+BI Monday — V24.1
+
+Correção rápida:
+- avisos de carregamento e erro agora desaparecem corretamente após a consulta.
 
 Nova área: Editor e Relatórios dos Projetos da Qualidade
 - dados importados do Ajure permanecem somente leitura;
