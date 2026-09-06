@@ -1,4 +1,9 @@
-BI Monday — V24.2
+BI Monday — V24.3
+
+Correção dos responsáveis:
+- separa nomes que vieram juntos na mesma célula do Excel;
+- elimina espaços duplicados e sugestões repetidas;
+- permite buscar uma pessoa mesmo quando ela divide o projeto com outras.
 
 Melhoria de consulta:
 - filtros independentes por responsável, status e projeto;

@@ -10,6 +10,8 @@
     origemPreview: null,
     edicaoVisualizada: null,
     importacaoAtual: null,
+    responsaveis: [],
+    aliasesResponsaveis: new Map(),
     salvando: false,
   };
 
@@ -42,6 +44,66 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
+  }
+
+  function limparNome(valor) {
+    return String(valor ?? "")
+      .replace(/\u00a0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function separarResponsaveis(valor) {
+    const celula = limparNome(valor);
+    if (!celula) return [];
+
+    return celula
+      .split(/\s*(?:,|;|\||\/|&|\be\b)\s*/i)
+      .map(limparNome)
+      .filter(Boolean);
+  }
+
+  function listarResponsaveis() {
+    const nomes = new Map();
+    const valores = [
+      ...estado.projetos.map((projeto) => projeto.sponsor),
+      ...estado.tarefas.map((tarefa) => tarefa.sponsor),
+    ];
+
+    valores.flatMap(separarResponsaveis).forEach((nome) => {
+      const chave = normalizar(nome);
+      const atual = nomes.get(chave);
+      const possuiAcento = nome !== nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const atualPossuiAcento = atual
+        ? atual !== atual.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        : false;
+
+      if (!atual || (possuiAcento && !atualPossuiAcento)) nomes.set(chave, nome);
+    });
+
+    const entradas = [...nomes.entries()].map(([chave, nome]) => ({ chave, nome }));
+    const nomesCompletos = entradas.filter((item) => item.chave.includes(" "));
+    const nomesAbreviados = entradas.filter((item) => !item.chave.includes(" "));
+    const abreviadosIncorporados = new Set();
+    estado.aliasesResponsaveis = new Map();
+
+    nomesAbreviados.forEach((abreviado) => {
+      const correspondencias = nomesCompletos.filter(
+        (completo) => completo.chave.split(" ")[0] === abreviado.chave,
+      );
+      if (correspondencias.length !== 1) return;
+
+      const principal = correspondencias[0].chave;
+      const aliases = estado.aliasesResponsaveis.get(principal) || [];
+      aliases.push(abreviado.chave);
+      estado.aliasesResponsaveis.set(principal, aliases);
+      abreviadosIncorporados.add(abreviado.chave);
+    });
+
+    return entradas
+      .filter((item) => !abreviadosIncorporados.has(item.chave))
+      .map((item) => item.nome)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
   }
 
   function formatarData(valor) {
@@ -179,35 +241,71 @@
     });
     $("statusFilter").value = atual;
 
-    const responsaveis = [...new Set([
-      ...estado.projetos.map((p) => texto(p.sponsor)),
-      ...estado.tarefas.map((t) => texto(t.sponsor)),
-    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-
-    $("responsibleOptions").innerHTML = responsaveis
-      .map((valor) => `<option value="${escapar(valor)}"></option>`)
-      .join("");
+    estado.responsaveis = listarResponsaveis();
+    $("responsibleCount").textContent = `${estado.responsaveis.length} responsável(is) identificado(s).`;
+    renderizarMenuResponsaveis();
 
     $("projectOptions").innerHTML = estado.projetos
       .map((projeto) => `<option value="${escapar(projeto.nome)}">ID ${escapar(projeto.azure_id)}</option>`)
       .join("");
   }
 
+  function renderizarMenuResponsaveis() {
+    const busca = normalizar($("responsibleFilter").value);
+    const filtrados = estado.responsaveis.filter((nome) => !busca || normalizar(nome).includes(busca));
+
+    const todos = busca
+      ? ""
+      : '<button type="button" class="responsible-option all" role="option" data-responsible="">Todos os responsáveis</button>';
+    const opcoes = filtrados
+      .map((nome) => `<button type="button" class="responsible-option" role="option" data-responsible="${escapar(nome)}">${escapar(nome)}</button>`)
+      .join("");
+
+    $("responsibleMenu").innerHTML = todos || opcoes
+      ? `${todos}${opcoes}`
+      : '<p class="responsible-empty">Nenhum responsável encontrado.</p>';
+  }
+
+  function abrirMenuResponsaveis() {
+    renderizarMenuResponsaveis();
+    $("responsibleMenu").hidden = false;
+    $("responsibleFilter").setAttribute("aria-expanded", "true");
+    $("responsibleMenuButton").setAttribute("aria-expanded", "true");
+  }
+
+  function fecharMenuResponsaveis() {
+    $("responsibleMenu").hidden = true;
+    $("responsibleFilter").setAttribute("aria-expanded", "false");
+    $("responsibleMenuButton").setAttribute("aria-expanded", "false");
+  }
+
   function filtrarProjetos() {
     const responsavel = normalizar($("responsibleFilter").value);
     const status = $("statusFilter").value;
     const projetoBuscado = normalizar($("projectFilter").value);
+    const termosResponsavel = [responsavel];
+
+    estado.aliasesResponsaveis.forEach((aliases, nomeCompleto) => {
+      if (nomeCompleto.includes(responsavel)) termosResponsavel.push(...aliases);
+    });
 
     const filtrados = estado.projetos.filter((projeto) => {
       const tarefas = estado.tarefas.filter((tarefa) => tarefa.projeto_id === projeto.id);
-      const responsaveis = [projeto.sponsor, ...tarefas.map((tarefa) => tarefa.sponsor)]
+      const celulasResponsaveis = [projeto.sponsor, ...tarefas.map((tarefa) => tarefa.sponsor)];
+      const responsaveis = celulasResponsaveis
+        .flatMap(separarResponsaveis)
         .map(normalizar)
+        .filter(Boolean);
+      const combinacoesOriginais = celulasResponsaveis
+        .map((valor) => normalizar(limparNome(valor)))
         .filter(Boolean);
       const statusDoGrupo = [projeto.status, ...tarefas.map((tarefa) => tarefa.status)];
       const identificacao = normalizar(`${projeto.nome} ${projeto.azure_id}`);
 
       return (
-        (!responsavel || responsaveis.some((nome) => nome.includes(responsavel)))
+        (!responsavel
+          || termosResponsavel.some((termo) => responsaveis.some((nome) => nome.includes(termo)))
+          || termosResponsavel.some((termo) => combinacoesOriginais.some((nomes) => nomes.includes(termo))))
         && (!status || statusDoGrupo.includes(status))
         && (!projetoBuscado || identificacao.includes(projetoBuscado))
       );
@@ -231,7 +329,7 @@
           <td><span class="row-type project">Projeto principal</span></td>
           <td><strong>${escapar(projeto.nome || "—")}</strong><small>${tarefas.length} tarefa(s)</small></td>
           <td>—</td>
-          <td>${escapar(projeto.sponsor || "—")}</td>
+          <td>${escapar(limparNome(projeto.sponsor) || "—")}</td>
           <td><span class="row-status">${escapar(projeto.status || "—")}</span></td>
           <td>${escapar(formatarData(projeto.data_inicio))}</td>
           <td>${escapar(formatarData(projeto.data_fim))}</td>
@@ -244,7 +342,7 @@
             <td><span class="row-type task">${escapar(tarefa.tipo || "Tarefa")}</span></td>
             <td><span class="parent-project-name">↳ ${escapar(projeto.nome || "—")}</span></td>
             <td>${escapar(tarefa.descricao || "—")}</td>
-            <td>${escapar(tarefa.sponsor || projeto.sponsor || "—")}</td>
+            <td>${escapar(limparNome(tarefa.sponsor || projeto.sponsor) || "—")}</td>
             <td><span class="row-status">${escapar(tarefa.status || "—")}</span></td>
             <td>${escapar(formatarData(tarefa.data_inicio))}</td>
             <td>${escapar(formatarData(tarefa.data_fim))}</td>
@@ -309,7 +407,7 @@
       metadado("Status", projeto.status),
       metadado("Início", formatarData(projeto.data_inicio)),
       metadado("Fim", formatarData(projeto.data_fim)),
-      metadado("Sponsor", projeto.sponsor),
+      metadado("Sponsor", limparNome(projeto.sponsor)),
       metadado("Esforço", projeto.esforco),
       metadado("Prioridade", projeto.prioridade),
       metadado("Tarefas", tarefas.length),
@@ -476,7 +574,7 @@
         ${metadadoRelatorio("Status", projeto.status)}
         ${metadadoRelatorio("Início", formatarData(projeto.data_inicio))}
         ${metadadoRelatorio("Fim", formatarData(projeto.data_fim))}
-        ${metadadoRelatorio("Sponsor", projeto.sponsor)}
+        ${metadadoRelatorio("Sponsor", limparNome(projeto.sponsor))}
         ${metadadoRelatorio("Esforço", projeto.esforco)}
         ${metadadoRelatorio("Prioridade", projeto.prioridade)}
         ${metadadoRelatorio("Ações originais", tarefas.length)}
@@ -625,7 +723,30 @@
   function ligarEventos() {
     $("logoutButton").addEventListener("click", window.sairBI);
     $("retryButton").addEventListener("click", carregarDados);
-    $("responsibleFilter").addEventListener("input", filtrarProjetos);
+    $("responsibleFilter").addEventListener("input", () => {
+      filtrarProjetos();
+      abrirMenuResponsaveis();
+    });
+    $("responsibleFilter").addEventListener("focus", abrirMenuResponsaveis);
+    $("responsibleFilter").addEventListener("keydown", (evento) => {
+      if (evento.key === "Escape") fecharMenuResponsaveis();
+      if (evento.key === "ArrowDown") {
+        evento.preventDefault();
+        abrirMenuResponsaveis();
+        $("responsibleMenu").querySelector("button")?.focus();
+      }
+    });
+    $("responsibleMenuButton").addEventListener("click", () => {
+      if ($("responsibleMenu").hidden) abrirMenuResponsaveis();
+      else fecharMenuResponsaveis();
+    });
+    $("responsibleMenu").addEventListener("click", (evento) => {
+      const opcao = evento.target.closest("[data-responsible]");
+      if (!opcao) return;
+      $("responsibleFilter").value = opcao.dataset.responsible;
+      fecharMenuResponsaveis();
+      filtrarProjetos();
+    });
     $("statusFilter").addEventListener("change", filtrarProjetos);
     $("projectFilter").addEventListener("input", filtrarProjetos);
     $("clearFiltersButton").addEventListener("click", () => {
@@ -633,6 +754,7 @@
       $("statusFilter").value = "";
       $("projectFilter").value = "";
       filtrarProjetos();
+      fecharMenuResponsaveis();
     });
     $("addEvidenceButton").addEventListener("click", () => {
       adicionarEvidencia();
@@ -642,6 +764,9 @@
     $("saveDraftButton").addEventListener("click", () => salvar(false));
     $("finalizeButton").addEventListener("click", () => salvar(true));
     $("printDraftButton").addEventListener("click", imprimirRelatorio);
+    document.addEventListener("click", (evento) => {
+      if (!evento.target.closest(".responsible-combobox")) fecharMenuResponsaveis();
+    });
   }
 
   document.addEventListener("DOMContentLoaded", () => {

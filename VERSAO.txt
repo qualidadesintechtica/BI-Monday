@@ -1,4 +1,4 @@
-BI Monday V24.2
+BI Monday V24.3
 Data: 06/09/2026
 
 Objetivo:
@@ -19,6 +19,11 @@ Melhoria V24.2:
 - Filtros independentes e combináveis por responsável, status e projeto.
 - Resultado em tabela com o projeto principal e suas tarefas vinculadas.
 - Clique em qualquer linha da tabela para abrir o editor do projeto.
+
+Correção V24.3:
+- Separa os responsáveis informados juntos por vírgula, "e", "/" ou "&".
+- Remove espaços duplicados e unifica nomes repetidos com e sem acento.
+- Mantém a busca pelo responsável dentro das combinações originais da planilha.
 
 Histórico V23:
 

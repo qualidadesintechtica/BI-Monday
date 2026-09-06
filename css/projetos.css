@@ -171,6 +171,7 @@
 }
 
 .project-filters label,
+.filter-field,
 .field,
 .evidence-row label {
   display: grid;
@@ -178,11 +179,16 @@
 }
 
 .project-filters label > span,
+.filter-field > label,
 .field > span,
 .evidence-row label > span {
   color: #4e3b64;
   font-size: 0.875rem;
   font-weight: 800;
+}
+
+.filter-field > label {
+  display: block;
 }
 
 .project-filters input,
@@ -219,6 +225,90 @@
 
 .filter-clear {
   white-space: nowrap;
+}
+
+.responsible-combobox {
+  position: relative;
+}
+
+.responsible-combobox > input {
+  padding-right: 46px;
+}
+
+.combobox-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 41px;
+  border: 0;
+  border-left: 1px solid #e3dbe8;
+  border-radius: 0 9px 9px 0;
+  background: #fff;
+  color: var(--purple);
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.combobox-toggle:hover,
+.combobox-toggle[aria-expanded="true"] {
+  background: #f6f0f8;
+}
+
+.responsible-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  left: 0;
+  right: 0;
+  display: grid;
+  max-height: 310px;
+  padding: 7px;
+  overflow-y: auto;
+  border: 1px solid #d7cce1;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(45, 21, 83, 0.2);
+}
+
+.responsible-option {
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #3d2b50;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.responsible-option:hover,
+.responsible-option:focus-visible {
+  background: #f5edf8;
+  color: var(--purple);
+  outline: none;
+}
+
+.responsible-option.all {
+  margin-bottom: 4px;
+  border-bottom: 1px solid #ebe4ef;
+  border-radius: 8px 8px 0 0;
+  font-weight: 800;
+}
+
+.responsible-empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.filter-helper {
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .project-results-heading {

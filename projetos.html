@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projetos da Qualidade | DataHub</title>
-    <link rel="stylesheet" href="css/global.css?v=20260906-v24-2-filtros-tabela">
-    <link rel="stylesheet" href="css/dashboard.css?v=20260906-v24-2-filtros-tabela">
-    <link rel="stylesheet" href="css/projetos.css?v=20260906-v24-2-filtros-tabela">
+    <link rel="stylesheet" href="css/global.css?v=20260906-v24-3-responsaveis">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260906-v24-3-responsaveis">
+    <link rel="stylesheet" href="css/projetos.css?v=20260906-v24-3-responsaveis">
   </head>
 
   <body>
@@ -15,7 +15,7 @@
         <div class="brand">
           <small>DataHub</small>
           <strong>Validação de Materiais</strong>
-          <small class="build-badge">v24.2 · relatórios de projetos</small>
+          <small class="build-badge">v24.3 · relatórios de projetos</small>
         </div>
 
         <nav class="nav" aria-label="Navegação principal">
@@ -85,17 +85,31 @@
             </div>
 
             <div class="project-filters" aria-label="Filtros de projetos">
-              <label>
-                <span>Responsável</span>
-                <input
-                  id="responsibleFilter"
-                  type="search"
-                  list="responsibleOptions"
-                  placeholder="Digite o nome do responsável"
-                  autocomplete="off"
-                >
-                <datalist id="responsibleOptions"></datalist>
-              </label>
+              <div class="filter-field">
+                <label for="responsibleFilter">Responsável</label>
+                <div class="responsible-combobox">
+                  <input
+                    id="responsibleFilter"
+                    type="search"
+                    placeholder="Digite ou escolha o responsável"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="responsibleMenu"
+                    aria-expanded="false"
+                  >
+                  <button
+                    id="responsibleMenuButton"
+                    class="combobox-toggle"
+                    type="button"
+                    aria-label="Mostrar todos os responsáveis"
+                    aria-controls="responsibleMenu"
+                    aria-expanded="false"
+                  >⌄</button>
+                  <div id="responsibleMenu" class="responsible-menu" role="listbox" hidden></div>
+                </div>
+                <small id="responsibleCount" class="filter-helper">—</small>
+              </div>
               <label>
                 <span>Status</span>
                 <select id="statusFilter"><option value="">Todos</option></select>
@@ -271,9 +285,9 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js?v=20260906-v24-2-filtros-tabela"></script>
-    <script src="js/supabase.js?v=20260906-v24-2-filtros-tabela"></script>
-    <script src="js/auth.js?v=20260906-v24-2-filtros-tabela"></script>
-    <script src="js/projetos.js?v=20260906-v24-2-filtros-tabela"></script>
+    <script src="js/config.js?v=20260906-v24-3-responsaveis"></script>
+    <script src="js/supabase.js?v=20260906-v24-3-responsaveis"></script>
+    <script src="js/auth.js?v=20260906-v24-3-responsaveis"></script>
+    <script src="js/projetos.js?v=20260906-v24-3-responsaveis"></script>
   </body>
 </html>
