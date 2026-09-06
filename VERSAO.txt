@@ -1,5 +1,17 @@
-BI Monday V23
-Data: 05/09/2026
+BI Monday V24
+Data: 06/09/2026
+
+Objetivo:
+- Editar relatórios de projetos sem alterar os dados originais do Ajure.
+- Registrar cada salvamento como uma nova versão imutável e auditável.
+- Gerar PDF com dados originais, complementos, resultados e evidências.
+- Manter o importador da V23 e todas as páginas anteriores.
+
+Instalação complementar:
+- Executar docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no projeto
+  nkjmgzyjjbepebzurowy.
+
+Histórico V23:
 
 Objetivo:
 - Adicionar importação manual e segura da planilha de Projetos da Qualidade.

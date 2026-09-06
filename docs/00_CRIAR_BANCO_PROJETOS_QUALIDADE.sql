@@ -1,6 +1,6 @@
 -- PROJETOS DA QUALIDADE - INSTALACAO COMPLETA DO BANCO
 -- Execute este arquivo no SQL Editor do projeto Supabase:
--- xgtzyinfinjehxzojafn
+-- nkjmgzyjjbepebzurowy (datahub-validadores)
 --
 -- O script e seguro para ser executado novamente: ele nao apaga dados.
 

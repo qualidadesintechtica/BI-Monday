@@ -4,8 +4,8 @@ Objetivo
 Receber a planilha semanal do Ajure, selecionar o Excel dentro do BI e importar
 os dados para o Supabase sem Power Automate Premium.
 
-PROJETO CORRETO DO BANCO
-xgtzyinfinjehxzojafn
+PROJETO CORRETO DO BANCO, LOGIN E FUNCAO
+nkjmgzyjjbepebzurowy (datahub-validadores)
 
 ORDEM OBRIGATORIA
 
@@ -20,8 +20,8 @@ ORDEM OBRIGATORIA
 4. Cole na funcao o conteudo de:
    supabase/functions/sincronizar-projetos-qualidade/index.ts
 
-5. Desative a verificacao JWT automatica dessa funcao. Isso e necessario porque
-   o login do BI esta em outro projeto. A funcao valida manualmente a sessao.
+5. Mantenha a verificacao JWT ativada. O login, o banco e a funcao estao no
+   mesmo projeto Supabase.
 
 6. Configure as variaveis descritas em:
    docs/02_CONFIGURAR_FUNCAO_PROJETOS_QUALIDADE.txt
@@ -37,9 +37,25 @@ ORDEM OBRIGATORIA
 10. Selecione uma copia da planilha PROJETOS_QUALIDADE.xlsx, confira a previa e
     clique em Importar para o Supabase.
 
+EDITOR E RELATORIOS
+
+11. No SQL Editor do mesmo projeto, execute:
+    docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql
+
+12. Confirme que o resultado mostra a tabela pq_projetos_edicoes e a funcao
+    pq_salvar_edicao.
+
+13. Abra Projetos da Qualidade > Editar e gerar relatorio.
+
+14. Selecione um projeto. Os dados do Ajure ficam somente leitura. Preencha os
+    campos complementares e clique em Salvar nova versao.
+
+15. Para emitir o documento definitivo, clique em Finalizar e gerar PDF. Na
+    janela do navegador, escolha Salvar como PDF.
+
 NAO FACA
-- Nao execute o SQL no projeto nkjmgzyjjbepebzurowy. Ele e o projeto do login e
-  dos dados antigos do BI, nao o banco dos Projetos da Qualidade.
+- Nao use o projeto xgtzyinfinjehxzojafn. O sistema foi unificado no projeto
+  datahub-validadores: nkjmgzyjjbepebzurowy.
 - Nao coloque service_role, senha ou segredo no GitHub.
 - Nao apague tabelas para repetir um teste.
 - Nao volte ao Power Automate: a chamada HTTP e Premium.

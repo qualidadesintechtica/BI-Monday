@@ -25,7 +25,6 @@ type Payload = {
 };
 
 type UsuarioAutenticado = {
-  id: string;
   email: string;
 };
 
@@ -205,28 +204,8 @@ function responderJson(
   });
 }
 
-async function autenticarUsuario(
-  req: Request,
-): Promise<UsuarioAutenticado | null> {
-  const autorizacao = req.headers.get("authorization") || "";
-  const token = autorizacao.match(/^Bearer\s+(.+)$/i)?.[1];
-  const authUrl = Deno.env.get("BI_AUTH_SUPABASE_URL");
-  const authKey = Deno.env.get("BI_AUTH_SUPABASE_PUBLISHABLE_KEY");
-
-  if (!token || !authUrl || !authKey) return null;
-
-  const resposta = await fetch(`${authUrl.replace(/\/$/, "")}/auth/v1/user`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: authKey,
-    },
-  });
-
-  if (!resposta.ok) return null;
-
-  const usuario = await resposta.json();
-  const email = texto(usuario?.email).toLowerCase();
-  const id = texto(usuario?.id);
+function autenticarUsuario(emailRecebido: unknown): UsuarioAutenticado | null {
+  const email = texto(emailRecebido).toLowerCase();
   const dominios = (
     Deno.env.get("PQ_ALLOWED_DOMAINS") || "animaeducacao.com.br"
   )
@@ -239,14 +218,14 @@ async function autenticarUsuario(
     .filter(Boolean);
   const dominio = email.split("@").pop() || "";
 
-  if (!id || !email || !dominios.includes(dominio)) return null;
+  if (!email || !dominios.includes(dominio)) return null;
   if (emailsPermitidos.length && !emailsPermitidos.includes(email)) return null;
-  return { id, email };
+  return { email };
 }
 
 export default {
   fetch: withSupabase(
-    { auth: "none" },
+    { auth: "user" },
 
     async (req, ctx) => {
       if (!origemPermitida(req)) {
@@ -272,13 +251,7 @@ export default {
         );
       }
 
-      let usuario: UsuarioAutenticado | null = null;
-
-      try {
-        usuario = await autenticarUsuario(req);
-      } catch {
-        usuario = null;
-      }
+      const usuario = autenticarUsuario(ctx.userClaims?.email);
 
       if (!usuario) {
         return responderJson(

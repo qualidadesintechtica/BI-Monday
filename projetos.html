@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projetos da Qualidade | DataHub</title>
+    <link rel="stylesheet" href="css/global.css?v=20260906-v24-editor-relatorios">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260906-v24-editor-relatorios">
+    <link rel="stylesheet" href="css/projetos.css?v=20260906-v24-editor-relatorios">
+  </head>
+
+  <body>
+    <div class="dashboard-shell">
+      <aside class="sidebar no-print">
+        <div class="brand">
+          <small>DataHub</small>
+          <strong>Validação de Materiais</strong>
+          <small class="build-badge">v24 · relatórios de projetos</small>
+        </div>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <a href="index.html#resumo">Resumo Executivo</a>
+          <a href="index.html#resultados">Resultados Alcançados</a>
+          <a href="index.html#reuniao-nq">Reunião NQ</a>
+          <a href="index.html#operacao">Operação</a>
+          <a href="index.html#ajustes">Ajustes</a>
+          <a href="index.html#equipe">Equipe</a>
+          <a href="index.html#gestores-materiais">Gestores e Materiais</a>
+
+          <div class="nav-section-title">Indicadores</div>
+          <a href="index.html#grafico-operacional">Gráfico Operacional</a>
+          <a href="index.html#dias-validacao">Dias para Validação</a>
+          <a href="index.html#historico">Histórico de Atualizações</a>
+          <a href="index.html#indicadores-uc">Indicadores da UC</a>
+
+          <div class="nav-section-title">Projetos da Qualidade</div>
+          <a class="active" href="projetos.html" aria-current="page">
+            Editar e gerar relatório
+          </a>
+          <a href="importar.html">Importar Excel do Ajure</a>
+        </nav>
+      </aside>
+
+      <main class="main projects-main">
+        <header class="topbar no-print">
+          <div>
+            <h1>Projetos da Qualidade</h1>
+            <p class="page-subtitle">
+              Preserve o original, crie versões e gere o relatório em PDF.
+            </p>
+          </div>
+          <div class="user-area">
+            <span>Olá, <strong data-user-name>Usuário</strong></span>
+            <button id="logoutButton" class="logout-button" type="button">Sair</button>
+          </div>
+        </header>
+
+        <section id="loadingState" class="state-card no-print" aria-live="polite">
+          <span class="loading-dot" aria-hidden="true"></span>
+          Carregando projetos e histórico…
+        </section>
+
+        <section id="errorState" class="state-card error no-print" hidden role="alert">
+          <strong>Não foi possível carregar o módulo.</strong>
+          <span id="errorText">—</span>
+          <button id="retryButton" class="secondary-action" type="button">Tentar novamente</button>
+        </section>
+
+        <div id="projectsApp" hidden>
+          <section class="project-kpis no-print" aria-label="Resumo dos projetos">
+            <article><span>Projetos atuais</span><strong id="projectCount">0</strong></article>
+            <article><span>Tarefas vinculadas</span><strong id="taskCount">0</strong></article>
+            <article class="attention"><span>Linhas com erro</span><strong id="issueCount">0</strong></article>
+            <article class="attention"><span>Tarefas sem vínculo</span><strong id="unlinkedCount">0</strong></article>
+          </section>
+
+          <section class="project-browser no-print" aria-labelledby="chooseProjectTitle">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">Dados originais do Ajure</span>
+                <h2 id="chooseProjectTitle">Escolha um projeto</h2>
+                <p>A seleção abaixo é somente leitura; o original nunca será editado.</p>
+              </div>
+              <a class="secondary-action link-action" href="importar.html">Importar nova planilha</a>
+            </div>
+
+            <div class="project-filters">
+              <label>
+                <span>Buscar</span>
+                <input id="projectSearch" type="search" placeholder="Nome, ID ou sponsor">
+              </label>
+              <label>
+                <span>Status</span>
+                <select id="statusFilter"><option value="">Todos</option></select>
+              </label>
+              <label>
+                <span>Projeto</span>
+                <select id="projectSelect"><option value="">Selecione…</option></select>
+              </label>
+            </div>
+            <p id="projectMatchCount" class="match-count">—</p>
+          </section>
+
+          <section id="editorWorkspace" class="editor-workspace" hidden>
+            <div class="editor-toolbar no-print">
+              <div>
+                <span id="editionBadge" class="edition-badge">Nova edição</span>
+                <h2 id="selectedProjectTitle">—</h2>
+                <p id="selectedProjectMeta">—</p>
+              </div>
+              <div class="toolbar-actions">
+                <button id="printDraftButton" class="secondary-action" type="button">Visualizar PDF</button>
+                <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar nova versão</button>
+                <button id="finalizeButton" class="primary-action" type="button">Finalizar e gerar PDF</button>
+              </div>
+            </div>
+
+            <div id="feedbackMessage" class="feedback-message no-print" hidden role="status" aria-live="polite"></div>
+
+            <div class="editor-grid no-print">
+              <div class="editor-column">
+                <section class="panel source-panel" aria-labelledby="sourceTitle">
+                  <div class="panel-heading">
+                    <div>
+                      <span class="eyebrow">Protegido</span>
+                      <h3 id="sourceTitle">Conteúdo original</h3>
+                    </div>
+                    <span class="read-only-badge">Somente leitura</span>
+                  </div>
+                  <dl id="sourceMetadata" class="source-metadata"></dl>
+                  <div class="source-tasks">
+                    <h4>Ações e tarefas originais</h4>
+                    <div id="sourceTaskList" class="source-task-list"></div>
+                  </div>
+                </section>
+
+                <section class="panel edit-panel" aria-labelledby="editTitle">
+                  <div class="panel-heading">
+                    <div>
+                      <span class="eyebrow">Nova versão</span>
+                      <h3 id="editTitle">Complementar o relatório</h3>
+                    </div>
+                    <span class="autosave-note">Salve para registrar uma versão</span>
+                  </div>
+
+                  <form id="reportForm" novalidate>
+                    <label class="field full">
+                      <span>Contexto e objetivo <b>*</b></span>
+                      <textarea id="contextField" rows="5" placeholder="Explique o problema, a oportunidade e o objetivo do projeto."></textarea>
+                    </label>
+                    <label class="field full">
+                      <span>Resultados esperados <b>*</b></span>
+                      <textarea id="expectedField" rows="4" placeholder="Descreva os resultados e critérios esperados."></textarea>
+                    </label>
+                    <label class="field full">
+                      <span>Novas ações ou complementos</span>
+                      <textarea id="actionsField" rows="4" placeholder="Registre novas ações sem alterar as tarefas originais."></textarea>
+                    </label>
+                    <label class="field full">
+                      <span>Resultados alcançados <b>*</b></span>
+                      <textarea id="achievedField" rows="5" placeholder="Informe entregas, números e resultados já alcançados."></textarea>
+                    </label>
+                    <label class="field full">
+                      <span>Impacto gerado <b>*</b></span>
+                      <textarea id="impactField" rows="4" placeholder="Explique o impacto para pessoas, processos ou indicadores."></textarea>
+                    </label>
+                    <label class="field full">
+                      <span>Observações</span>
+                      <textarea id="notesField" rows="3" placeholder="Inclua ressalvas, próximos passos ou informações adicionais."></textarea>
+                    </label>
+
+                    <fieldset class="evidence-fieldset">
+                      <legend>Evidências <b>*</b></legend>
+                      <p>Adicione links para arquivos, apresentações, painéis ou registros.</p>
+                      <div id="evidenceList" class="evidence-list"></div>
+                      <button id="addEvidenceButton" class="secondary-action small" type="button">+ Adicionar evidência</button>
+                    </fieldset>
+                  </form>
+                </section>
+              </div>
+
+              <aside class="history-column">
+                <section class="panel history-panel" aria-labelledby="historyTitle">
+                  <div class="panel-heading">
+                    <div>
+                      <span class="eyebrow">Rastreabilidade</span>
+                      <h3 id="historyTitle">Histórico de versões</h3>
+                    </div>
+                  </div>
+                  <p class="history-help">Abrir uma versão carrega a fotografia original e o texto daquele salvamento. “Usar como base” cria uma nova versão.</p>
+                  <div id="historyList" class="history-list"></div>
+                </section>
+
+                <section class="panel checklist-panel" aria-labelledby="checklistTitle">
+                  <h3 id="checklistTitle">Pronto para finalizar?</h3>
+                  <ul id="completionChecklist"></ul>
+                  <p>O rascunho pode ser salvo incompleto. A versão final exige todos os itens essenciais.</p>
+                </section>
+              </aside>
+            </div>
+
+            <section class="report-preview-shell no-print" aria-labelledby="previewTitle">
+              <div class="section-heading">
+                <div>
+                  <span class="eyebrow">Prévia</span>
+                  <h2 id="previewTitle">Relatório para PDF</h2>
+                  <p>O documento é atualizado enquanto você escreve.</p>
+                </div>
+              </div>
+            </section>
+
+            <article id="reportDocument" class="report-document" aria-label="Relatório do projeto"></article>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <template id="evidenceTemplate">
+      <div class="evidence-row">
+        <label><span>Título</span><input data-evidence="titulo" type="text" placeholder="Ex.: Apresentação executiva"></label>
+        <label><span>Tipo</span><select data-evidence="tipo"><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
+        <label class="wide"><span>Link</span><input data-evidence="url" type="url" placeholder="https://…"></label>
+        <label class="wide"><span>O que comprova</span><input data-evidence="descricao" type="text" placeholder="Explique brevemente a evidência"></label>
+        <button class="remove-evidence" type="button" aria-label="Remover evidência">×</button>
+      </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js?v=20260906-v24-editor-relatorios"></script>
+    <script src="js/supabase.js?v=20260906-v24-editor-relatorios"></script>
+    <script src="js/auth.js?v=20260906-v24-editor-relatorios"></script>
+    <script src="js/projetos.js?v=20260906-v24-editor-relatorios"></script>
+  </body>
+</html>

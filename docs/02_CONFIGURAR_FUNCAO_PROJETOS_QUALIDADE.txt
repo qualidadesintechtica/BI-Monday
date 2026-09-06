@@ -1,17 +1,12 @@
 EDGE FUNCTION: sincronizar-projetos-qualidade
-PROJETO: xgtzyinfinjehxzojafn
+PROJETO: nkjmgzyjjbepebzurowy (datahub-validadores)
 
 CONFIGURACAO OBRIGATORIA
 
-Verificacao JWT da plataforma: DESATIVADA
+Verificacao JWT da plataforma: ATIVADA
 
-Variaveis da funcao:
-
-BI_AUTH_SUPABASE_URL
-https://nkjmgzyjjbepebzurowy.supabase.co
-
-BI_AUTH_SUPABASE_PUBLISHABLE_KEY
-Copie o valor SUPABASE_PUBLISHABLE_KEY existente em js/config.js.
+As variaveis abaixo sao opcionais porque o codigo ja possui estes valores como
+padrao. Configure apenas se precisar mudar as regras:
 
 PQ_ALLOWED_DOMAINS
 animaeducacao.com.br
@@ -25,7 +20,6 @@ animaeducacao.com.br. Para restringir, use e-mails completos separados por
 virgula.
 
 IMPORTANTE
-A verificacao JWT automatica fica desativada porque o token foi emitido pelo
-projeto nkjmgzyjjbepebzurowy, enquanto a funcao esta no projeto
-xgtzyinfinjehxzojafn. A funcao nao fica aberta: ela propria valida o token, o
-dominio e, quando configurado, a lista de e-mails.
+O login, o banco e a funcao usam o mesmo projeto. A verificacao JWT identifica
+o usuario autenticado; a funcao ainda verifica o dominio e, quando configurado,
+a lista de e-mails permitidos.

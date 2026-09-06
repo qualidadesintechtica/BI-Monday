@@ -4,15 +4,13 @@ Esta versão permite selecionar a planilha recebida do Ajure, conferir os dados 
 
 ## Ordem obrigatória
 
-1. Confirme que abriu o projeto Supabase `xgtzyinfinjehxzojafn`.
+1. Confirme que abriu o projeto Supabase `nkjmgzyjjbepebzurowy` (`datahub-validadores`).
 2. Execute `00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql` no SQL Editor. Esse arquivo cria toda a estrutura e também inclui os campos do importador.
 3. Abra ou crie a Edge Function `sincronizar-projetos-qualidade`.
 4. Substitua o código pelo arquivo `supabase/functions/sincronizar-projetos-qualidade/index.ts` deste pacote.
-5. Como a função valida uma sessão emitida pelo Supabase do BI, publique-a com a verificação JWT da plataforma desativada. A própria função continua exigindo e validando o usuário autenticado.
-6. Configure as seguintes variáveis da Edge Function:
+5. Mantenha a verificação JWT da função ativada. O login, o banco e a função estão no mesmo projeto.
+6. As variáveis seguintes são opcionais porque a função já usa esses valores como padrão:
 
-   - `BI_AUTH_SUPABASE_URL`: URL do Supabase usada pelo login do BI.
-   - `BI_AUTH_SUPABASE_PUBLISHABLE_KEY`: chave pública usada pelo login do BI.
    - `PQ_ALLOWED_DOMAINS`: `animaeducacao.com.br`
    - `PQ_ALLOWED_ORIGINS`: `https://qualidadesintechtica.github.io`
    - `PQ_ALLOWED_EMAILS`: opcional; lista separada por vírgulas quando somente pessoas específicas puderem importar.
@@ -48,4 +46,4 @@ O bloqueio está funcionando. Se os dados mudaram, use o novo arquivo recebido. 
 
 ## Se aparecer “Sessão inválida ou sem permissão”
 
-Confira os segredos `BI_AUTH_SUPABASE_URL`, `BI_AUTH_SUPABASE_PUBLISHABLE_KEY` e `PQ_ALLOWED_DOMAINS`, depois saia e entre novamente no BI.
+Confira `PQ_ALLOWED_DOMAINS`, mantenha a verificação JWT ativada e depois saia e entre novamente no BI.

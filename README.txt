@@ -1,4 +1,18 @@
-BI Monday — V23
+BI Monday — V24
+
+Nova área: Editor e Relatórios dos Projetos da Qualidade
+- dados importados do Ajure permanecem somente leitura;
+- cada salvamento cria uma nova versão auditável;
+- cada versão guarda uma fotografia do projeto e das tarefas originais;
+- campos narrativos, novas ações e evidências podem ser complementados;
+- versões finalizadas podem ser impressas ou salvas como PDF pelo navegador;
+- histórico com autor, data e status de cada versão.
+
+Para ativar o editor, execute também:
+docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql
+Instruções detalhadas: docs/INSTALAR_EDITOR_PROJETOS_V24.md
+
+Recursos da V23 mantidos:
 
 Nova área: Importar Projetos da Qualidade
 - leitura local de arquivos XLSX/XLS;
@@ -9,7 +23,8 @@ Nova área: Importar Projetos da Qualidade
 - envio direto para a Edge Function sem Power Automate Premium.
 
 Para instalar do zero, abra COMECE_AQUI_PROJETOS_QUALIDADE.txt e execute
-docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql no projeto xgtzyinfinjehxzojafn.
+docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql no projeto datahub-validadores
+(nkjmgzyjjbepebzurowy).
 
 Mantém integralmente as telas e recursos anteriores.
 
