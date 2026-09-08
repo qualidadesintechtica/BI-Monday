@@ -1,0 +1,41 @@
+V24.9 — PROJETO QUALIDADE COMPLETO
+
+A planilha analisada possui, nas abas atuais:
+ID
+Work Item Type
+Projeto
+Contexto / Objetivo
+Resultados Esperados
+Ações / Tarefas
+Status
+Data de inicio
+Data de fim
+Sponsor
+Esforco
+Prioridade
+Impacto
+Resultados Alcançados
+
+Também existem abas históricas com campos como:
+link evidências
+Operações EAD
+Contexto
+Objetivo
+
+A V24.9 preserva TODA a linha original em JSON, então novas colunas futuras
+também não serão perdidas.
+
+ORDEM:
+1. Supabase > SQL Editor:
+   execute docs/V24_9_ATIVAR_PROJETO_QUALIDADE_COMPLETO.sql inteiro.
+2. Supabase > Edge Functions > import-projeto-qualidade:
+   substitua TODO o código por
+   supabase/functions/import-projeto-qualidade/index.ts
+   e faça Deploy.
+3. GitHub:
+   substitua pelos arquivos desta V24.9.
+4. Ctrl+F5.
+5. Reimporte a planilha uma vez.
+6. Abra o Projeto Qualidade.
+
+A REIMPORTAÇÃO É OBRIGATÓRIA para preencher os novos campos.

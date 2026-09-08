@@ -69,6 +69,8 @@
     const valores = [
       ...estado.projetos.map((projeto) => projeto.sponsor),
       ...estado.tarefas.map((tarefa) => tarefa.sponsor),
+      ...estado.projetos.flatMap((projeto) => Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista : []),
+      ...estado.tarefas.flatMap((tarefa) => Array.isArray(tarefa.sponsor_lista) ? tarefa.sponsor_lista : []),
       ...estado.linhasOriginais.map((linha) => linha.dados_originais?.sponsor),
     ];
 
@@ -424,6 +426,10 @@
       $("editionBadge").textContent = `Baseada na versão ${ultima.versao}`;
     } else {
       limparCampos();
+      $("contextField").value = projeto.contexto_objetivo_original || "";
+      $("expectedField").value = projeto.resultados_esperados_original || "";
+      $("achievedField").value = projeto.resultados_alcancados_original || "";
+      $("impactField").value = projeto.impacto_original || "";
       $("editionBadge").textContent = "Primeira versão";
     }
     atualizarPreview();
@@ -433,6 +439,48 @@
 
   function metadado(rotulo, valor) {
     return `<div><dt>${escapar(rotulo)}</dt><dd>${escapar(valor || "—")}</dd></div>`;
+  }
+
+
+  function valorVisual(valor) {
+    if (valor === null || valor === undefined || valor === "") return "";
+    if (Array.isArray(valor)) return valor.join(", ");
+    if (typeof valor === "object") {
+      try { return JSON.stringify(valor); } catch { return String(valor); }
+    }
+    return String(valor);
+  }
+
+  function tabelaDadosDisponiveis(dados) {
+    if (!dados || typeof dados !== "object") return "";
+
+    const ignorar = new Set([
+      "__aba_origem",
+      "__dados_originais",
+    ]);
+
+    const linhas = Object.entries(dados)
+      .filter(([chave, valor]) => !ignorar.has(chave) && valorVisual(valor))
+      .map(([chave, valor]) => `
+        <tr>
+          <th>${escapar(chave)}</th>
+          <td>${escapar(valorVisual(valor))}</td>
+        </tr>
+      `)
+      .join("");
+
+    if (!linhas) return "";
+
+    return `
+      <section class="all-source-data">
+        <h4>Todas as informações disponíveis na planilha</h4>
+        <div class="all-source-table-wrap">
+          <table class="all-source-table">
+            <tbody>${linhas}</tbody>
+          </table>
+        </div>
+      </section>
+    `;
   }
 
   function renderizarOrigem() {
@@ -446,12 +494,15 @@
 
     $("sourceMetadata").innerHTML = [
       metadado("ID", projeto.azure_id),
+      metadado("Tipo", projeto.work_item_type),
       metadado("Status", projeto.status),
-      metadado("Início", formatarData(projeto.data_inicio)),
-      metadado("Fim", formatarData(projeto.data_fim)),
-      metadado("Sponsor", limparNome(projeto.sponsor)),
+      metadado("Data inicial", formatarData(projeto.data_inicio)),
+      metadado("Data final", formatarData(projeto.data_fim)),
+      metadado("Sponsor original", limparNome(projeto.sponsor)),
+      metadado("Sponsors identificados", Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.join(", ") : ""),
       metadado("Esforço", projeto.esforco),
       metadado("Prioridade", projeto.prioridade),
+      metadado("Impacto", projeto.impacto_original),
       metadado("Tarefas", tarefas.length),
     ].join("");
 
@@ -460,13 +511,18 @@
       return;
     }
 
-    $("sourceTaskList").innerHTML = tarefas.map((tarefa) => `
+    const tarefasHtml = tarefas.map((tarefa) => `
       <article class="source-task">
         <strong>${escapar(tarefa.descricao || tarefa.nome || "Ação sem descrição")}</strong>
         <span>ID ${escapar(tarefa.azure_id || "—")} · ${escapar(formatarData(tarefa.data_inicio))} a ${escapar(formatarData(tarefa.data_fim))}</span>
+        <span>Sponsor: ${escapar(limparNome(tarefa.sponsor) || "—")}</span>
         <span class="task-status">${escapar(tarefa.status || "—")}</span>
       </article>
     `).join("");
+
+    $("sourceTaskList").innerHTML =
+      tarefasHtml +
+      tabelaDadosDisponiveis(projeto.dados_origem);
   }
 
   function limparCampos() {
@@ -618,14 +674,17 @@
       ${faltantes.length ? `<div class="report-draft-warning">Rascunho · faltam: ${escapar(faltantes.join(", "))}.</div>` : ""}
       <div class="report-meta-grid">
         ${metadadoRelatorio("ID Ajure", projeto.azure_id)}
+        ${metadadoRelatorio("Tipo", projeto.work_item_type)}
         ${metadadoRelatorio("Status", projeto.status)}
-        ${metadadoRelatorio("Início", formatarData(projeto.data_inicio))}
-        ${metadadoRelatorio("Fim", formatarData(projeto.data_fim))}
-        ${metadadoRelatorio("Sponsor", limparNome(projeto.sponsor))}
+        ${metadadoRelatorio("Data inicial", formatarData(projeto.data_inicio))}
+        ${metadadoRelatorio("Data final", formatarData(projeto.data_fim))}
+        ${metadadoRelatorio("Sponsor original", limparNome(projeto.sponsor))}
+        ${metadadoRelatorio("Sponsors identificados", Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.join(", ") : "")}
         ${metadadoRelatorio("Esforço", projeto.esforco)}
         ${metadadoRelatorio("Prioridade", projeto.prioridade)}
         ${metadadoRelatorio("Ações originais", tarefas.length)}
       </div>
+      ${tabelaDadosDisponiveis(projeto.dados_origem)}
       ${blocoTexto("Contexto e objetivo", dados.contexto_objetivo)}
       ${blocoTexto("Resultados esperados", dados.resultados_esperados)}
       <section class="report-section"><h2>Ações e tarefas originais</h2>${tabelaTarefas(tarefas)}</section>

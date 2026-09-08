@@ -52,6 +52,57 @@ function norm(v: unknown): string {
     .toLowerCase();
 }
 
+function canonicalSponsor(nome: string): string {
+  const original = nome.replace(/\s+/g, " ").trim();
+  const chave = original
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const aliases: Record<string,string> = {
+    "clea": "Clea",
+    "cl ea": "Clea",
+    "ligia": "Ligia",
+    "ligia paolilo": "Ligia Paolilo",
+    "joao": "João Guilherme",
+    "joao guilherme": "João Guilherme",
+    "paula": "Paula Madalena",
+    "paula madalena": "Paula Madalena",
+    "luciana": "Luciana",
+    "grace": "Grace",
+    "cris": "Cris",
+    "seila": "Seila Melo",
+    "seila melo": "Seila Melo",
+    "ygor": "Ygor Gabriel",
+    "ygor gabriel": "Ygor Gabriel",
+    "camilla": "Camilla Araújo",
+    "camilla araujo": "Camilla Araújo"
+  };
+
+  return aliases[chave] || original;
+}
+
+function separarSponsors(v: unknown): string[] {
+  const s = txt(v);
+  if (!s) return [];
+
+  const nomes = s
+    .split(/\s*(?:,|;|\||\/|&|\be\b)\s*/i)
+    .map(x => canonicalSponsor(x))
+    .filter(Boolean);
+
+  const mapa = new Map<string,string>();
+  for (const nome of nomes) {
+    const chave = nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    if (!mapa.has(chave)) mapa.set(chave, nome);
+  }
+
+  return [...mapa.values()];
+}
+
 function isoDate(v: unknown): string | null {
   if (!v) return null;
 
@@ -166,14 +217,30 @@ Deno.serve(async (req) => {
         return;
       }
 
+      const sponsorOriginal = txt(r["Sponsor"]);
+
       const base = {
         id_azure: txt(r["ID"]),
+        work_item_type: txt(r["Work Item Type"]),
         projeto,
+        contexto_objetivo_original: txt(r["Contexto / Objetivo"]) || txt(r["Objetivo"]),
+        resultados_esperados_original: txt(r["Resultados Esperados"]),
+        acoes_tarefas_original: txt(r["Ações"]),
         status: txt(r["State"]),
         data_inicio: isoDate(r["Start Date"]),
         data_fim: isoDate(r["Target Date"]),
-        sponsor: txt(r["Sponsor"]),
+        sponsor: sponsorOriginal,
+        sponsor_lista: separarSponsors(sponsorOriginal),
+        esforco: txt(r["Esforço"]),
+        prioridade: txt(r["Prioridade"]),
+        impacto_original: txt(r["Impacto"]),
+        resultados_alcancados_original: txt(r["Resultados Alcançados"]),
         link_evidencias: txt(r["link evidências"]),
+        operacoes_ead: txt(r["Operações EAD"]),
+        aba_origem: txt(r["__aba_origem"]),
+        dados_origem: (r["__dados_originais"] && typeof r["__dados_originais"] === "object")
+          ? r["__dados_originais"]
+          : r,
         ativo: true,
         updated_at: new Date().toISOString(),
       };
@@ -182,12 +249,6 @@ Deno.serve(async (req) => {
         projetos.push({
           ...base,
           source_key: sourceKey("P", r["ID"], projeto),
-          esforco: txt(r["Esforço"]),
-          prioridade: txt(r["Prioridade"]),
-          contexto_objetivo_original: txt(r["Contexto / Objetivo"]),
-          resultados_esperados_original: txt(r["Resultados Esperados"]),
-          impacto_original: txt(r["Impacto"]),
-          resultados_alcancados_original: txt(r["Resultados Alcançados"]),
         });
       } else if (tipo === "tarefa") {
         tarefas.push({

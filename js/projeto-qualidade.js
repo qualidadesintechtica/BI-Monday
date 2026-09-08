@@ -335,10 +335,16 @@
       "Contexto / Objetivo":
         r["Contexto / Objetivo"] ??
         r["Contexto/Objetivo"] ??
+        r["Contexto"] ??
+        null,
+
+      "Objetivo":
+        r["Objetivo"] ??
         null,
 
       "Resultados Esperados":
         r["Resultados Esperados"] ??
+        r["Resultados esperados"] ??
         r["Resultado Esperado"] ??
         null,
 
@@ -392,7 +398,17 @@
       "link evidências":
         r["link evidências"] ??
         r["link evidencias"] ??
-        null
+        null,
+
+      "Operações EAD":
+        r["Operações EAD"] ??
+        r["Operacoes EAD"] ??
+        null,
+
+      "__aba_origem": r["__aba_origem"] ?? null,
+
+      // Preserva TODAS as colunas que existirem na planilha.
+      "__dados_originais": r
     }));
   }
 

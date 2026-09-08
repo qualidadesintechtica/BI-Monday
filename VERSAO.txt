@@ -1,11 +1,14 @@
-BI Monday V24.8
+BI Monday V24.9
 Data: 08/09/2026
 
-Correções do Projeto Qualidade:
-- Ações / Tarefas mapeado corretamente;
-- Data de inicio e Data de fim mapeadas;
-- Contexto / Objetivo importado;
-- Resultados Esperados importados;
-- Impacto importado;
-- Resultados Alcançados importados;
-- tarefas deixam de ficar com nome/descricao NULL após reimportação.
+Projeto Qualidade completo:
+- Data inicial e final;
+- todas as colunas da planilha preservadas em dados_origem;
+- exibição dinâmica de todas as informações não vazias;
+- Contexto/Objetivo, Resultados Esperados, Ações/Tarefas, Status, Sponsor,
+  Esforço, Prioridade, Impacto e Resultados Alcançados;
+- sponsor original preservado;
+- sponsor_lista com responsáveis individuais;
+- variações Clea/Cléa, Ligia/Lígia, João/João Guilherme, Paula/Paula Madalena;
+- filtro de responsáveis usa nomes individuais e variações;
+- primeira versão do editor pré-preenchida pelos dados originais.

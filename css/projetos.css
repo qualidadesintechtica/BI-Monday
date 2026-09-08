@@ -695,3 +695,44 @@
   .report-evidence-table tr { break-inside: avoid; }
   .report-footer { break-inside: avoid; }
 }
+
+
+/* V24.9 · Todas as colunas disponíveis */
+.all-source-data{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid #eadff0;
+}
+.all-source-data h4{
+  margin:0 0 10px;
+  color:#3b1d63;
+}
+.all-source-table-wrap{
+  overflow:auto;
+  max-height:360px;
+  border:1px solid #e8deed;
+  border-radius:12px;
+}
+.all-source-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:11px;
+}
+.all-source-table th,
+.all-source-table td{
+  padding:8px 10px;
+  border-bottom:1px solid #eee7f1;
+  vertical-align:top;
+  text-align:left;
+}
+.all-source-table th{
+  width:190px;
+  background:#faf7fb;
+  color:#553b67;
+  position:sticky;
+  left:0;
+}
+.all-source-table td{
+  white-space:pre-wrap;
+  color:#625669;
+}
