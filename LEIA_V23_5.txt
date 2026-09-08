@@ -1,0 +1,12 @@
+V23.5 — MENU LATERAL COM ROLAGEM
+
+Não exige SQL.
+Não exige alteração de Edge Function.
+
+Para instalar:
+1. Substitua os arquivos no GitHub pela V23.5.
+2. Aguarde o GitHub Pages.
+3. Pressione Ctrl+F5.
+4. Teste com o navegador em 100%.
+
+A barra lateral agora possui rolagem vertical própria.

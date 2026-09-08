@@ -1,16 +1,8 @@
-BI Monday V23.4
+BI Monday V23.5
 Data: 08/09/2026
 
-Restaurado:
-- Projeto Qualidade no menu lateral.
-- Página própria dentro do BI.
-- Leitura das tabelas pq_projetos, pq_tarefas e pq_importacoes.
-- KPIs de projetos, tarefas, em progresso, finalizados e tarefas sem vínculo.
-- Busca por projeto, sponsor/responsável, status e conteúdo das tarefas.
-- Filtros por status e sponsor.
-- Projetos expansíveis com suas tarefas.
-- Histórico da última importação.
-
-Mantido:
-- Todas as melhorias da V23.3 no Relatório NQ.
-- Importação NQ e Formação/CINE.
+Correção:
+- Menu lateral com rolagem vertical independente.
+- Todos os itens do menu ficam acessíveis em zoom de 100%.
+- Conteúdo principal permanece sem alteração.
+- Projeto Qualidade e Relatório NQ preservados.

@@ -1430,3 +1430,42 @@
 .pq-error strong{color:#6e274f;margin-bottom:5px}
 @media(max-width:1150px){.pq-kpis{grid-template-columns:repeat(2,1fr)}.pq-toolbar{grid-template-columns:1fr 1fr}.pq-source{white-space:normal}}
 @media(max-width:700px){.pq-kpis,.pq-toolbar{grid-template-columns:1fr}.pq-hero,.pq-summary-line,.pq-project-toggle{flex-direction:column;align-items:stretch}.pq-project-metrics{flex-wrap:wrap}}
+
+
+/* ============================================================
+   V23.5 · Menu lateral com rolagem independente
+   ============================================================ */
+.sidebar{
+  height:100vh;
+  max-height:100vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+
+.sidebar::-webkit-scrollbar{
+  width:8px;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.22);
+  border-radius:999px;
+}
+
+.sidebar::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+/* Garante que os últimos itens possam ser alcançados sem ficarem colados no rodapé */
+.sidebar-nav{
+  padding-bottom:28px;
+}
+
+/* Em telas menores, preserva a rolagem do menu */
+@media (max-height:820px){
+  .sidebar{
+    height:100dvh;
+    max-height:100dvh;
+  }
+}
