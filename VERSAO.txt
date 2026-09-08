@@ -1,12 +1,12 @@
-BI Monday V23.7
+BI Monday V23.8
 Data: 08/09/2026
 
 Projeto Qualidade:
-- nova base atual isolada do legado;
 - pq_projetos_atual;
 - pq_tarefas_atual;
-- novos nomes/sponsors vindos diretamente da planilha;
-- fallback automático para base histórica antes da primeira importação;
-- mensagens de erro do backend mais legíveis.
+- pq_importacoes_atual;
+- isolamento completo da estrutura histórica;
+- mensagens de erro detalhadas;
+- novos nomes e sponsors passam a refletir a planilha após importação.
 
 Demais módulos preservados.

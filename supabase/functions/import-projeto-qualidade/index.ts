@@ -19,6 +19,30 @@ function txt(v: unknown): string | null {
   return s || null;
 }
 
+function erroTexto(e: unknown): string {
+  if (e instanceof Error) return e.message;
+
+  if (e && typeof e === "object") {
+    const obj = e as Record<string, unknown>;
+    const partes = [
+      obj.message,
+      obj.details,
+      obj.hint,
+      obj.code ? `código ${obj.code}` : null,
+    ].filter(Boolean);
+
+    if (partes.length) return partes.map(String).join(" | ");
+
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return "Erro não identificado.";
+    }
+  }
+
+  return String(e ?? "Erro não identificado.");
+}
+
 function norm(v: unknown): string {
   return String(v ?? "")
     .normalize("NFD")
@@ -107,7 +131,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: log, error: logError } = await admin
-      .from("pq_importacoes")
+      .from("pq_importacoes_atual")
       .insert({
         arquivo_nome: arquivoNome,
         arquivo_tamanho: arquivoTamanho,
@@ -119,7 +143,7 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
 
-    if (logError) throw logError;
+    if (logError) throw new Error(erroTexto(logError));
     importacaoId = log.id;
 
     const projetos: Record<string, unknown>[] = [];
@@ -180,8 +204,8 @@ Deno.serve(async (req) => {
       admin.from("pq_tarefas_atual").select("source_key")
     ]);
 
-    if (oldP.error) throw oldP.error;
-    if (oldT.error) throw oldT.error;
+    if (oldP.error) throw new Error(erroTexto(oldP.error));
+    if (oldT.error) throw new Error(erroTexto(oldT.error));
 
     const oldPKeys = new Set((oldP.data || []).map(x => x.source_key).filter(Boolean));
     const oldTKeys = new Set((oldT.data || []).map(x => x.source_key).filter(Boolean));
@@ -199,8 +223,8 @@ Deno.serve(async (req) => {
       admin.from("pq_tarefas_atual").update({ ativo: false, updated_at: now }).eq("ativo", true)
     ]);
 
-    if (inactiveP.error) throw inactiveP.error;
-    if (inactiveT.error) throw inactiveT.error;
+    if (inactiveP.error) throw new Error(erroTexto(inactiveP.error));
+    if (inactiveT.error) throw new Error(erroTexto(inactiveT.error));
 
     // Atualiza/inclui em lotes.
     for (let i = 0; i < projetos.length; i += 100) {
@@ -209,7 +233,7 @@ Deno.serve(async (req) => {
         .from("pq_projetos_atual")
         .upsert(lote, { onConflict: "source_key" });
 
-      if (error) throw error;
+      if (error) throw new Error(erroTexto(error));
     }
 
     for (let i = 0; i < tarefas.length; i += 100) {
@@ -218,7 +242,7 @@ Deno.serve(async (req) => {
         .from("pq_tarefas_atual")
         .upsert(lote, { onConflict: "source_key" });
 
-      if (error) throw error;
+      if (error) throw new Error(erroTexto(error));
     }
 
     const mensagem = erros.length
@@ -228,7 +252,7 @@ Deno.serve(async (req) => {
     const finishedAt = new Date().toISOString();
 
     await admin
-      .from("pq_importacoes")
+      .from("pq_importacoes_atual")
       .update({
         status: "concluida",
         total_linhas: rows.length,
@@ -261,11 +285,11 @@ Deno.serve(async (req) => {
     });
 
   } catch (e) {
-    const mensagem = e instanceof Error ? e.message : String(e);
+    const mensagem = erroTexto(e);
 
     if (importacaoId !== null) {
       await admin
-        .from("pq_importacoes")
+        .from("pq_importacoes_atual")
         .update({
           status: "erro",
           mensagem,

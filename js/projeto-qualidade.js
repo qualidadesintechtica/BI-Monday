@@ -65,14 +65,15 @@
       const sb = window.biSupabase;
       if (!sb) throw new Error("Cliente Supabase não disponível.");
 
-      const [pAtual, tAtual, i] = await Promise.all([
+      const [pAtual, tAtual, iAtual] = await Promise.all([
         sb.from("pq_projetos_atual").select("*").eq("ativo", true).order("projeto", { ascending: true }),
         sb.from("pq_tarefas_atual").select("*").eq("ativo", true).order("projeto", { ascending: true }),
-        sb.from("pq_importacoes").select("*").order("created_at", { ascending: false }).limit(10)
+        sb.from("pq_importacoes_atual").select("*").order("created_at", { ascending: false }).limit(10)
       ]);
 
       let p = pAtual;
       let t = tAtual;
+      let i = iAtual;
 
       // Compatibilidade: enquanto a nova base ainda estiver vazia,
       // usa a estrutura histórica para não quebrar o painel.
@@ -83,8 +84,12 @@
         ]);
       }
 
-      if (p.error) throw p.error;
-      if (t.error) throw t.error;
+      if (iAtual.error || !(iAtual.data || []).length) {
+        i = await sb.from("pq_importacoes").select("*").order("created_at", { ascending: false }).limit(10);
+      }
+
+      if (p.error) throw new Error(p.error.message || JSON.stringify(p.error));
+      if (t.error) throw new Error(t.error.message || JSON.stringify(t.error));
 
       projetos = (p.data || []).filter(x => x.ativo !== false);
       tarefas = (t.data || []).filter(x => x.ativo !== false);
