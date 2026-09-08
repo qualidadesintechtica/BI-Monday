@@ -1,11 +1,4 @@
-BI Monday V23.1
+BI Monday V23.2
 Data: 08/09/2026
-
-Correção:
-- Eliminado o erro HTTP 546 / Memory limit exceeded.
-- O Excel é lido no navegador do usuário.
-- A Edge Function recebe somente JSON com a aba Export.
-- A função não importa mais a biblioteca xlsx.
-- Mantida autenticação obrigatória.
-- Mantido histórico de importações.
-- Mantidas as regras de atualização, inclusão e inativação.
+Módulo: Reunião NQ
+Formação e cobertura dos especialistas + CINE Brasil.

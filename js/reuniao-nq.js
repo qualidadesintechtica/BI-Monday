@@ -6,6 +6,10 @@
   let carregando = null;
   let grafico = null;
   let revisoresDistintos = null;
+  let formacoesNQ = [];
+  let experienciasNQ = [];
+  let graficoCineNQ = null;
+  let graficoFormacoesNQ = null;
   const fmt = new Intl.NumberFormat("pt-BR");
 
   function setText(id, valor) {
@@ -114,6 +118,9 @@
       renderGrafico();
       configurarImportacaoNQ();
       await carregarHistoricoImportacoesNQ();
+      configurarFiltroCoberturaNQ();
+      await carregarFormacaoCoberturaNQ();
+      renderCoberturaNQ();
       if (status) status.textContent = "Dados carregados diretamente das views executivas do Supabase.";
     } catch (e) {
       console.error("Erro ao carregar Reunião NQ:", e);
@@ -125,6 +132,143 @@
   // ============================================================
   // V23 · Importação da base de especialistas NQ
   // ============================================================
+
+
+  async function carregarFormacaoCoberturaNQ() {
+    const [f, e] = await Promise.all([
+      window.biSupabase.from("vw_nq_especialistas_formacoes")
+        .select("especialista_id,professor,marca_area_contratante,marca_origem,titulacao_maxima,situacao_contratacao,formacao,area_formacao,area_cine,subarea_cine")
+        .order("professor", { ascending: true }),
+      window.biSupabase.from("nq_especialistas_experiencias")
+        .select("especialista_id,area_experiencia")
+    ]);
+    if (f.error) throw f.error;
+    if (e.error) console.warn("Experiências NQ:", e.error);
+    formacoesNQ = (f.data || []).filter(r => r.professor);
+    experienciasNQ = e.data || [];
+  }
+
+  function uniq(arr) {
+    return [...new Set(arr.filter(v => v !== null && v !== undefined && String(v).trim() !== ""))];
+  }
+
+  function normalizar(v) {
+    return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  }
+
+  function renderKPIsCoberturaNQ() {
+    const professores = uniq(formacoesNQ.map(r => r.professor));
+    const formacoes = formacoesNQ.filter(r => r.formacao);
+    const formacoesUnicas = uniq(formacoes.map(r => normalizar(r.formacao)));
+    const areasCine = uniq(formacoes.map(r => r.area_cine));
+
+    const porProfessor = new Map();
+    formacoes.forEach(r => {
+      if (!porProfessor.has(r.professor)) porProfessor.set(r.professor, new Set());
+      porProfessor.get(r.professor).add(normalizar(r.formacao));
+    });
+
+    const filtro = Number(document.getElementById("nqFiltroMaisAreas")?.value || 2);
+    const acima = [...porProfessor.values()].filter(s => s.size > filtro).length;
+
+    setText("nqProfessoresTotal", n(professores.length));
+    setText("nqFormacoesUnicas", n(formacoesUnicas.length));
+    setText("nqFormacoesTotal", n(formacoes.length));
+    setText("nqMediaFormacoes", professores.length ? (formacoes.length / professores.length).toLocaleString("pt-BR", {minimumFractionDigits:1, maximumFractionDigits:1}) : "0,0");
+    setText("nqMaisAreas", n(acima));
+    setText("nqAreasCineTotal", n(areasCine.length));
+    setText("nqMaisAreasLegenda", `mais de ${filtro} área${filtro === 1 ? "" : "s"}`);
+  }
+
+  function renderGraficoCineNQ() {
+    const el = document.getElementById("graficoNQCine");
+    if (!el || !window.echarts) return;
+    const mapa = new Map();
+    formacoesNQ.filter(r => r.area_cine && r.professor).forEach(r => {
+      if (!mapa.has(r.area_cine)) mapa.set(r.area_cine, new Set());
+      mapa.get(r.area_cine).add(r.professor);
+    });
+    const dados = [...mapa.entries()].map(([area, profs]) => ({area,total:profs.size})).sort((a,b)=>b.total-a.total);
+    graficoCineNQ?.dispose();
+    graficoCineNQ = echarts.init(el);
+    graficoCineNQ.setOption({
+      grid:{left:42,right:18,top:24,bottom:100},
+      tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},
+      xAxis:{type:"category",data:dados.map(d=>d.area.replace(/^\d+\s*[·-]\s*/,"")),axisLabel:{rotate:30,fontSize:10,interval:0}},
+      yAxis:{type:"value",minInterval:1,name:"Professores"},
+      series:[{type:"bar",data:dados.map(d=>d.total),barMaxWidth:42,label:{show:true,position:"top"},itemStyle:{borderRadius:[5,5,0,0]}}]
+    });
+  }
+
+  function renderGraficoFormacoesProfessorNQ() {
+    const el = document.getElementById("graficoNQFormacoesProfessor");
+    if (!el || !window.echarts) return;
+    const mapa = new Map();
+    formacoesNQ.filter(r=>r.professor && r.formacao).forEach(r=>{
+      if(!mapa.has(r.professor)) mapa.set(r.professor,new Set());
+      mapa.get(r.professor).add(normalizar(r.formacao));
+    });
+    const dados=[...mapa.entries()].map(([professor,s])=>({professor,total:s.size})).sort((a,b)=>b.total-a.total||a.professor.localeCompare(b.professor,"pt-BR"));
+    graficoFormacoesNQ?.dispose();
+    graficoFormacoesNQ=echarts.init(el);
+    graficoFormacoesNQ.setOption({
+      grid:{left:170,right:24,top:18,bottom:28},
+      tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},
+      xAxis:{type:"value",minInterval:1,name:"Formações"},
+      yAxis:{type:"category",inverse:true,data:dados.map(d=>d.professor),axisLabel:{fontSize:9,width:155,overflow:"truncate"}},
+      series:[{type:"bar",data:dados.map(d=>d.total),barMaxWidth:18,label:{show:true,position:"right"},itemStyle:{borderRadius:[0,4,4,0]}}]
+    });
+  }
+
+  function renderMatrizFormacaoNQ() {
+    const thead=document.getElementById("theadNQFormacaoMatriz");
+    const tbody=document.getElementById("tbodyNQFormacaoMatriz");
+    if(!thead||!tbody) return;
+    const formacoes=uniq(formacoesNQ.map(r=>r.formacao)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    const professores=uniq(formacoesNQ.map(r=>r.professor)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    const lookup=new Set(formacoesNQ.filter(r=>r.professor&&r.formacao).map(r=>`${normalizar(r.professor)}||${normalizar(r.formacao)}`));
+    thead.innerHTML=`<tr><th>Professor</th>${formacoes.map(f=>`<th title="${escapeHtml(f)}">${escapeHtml(f)}</th>`).join("")}</tr>`;
+    tbody.innerHTML=professores.map(p=>`<tr><td><strong>${escapeHtml(p)}</strong></td>${formacoes.map(f=>`<td class="nq-matrix-hit">${lookup.has(`${normalizar(p)}||${normalizar(f)}`)?"●":""}</td>`).join("")}</tr>`).join("");
+  }
+
+  function renderListaFormacoesNQ() {
+    const tbody=document.getElementById("tbodyNQFormacoesDetalhe");
+    if(!tbody) return;
+    const rows=formacoesNQ.filter(r=>r.formacao).slice().sort((a,b)=>a.professor.localeCompare(b.professor,"pt-BR")||a.formacao.localeCompare(b.formacao,"pt-BR"));
+    tbody.innerHTML=rows.length?rows.map(r=>`<tr>
+      <td>${escapeHtml(r.professor||"--")}</td>
+      <td>${escapeHtml(r.formacao||"--")}</td>
+      <td>${escapeHtml(r.titulacao_maxima||"--")}</td>
+      <td>${escapeHtml(r.area_cine||"Não classificada")}</td>
+      <td>${escapeHtml(r.marca_origem||"--")}</td>
+      <td>${escapeHtml(r.situacao_contratacao||"--")}</td>
+    </tr>`).join(""):'<tr><td colspan="6">Nenhuma formação encontrada.</td></tr>';
+  }
+
+  function renderExperienciasNQ() {
+    const el=document.getElementById("nqExperienciaStatus");
+    if(!el) return;
+    const areas=uniq(experienciasNQ.map(r=>r.area_experiencia));
+    el.textContent=areas.length?`${areas.length} área(s) de experiência cadastrada(s): ${areas.join(", ")}.`:"Nenhuma área de experiência foi cadastrada na fonte atual. A estrutura já está pronta para receber essa informação.";
+  }
+
+  function renderCoberturaNQ() {
+    renderKPIsCoberturaNQ();
+    renderGraficoCineNQ();
+    renderGraficoFormacoesProfessorNQ();
+    renderMatrizFormacaoNQ();
+    renderListaFormacoesNQ();
+    renderExperienciasNQ();
+    const fonte=document.getElementById("nqCoberturaFonte");
+    if(fonte) fonte.textContent=`Dados reais · ${uniq(formacoesNQ.map(r=>r.professor)).length} especialistas`;
+  }
+
+  function configurarFiltroCoberturaNQ() {
+    const sel=document.getElementById("nqFiltroMaisAreas");
+    if(!sel||sel.dataset.ready==="1") return;
+    sel.dataset.ready="1";
+    sel.addEventListener("change",renderKPIsCoberturaNQ);
+  }
 
   function formatarDataHoraBR(valor) {
     if (!valor) return "--";
@@ -318,6 +462,6 @@
   }
 
 
-  window.addEventListener("resize", () => grafico?.resize());
+  window.addEventListener("resize", () => { grafico?.resize(); graficoCineNQ?.resize(); graficoFormacoesNQ?.resize(); });
   window.atualizarReuniaoNQ = atualizarReuniaoNQ;
 })();

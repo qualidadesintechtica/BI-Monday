@@ -56,18 +56,40 @@ function numberValue(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function canonicalFormacao(v: string): string {
+  const original = v.replace(/\s+/g, " ").trim();
+  const key = original.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+  const aliases: Record<string,string> = {
+    "ADM": "ADMINISTRAÇÃO",
+    "ADMINISTRACAO": "ADMINISTRAÇÃO",
+    "CONTABEIS": "CIÊNCIAS CONTÁBEIS",
+    "CIENCIAS CONTABEIS": "CIÊNCIAS CONTÁBEIS",
+    "LICENCIATURA EM FISICA": "FÍSICA",
+    "BACHARELADO EM ENFERMAGEM": "ENFERMAGEM",
+    "BACHAREL EM TURISMO": "TURISMO",
+    "GRADUANDO EM PEDAGOGIA": "PEDAGOGIA",
+    "FONAUDIOLOGIA": "FONOAUDIOLOGIA",
+    "SISTEMAS DE INFORMACAO": "SISTEMAS DE INFORMAÇÃO",
+    "ENGENHARIA DE CONTROLE E AUTOMACAO": "ENGENHARIA DE CONTROLE E AUTOMAÇÃO",
+    "COMUNICACAO SOCIAL - JORNALISMO": "COMUNICAÇÃO SOCIAL - JORNALISMO",
+    "GESTAO COMERCIAL": "GESTÃO COMERCIAL",
+    "GESTAO DA INFORMACAO": "GESTÃO DA INFORMAÇÃO"
+  };
+
+  return aliases[key] || original.toLocaleUpperCase("pt-BR");
+}
+
 function splitFormacoes(v: unknown): string[] {
   const s = txt(v);
   if (!s) return [];
 
   const itens = s
-    .split(/\s*\|\s*|\r?\n/)
-    .map(x => x.replace(/\s+/g, " ").trim())
+    .split(/\s*\|\s*|\s*;\s*|\r?\n|\s*,\s*/)
+    .map(x => canonicalFormacao(x))
     .filter(Boolean);
 
-  return [...new Map(
-    itens.map(x => [x.toLocaleLowerCase("pt-BR"), x])
-  ).values()];
+  return [...new Map(itens.map(x => [x.toLocaleLowerCase("pt-BR"), x])).values()];
 }
 
 const COL = {
@@ -293,11 +315,27 @@ Deno.serve(async (req) => {
       if (delError) throw delError;
 
       if (item.formacoes.length) {
-        const payloadFormacoes = item.formacoes.map(formacao => ({
-          especialista_id: especialistaId,
-          formacao,
-          updated_at: new Date().toISOString(),
-        }));
+        const { data: cineRows, error: cineError } = await admin
+          .from("nq_areas_cine")
+          .select("formacao_normalizada,area_cine,subarea_cine")
+          .in("formacao_normalizada", item.formacoes);
+
+        if (cineError) throw cineError;
+
+        const cineMap = new Map((cineRows || []).map(c => [
+          String(c.formacao_normalizada).toLocaleUpperCase("pt-BR"), c
+        ]));
+
+        const payloadFormacoes = item.formacoes.map(formacao => {
+          const cine = cineMap.get(formacao.toLocaleUpperCase("pt-BR"));
+          return {
+            especialista_id: especialistaId,
+            formacao,
+            area_formacao: cine?.subarea_cine || null,
+            area_cine: cine?.area_cine || null,
+            updated_at: new Date().toISOString(),
+          };
+        });
 
         const { error: formError } = await admin
           .from("nq_especialistas_formacoes")

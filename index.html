@@ -457,6 +457,75 @@
           </div>
         </section>
 
+
+        <section class="meeting-section nq-coverage-section">
+          <div class="meeting-section-title">
+            <span>07</span>
+            <div>
+              <h3>Formação e cobertura dos especialistas</h3>
+              <p>Visão consolidada das formações, cobertura por especialista e classificação CINE Brasil.</p>
+            </div>
+          </div>
+
+          <div class="nq-coverage-toolbar">
+            <label>Professores com mais de
+              <select id="nqFiltroMaisAreas">
+                <option value="1">1 área</option>
+                <option value="2" selected>2 áreas</option>
+                <option value="3">3 áreas</option>
+                <option value="4">4 áreas</option>
+                <option value="5">5 áreas</option>
+              </select>
+            </label>
+            <span id="nqCoberturaFonte" class="nq-coverage-source">Carregando dados do Supabase...</span>
+          </div>
+
+          <div class="meeting-kpis meeting-kpis-6 nq-coverage-kpis">
+            <article><span>Professores</span><strong id="nqProfessoresTotal">--</strong><small>especialistas ativos</small></article>
+            <article><span>Formações únicas</span><strong id="nqFormacoesUnicas">--</strong><small>sem repetição</small></article>
+            <article><span>Total de formações</span><strong id="nqFormacoesTotal">--</strong><small>incluindo repetições</small></article>
+            <article><span>Formações / professor</span><strong id="nqMediaFormacoes">--</strong><small>média da base</small></article>
+            <article><span>Mais de X áreas</span><strong id="nqMaisAreas">--</strong><small id="nqMaisAreasLegenda">mais de 2 áreas</small></article>
+            <article><span>Áreas CINE</span><strong id="nqAreasCineTotal">--</strong><small>áreas gerais abrangidas</small></article>
+          </div>
+
+          <div class="nq-coverage-grid">
+            <article class="nq-viz-card">
+              <div class="nq-viz-head"><div><strong>Área CINE × professores</strong><small>Professores distintos por área geral CINE.</small></div></div>
+              <div id="graficoNQCine" class="nq-viz-chart"></div>
+            </article>
+            <article class="nq-viz-card">
+              <div class="nq-viz-head"><div><strong>Formações por professor</strong><small>Quantidade de formações distintas por especialista.</small></div></div>
+              <div id="graficoNQFormacoesProfessor" class="nq-viz-chart"></div>
+            </article>
+          </div>
+
+          <div class="nq-viz-card nq-matrix-card">
+            <div class="nq-viz-head"><div><strong>Área de formação por especialista</strong><small>Matriz das formações atendidas por cada professor.</small></div></div>
+            <div class="table-scroll">
+              <table class="data-table nq-formation-matrix">
+                <thead id="theadNQFormacaoMatriz"><tr><th>Professor</th><th>Carregando...</th></tr></thead>
+                <tbody id="tbodyNQFormacaoMatriz"><tr><td colspan="2">Carregando...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="nq-viz-card">
+            <div class="nq-viz-head"><div><strong>Lista de formações e professores</strong><small>Formação, titulação, Área CINE e situação atual.</small></div></div>
+            <div class="table-scroll">
+              <table class="data-table nq-formacoes-lista">
+                <thead><tr><th>Professor</th><th>Formação</th><th>Titulação</th><th>Área CINE</th><th>Marca origem</th><th>Situação</th></tr></thead>
+                <tbody id="tbodyNQFormacoesDetalhe"><tr><td colspan="6">Carregando...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="nq-viz-card nq-experience-note">
+            <div class="nq-viz-head"><div><strong>Área de experiência do especialista</strong><small>Estrutura pronta para receber a fonte de experiência profissional.</small></div></div>
+            <p id="nqExperienciaStatus">Nenhuma área de experiência foi cadastrada na fonte atual.</p>
+          </div>
+        </section>
+
         <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase.  Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
       </section>
 
@@ -1053,7 +1122,7 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260908-v23-1-importacao-leve"></script>
+    <script src="js/reuniao-nq.js?v=20260908-v23-2-formacao-cine"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>

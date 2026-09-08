@@ -1315,3 +1315,25 @@
 @media (max-width:1050px){
   .nq-import-grid{grid-template-columns:1fr}
 }
+
+.nq-coverage-section{margin-top:24px}
+.nq-coverage-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 14px;margin-bottom:16px;border:1px solid #e5ddeb;border-radius:12px;background:#fbf9fc}
+.nq-coverage-toolbar label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#352049}
+.nq-coverage-toolbar select{border:1px solid #d8cce0;border-radius:8px;padding:6px 8px;background:#fff;color:#2d1553;font-weight:700}
+.nq-coverage-source{font-size:11px;color:#776e7d}
+.nq-coverage-kpis{margin-bottom:18px}
+.nq-coverage-kpis article small{display:block;margin-top:4px;color:#776e7d;font-size:10px}
+.nq-coverage-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.nq-viz-card{background:#fff;border:1px solid #e7dfec;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(45,21,83,.04);margin-bottom:18px}
+.nq-viz-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:12px}
+.nq-viz-head strong{display:block;color:#2d1553;font-size:14px}
+.nq-viz-head small{display:block;color:#7a7180;margin-top:3px;font-size:11px}
+.nq-viz-chart{height:360px;width:100%}
+.nq-matrix-card .table-scroll{max-height:480px}
+.nq-formation-matrix{min-width:1200px}
+.nq-formation-matrix th{font-size:9px;max-width:120px;white-space:normal;line-height:1.2}
+.nq-formation-matrix td:first-child{position:sticky;left:0;background:#fff;z-index:1;min-width:210px}
+.nq-matrix-hit{text-align:center;font-size:16px;color:#64037e}
+.nq-formacoes-lista{min-width:1000px}
+.nq-experience-note p{margin:0;color:#675d6c;line-height:1.5;font-size:12px}
+@media(max-width:1100px){.nq-coverage-grid{grid-template-columns:1fr}.nq-coverage-toolbar{align-items:flex-start;flex-direction:column}}
