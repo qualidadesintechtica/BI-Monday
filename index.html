@@ -27,16 +27,7 @@
   >
 
 
-  <script>
-    (function () {
-      if (
-  window.location.hash === "#projeto-qualidade" &&
-  new URLSearchParams(window.location.search).get("abrir_importacao_pq") !== "1"
-) {
-  window.location.replace("projetos.html?v=20260908-v24-11");
-}
-    })();
-  </script>
+  
 
 </head>
 
@@ -62,7 +53,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v24.6 · Projeto Qualidade V24.4</small>
+        <small class="build-badge">v24.12 · Projeto Qualidade</small>
 
       </div>
 
@@ -1014,7 +1005,76 @@
 
       </section>
 
-      <section id="viewOperacao" class="page-view" data-page="operacao">
+      
+<section id="viewProjetoQualidade" class="page-view" data-page="projeto-qualidade">
+
+  <div class="pq-hero">
+    <div>
+      <span class="pq-eyebrow">Projetos da Qualidade</span>
+      <h2>Importar nova planilha</h2>
+      <p>Atualize a base do Projeto Qualidade com a planilha Excel mais recente.</p>
+    </div>
+    <div class="pq-source" id="pqFonte">Carregando dados...</div>
+  </div>
+
+  <section class="pq-import-panel">
+    <div class="pq-import-head">
+      <div>
+        <span class="pq-eyebrow">Atualização da base</span>
+        <h3>Importar planilha do Projeto Qualidade</h3>
+        <p>As datas, sponsors, variações de nomes e todas as colunas disponíveis serão preservados.</p>
+      </div>
+      <span class="pq-import-badge">Excel → Supabase</span>
+    </div>
+
+    <div class="pq-import-body">
+      <label class="pq-file-drop" for="pqArquivoAtualizacao">
+        <input
+          id="pqArquivoAtualizacao"
+          type="file"
+          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        >
+        <strong>Selecionar planilha de atualização</strong>
+        <small id="pqArquivoNome">Nenhum arquivo selecionado</small>
+      </label>
+
+      <div class="pq-import-actions">
+        <button id="pqBtnImportar" type="button" class="pq-import-button" disabled>
+          Enviar atualização para o banco
+        </button>
+        <span id="pqImportStatus">Aguardando planilha.</span>
+      </div>
+
+      <div id="pqImportResultado" class="pq-import-result" hidden></div>
+    </div>
+  </section>
+
+  <div class="pq-summary-line">
+    <span id="pqUltimaImportacao">Última importação: --</span>
+    <a class="action-button" href="projetos.html?v=20260908-v24-12">
+      Voltar para Projetos da Qualidade
+    </a>
+  </div>
+
+  <!-- Elementos auxiliares mantidos para compatibilidade do JS -->
+  <div hidden>
+    <span id="pqTotalProjetos">0</span>
+    <span id="pqTotalTarefas">0</span>
+    <span id="pqEmProgresso">0</span>
+    <span id="pqFinalizados">0</span>
+    <span id="pqSemVinculo">0</span>
+    <input id="pqBusca" type="search">
+    <select id="pqFiltroStatus"><option value="">Todos</option></select>
+    <select id="pqFiltroSponsor"><option value="">Todos</option></select>
+    <button id="pqLimparFiltros" type="button">Limpar</button>
+    <span id="pqResumoFiltro"></span>
+    <div id="pqListaProjetos"></div>
+  </div>
+
+</section>
+
+
+<section id="viewOperacao" class="page-view" data-page="operacao">
         <div class="section-heading">
           <div>
             <h2>Operação</h2>
@@ -1242,25 +1302,13 @@
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
-  <script src="js/projeto-qualidade.js?v=20260908-v24-11-importacao"></script>
-  <script src="js/dashboard.js?v=20260908-v24-6"></script>
+  <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
+  <script src="js/dashboard.js?v=20260908-v24-12-importacao-restaurada"></script>
 
 
 <div data-build-version="20260901-v20-ordenacao-colunas" style="display:none"></div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("abrir_importacao_pq") === "1") {
-    // Mantém a aba Projeto Qualidade aberta e limpa o parâmetro auxiliar da URL.
-    setTimeout(function () {
-      try {
-        history.replaceState(null, "", "index.html#projeto-qualidade");
-      } catch (_) {}
-    }, 1200);
-  }
-});
-</script>
+
 
 </body>
 

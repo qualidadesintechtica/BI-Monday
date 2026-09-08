@@ -1,9 +1,10 @@
-BI Monday V24.11
+BI Monday V24.12
 Data: 08/09/2026
 
-Correção:
-- botão "Importar nova planilha" voltou a funcionar;
-- link do editor abre diretamente a área de importação do Projeto Qualidade;
-- redirect legado da V24.6 não intercepta mais o fluxo de importação;
-- mantém o editor standalone em projetos.html;
-- mantém a importação no index.html#projeto-qualidade.
+Correção estrutural do Projeto Qualidade:
+- restaurada a seção real de importação no index.html;
+- removido o redirect legado #projeto-qualidade -> projetos.html;
+- botão Importar nova planilha abre index.html#projeto-qualidade;
+- os elementos pqArquivoAtualizacao e pqBtnImportar voltaram a existir no DOM;
+- importador js/projeto-qualidade.js volta a conseguir registrar os eventos;
+- badge atualizado para v24.12.
