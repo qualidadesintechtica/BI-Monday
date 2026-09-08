@@ -1,0 +1,18 @@
+V23.4 — PROJETO QUALIDADE RESTAURADO
+
+Esta versão não exige SQL novo e não altera a Edge Function NQ.
+
+INSTALAÇÃO:
+1. Substitua os arquivos do BI no GitHub pela V23.4.
+2. Aguarde o GitHub Pages.
+3. Pressione Ctrl+F5.
+4. No menu lateral aparecerá Projeto Qualidade.
+
+O módulo lê diretamente:
+- public.pq_projetos
+- public.pq_tarefas
+- public.pq_importacoes
+
+Se a política RLS dessas tabelas não permitir SELECT ao usuário autenticado,
+a tela exibirá a mensagem do Supabase. Nesse caso, ajuste apenas a permissão
+das tabelas; nenhum dado será apagado.

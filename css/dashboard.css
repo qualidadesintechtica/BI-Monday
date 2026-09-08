@@ -1337,3 +1337,96 @@
 .nq-formacoes-lista{min-width:1000px}
 .nq-experience-note p{margin:0;color:#675d6c;line-height:1.5;font-size:12px}
 @media(max-width:1100px){.nq-coverage-grid{grid-template-columns:1fr}.nq-coverage-toolbar{align-items:flex-start;flex-direction:column}}
+
+
+/* ============================================================
+   V23.3 · Uma linha por professor
+   ============================================================ */
+.nq-professor-one-row{min-width:1050px}
+.nq-professor-one-row th:nth-child(1),
+.nq-formacoes-lista th:nth-child(1){min-width:220px}
+.nq-professor-one-row th:nth-child(2),
+.nq-formacoes-lista th:nth-child(2){min-width:330px}
+.nq-professor-one-row th:nth-child(4),
+.nq-formacoes-lista th:nth-child(4){min-width:330px}
+.nq-multivalue-cell{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:flex-start;
+  min-width:260px;
+}
+.nq-chip{
+  display:inline-block;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#f4edf7;
+  border:1px solid #e3d4e9;
+  color:#3b2052;
+  font-size:10px;
+  font-weight:700;
+  line-height:1.2;
+  white-space:normal;
+}
+.nq-chip-cine{
+  background:#f4f6fb;
+  border-color:#dbe1ef;
+  color:#263c62;
+}
+.nq-chip-empty{
+  background:#f7f7f7;
+  border-color:#e6e6e6;
+  color:#777;
+}
+.nq-center{text-align:center;font-weight:800}
+.nq-formation-matrix td:first-child{
+  position:sticky;
+  left:0;
+  background:#fff;
+  z-index:1;
+}
+
+
+/* ============================================================
+   V23.4 · Projeto Qualidade restaurado
+   ============================================================ */
+.pq-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+.pq-eyebrow{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8b278d}
+.pq-hero h2{margin:5px 0 4px;color:#2d1553;font-size:24px}
+.pq-hero p{margin:0;color:#716879;font-size:12px;line-height:1.45}
+.pq-source{font-size:11px;color:#6f6575;border:1px solid #e5ddeb;border-radius:999px;padding:7px 10px;background:#fbf9fc;white-space:nowrap}
+.pq-kpis{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+.pq-kpis article{background:#fff;border:1px solid #e6dfea;border-radius:15px;padding:14px;box-shadow:0 6px 18px rgba(45,21,83,.04)}
+.pq-kpis span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#756b7c}
+.pq-kpis strong{display:block;font-size:25px;color:#2d1553;margin:5px 0 2px}
+.pq-kpis small{color:#847a89;font-size:10px}
+.pq-toolbar{display:grid;grid-template-columns:minmax(280px,2fr) minmax(170px,1fr) minmax(200px,1fr) auto;gap:12px;align-items:end;background:#fff;border:1px solid #e6dfea;border-radius:16px;padding:14px;margin-bottom:10px}
+.pq-search-wrap,.pq-filter-wrap{display:flex;flex-direction:column;gap:5px}
+.pq-toolbar label{font-size:10px;font-weight:800;color:#4b3a59}
+.pq-toolbar input,.pq-toolbar select{width:100%;border:1px solid #dcd3e2;border-radius:9px;background:#fff;padding:9px 10px;color:#342441}
+.pq-button-secondary{border:1px solid #d8cce0;background:#f9f5fb;color:#4c225e;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}
+.pq-summary-line{display:flex;justify-content:space-between;gap:12px;color:#746b79;font-size:11px;margin:10px 2px 14px}
+.pq-list{display:flex;flex-direction:column;gap:10px}
+.pq-project-card{border:1px solid #e5ddea;background:#fff;border-radius:15px;overflow:hidden}
+.pq-project-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;border:0;background:#fff;padding:14px 16px;text-align:left;cursor:pointer}
+.pq-project-main{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 10px;min-width:0}
+.pq-project-main strong{font-size:13px;color:#2f1a45;white-space:normal}
+.pq-project-main small{grid-column:2;color:#776d7d;font-size:10px}
+.pq-project-metrics{display:flex;gap:13px;align-items:center;color:#746a79;font-size:10px;white-space:nowrap}
+.pq-project-metrics b{color:#2d1553;font-size:12px}
+.pq-chevron{font-size:18px;color:#6b347a}
+.pq-project-details{padding:0 16px 16px;background:#fcfafc;border-top:1px solid #eee7f1}
+.pq-project-meta{display:flex;flex-wrap:wrap;gap:12px;padding:12px 0;color:#706677;font-size:10px}
+.pq-status{display:inline-block;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:800;white-space:nowrap}
+.pq-status-finalizado{background:#e9f5ee;color:#1e6b43}
+.pq-status-progresso{background:#fff3d7;color:#7b5a04}
+.pq-status-afazer{background:#eef1fb;color:#314c7c}
+.pq-status-pausado{background:#f2ebf3;color:#6d476f}
+.pq-status-neutro{background:#f2f2f2;color:#666}
+.pq-task-table{min-width:760px}
+.pq-task-table td:first-child{min-width:420px}
+.pq-empty,.pq-error{border:1px dashed #d9cce0;border-radius:14px;padding:24px;text-align:center;color:#786d7f;background:#fcfafc}
+.pq-error strong,.pq-error span{display:block}
+.pq-error strong{color:#6e274f;margin-bottom:5px}
+@media(max-width:1150px){.pq-kpis{grid-template-columns:repeat(2,1fr)}.pq-toolbar{grid-template-columns:1fr 1fr}.pq-source{white-space:normal}}
+@media(max-width:700px){.pq-kpis,.pq-toolbar{grid-template-columns:1fr}.pq-hero,.pq-summary-line,.pq-project-toggle{flex-direction:column;align-items:stretch}.pq-project-metrics{flex-wrap:wrap}}

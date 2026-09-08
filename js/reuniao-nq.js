@@ -220,29 +220,86 @@
     });
   }
 
+
+  function consolidarProfessoresNQ() {
+    const mapa = new Map();
+
+    formacoesNQ.forEach(r => {
+      const professor = String(r.professor || "").trim();
+      if (!professor) return;
+
+      if (!mapa.has(professor)) {
+        mapa.set(professor, {
+          professor,
+          formacoes: new Map(),
+          areasCine: new Map(),
+          titulacoes: new Map(),
+          marcas: new Map(),
+          situacoes: new Map()
+        });
+      }
+
+      const item = mapa.get(professor);
+
+      const adicionar = (map, valor) => {
+        const texto = String(valor || "").trim();
+        if (!texto) return;
+        const chave = normalizar(texto);
+        if (!map.has(chave)) map.set(chave, texto);
+      };
+
+      adicionar(item.formacoes, r.formacao);
+      adicionar(item.areasCine, r.area_cine);
+      adicionar(item.titulacoes, r.titulacao_maxima);
+      adicionar(item.marcas, r.marca_origem);
+      adicionar(item.situacoes, r.situacao_contratacao);
+    });
+
+    return [...mapa.values()]
+      .map(item => ({
+        professor: item.professor,
+        formacoes: [...item.formacoes.values()].sort((a,b) => a.localeCompare(b, "pt-BR")),
+        areasCine: [...item.areasCine.values()].sort((a,b) => a.localeCompare(b, "pt-BR")),
+        titulacoes: [...item.titulacoes.values()].sort((a,b) => a.localeCompare(b, "pt-BR")),
+        marcas: [...item.marcas.values()].sort((a,b) => a.localeCompare(b, "pt-BR")),
+        situacoes: [...item.situacoes.values()].sort((a,b) => a.localeCompare(b, "pt-BR"))
+      }))
+      .sort((a,b) => a.professor.localeCompare(b.professor, "pt-BR"));
+  }
+
   function renderMatrizFormacaoNQ() {
-    const thead=document.getElementById("theadNQFormacaoMatriz");
-    const tbody=document.getElementById("tbodyNQFormacaoMatriz");
-    if(!thead||!tbody) return;
-    const formacoes=uniq(formacoesNQ.map(r=>r.formacao)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
-    const professores=uniq(formacoesNQ.map(r=>r.professor)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
-    const lookup=new Set(formacoesNQ.filter(r=>r.professor&&r.formacao).map(r=>`${normalizar(r.professor)}||${normalizar(r.formacao)}`));
-    thead.innerHTML=`<tr><th>Professor</th>${formacoes.map(f=>`<th title="${escapeHtml(f)}">${escapeHtml(f)}</th>`).join("")}</tr>`;
-    tbody.innerHTML=professores.map(p=>`<tr><td><strong>${escapeHtml(p)}</strong></td>${formacoes.map(f=>`<td class="nq-matrix-hit">${lookup.has(`${normalizar(p)}||${normalizar(f)}`)?"●":""}</td>`).join("")}</tr>`).join("");
+    const tbody = document.getElementById("tbodyNQFormacaoMatriz");
+    if (!tbody) return;
+
+    const professores = consolidarProfessoresNQ();
+
+    tbody.innerHTML = professores.length ? professores.map(p => `
+      <tr>
+        <td><strong>${escapeHtml(p.professor)}</strong></td>
+        <td class="nq-multivalue-cell">${p.formacoes.length ? p.formacoes.map(f => `<span class="nq-chip">${escapeHtml(f)}</span>`).join("") : "--"}</td>
+        <td class="nq-center">${p.formacoes.length}</td>
+        <td class="nq-multivalue-cell">${p.areasCine.length ? p.areasCine.map(a => `<span class="nq-chip nq-chip-cine">${escapeHtml(a)}</span>`).join("") : '<span class="nq-chip nq-chip-empty">Não classificada</span>'}</td>
+        <td>${escapeHtml(p.titulacoes.join(" · ") || "--")}</td>
+      </tr>
+    `).join("") : '<tr><td colspan="5">Nenhum professor encontrado.</td></tr>';
   }
 
   function renderListaFormacoesNQ() {
-    const tbody=document.getElementById("tbodyNQFormacoesDetalhe");
-    if(!tbody) return;
-    const rows=formacoesNQ.filter(r=>r.formacao).slice().sort((a,b)=>a.professor.localeCompare(b.professor,"pt-BR")||a.formacao.localeCompare(b.formacao,"pt-BR"));
-    tbody.innerHTML=rows.length?rows.map(r=>`<tr>
-      <td>${escapeHtml(r.professor||"--")}</td>
-      <td>${escapeHtml(r.formacao||"--")}</td>
-      <td>${escapeHtml(r.titulacao_maxima||"--")}</td>
-      <td>${escapeHtml(r.area_cine||"Não classificada")}</td>
-      <td>${escapeHtml(r.marca_origem||"--")}</td>
-      <td>${escapeHtml(r.situacao_contratacao||"--")}</td>
-    </tr>`).join(""):'<tr><td colspan="6">Nenhuma formação encontrada.</td></tr>';
+    const tbody = document.getElementById("tbodyNQFormacoesDetalhe");
+    if (!tbody) return;
+
+    const professores = consolidarProfessoresNQ();
+
+    tbody.innerHTML = professores.length ? professores.map(p => `
+      <tr>
+        <td><strong>${escapeHtml(p.professor)}</strong></td>
+        <td class="nq-multivalue-cell">${p.formacoes.length ? p.formacoes.map(f => `<span class="nq-chip">${escapeHtml(f)}</span>`).join("") : "--"}</td>
+        <td>${escapeHtml(p.titulacoes.join(" · ") || "--")}</td>
+        <td class="nq-multivalue-cell">${p.areasCine.length ? p.areasCine.map(a => `<span class="nq-chip nq-chip-cine">${escapeHtml(a)}</span>`).join("") : '<span class="nq-chip nq-chip-empty">Não classificada</span>'}</td>
+        <td>${escapeHtml(p.marcas.join(" · ") || "--")}</td>
+        <td>${escapeHtml(p.situacoes.join(" · ") || "--")}</td>
+      </tr>
+    `).join("") : '<tr><td colspan="6">Nenhum professor encontrado.</td></tr>';
   }
 
   function renderExperienciasNQ() {

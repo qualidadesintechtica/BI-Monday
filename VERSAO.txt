@@ -1,4 +1,16 @@
-BI Monday V23.2
+BI Monday V23.4
 Data: 08/09/2026
-Módulo: Reunião NQ
-Formação e cobertura dos especialistas + CINE Brasil.
+
+Restaurado:
+- Projeto Qualidade no menu lateral.
+- Página própria dentro do BI.
+- Leitura das tabelas pq_projetos, pq_tarefas e pq_importacoes.
+- KPIs de projetos, tarefas, em progresso, finalizados e tarefas sem vínculo.
+- Busca por projeto, sponsor/responsável, status e conteúdo das tarefas.
+- Filtros por status e sponsor.
+- Projetos expansíveis com suas tarefas.
+- Histórico da última importação.
+
+Mantido:
+- Todas as melhorias da V23.3 no Relatório NQ.
+- Importação NQ e Formação/CINE.

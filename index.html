@@ -64,6 +64,7 @@
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
         <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
+        <a href="#projeto-qualidade" data-view="projeto-qualidade">Projeto Qualidade</a>
 
         <div class="nav-section-title">Indicadores</div>
         <a href="#grafico-operacional" data-view="grafico-operacional">Gráfico Operacional</a>
@@ -501,20 +502,39 @@
           </div>
 
           <div class="nq-viz-card nq-matrix-card">
-            <div class="nq-viz-head"><div><strong>Área de formação por especialista</strong><small>Matriz das formações atendidas por cada professor.</small></div></div>
+            <div class="nq-viz-head"><div><strong>Área de formação por especialista</strong><small>Uma linha por professor, reunindo todas as suas formações e áreas CINE.</small></div></div>
             <div class="table-scroll">
-              <table class="data-table nq-formation-matrix">
-                <thead id="theadNQFormacaoMatriz"><tr><th>Professor</th><th>Carregando...</th></tr></thead>
-                <tbody id="tbodyNQFormacaoMatriz"><tr><td colspan="2">Carregando...</td></tr></tbody>
+              <table class="data-table nq-formation-matrix nq-professor-one-row">
+                <thead>
+                  <tr>
+                    <th>Professor</th>
+                    <th>Formações</th>
+                    <th>Qtd. formações</th>
+                    <th>Áreas CINE</th>
+                    <th>Titulação</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyNQFormacaoMatriz">
+                  <tr><td colspan="5">Carregando...</td></tr>
+                </tbody>
               </table>
             </div>
           </div>
 
           <div class="nq-viz-card">
-            <div class="nq-viz-head"><div><strong>Lista de formações e professores</strong><small>Formação, titulação, Área CINE e situação atual.</small></div></div>
+            <div class="nq-viz-head"><div><strong>Lista de formações e professores</strong><small>Uma linha por professor, com formações e áreas consolidadas.</small></div></div>
             <div class="table-scroll">
               <table class="data-table nq-formacoes-lista">
-                <thead><tr><th>Professor</th><th>Formação</th><th>Titulação</th><th>Área CINE</th><th>Marca origem</th><th>Situação</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Professor</th>
+                    <th>Formações</th>
+                    <th>Titulação</th>
+                    <th>Áreas CINE</th>
+                    <th>Marca origem</th>
+                    <th>Situação</th>
+                  </tr>
+                </thead>
                 <tbody id="tbodyNQFormacoesDetalhe"><tr><td colspan="6">Carregando...</td></tr></tbody>
               </table>
             </div>
@@ -898,6 +918,63 @@
       <!-- =============================================
            OPERAÇÃO
       ============================================== -->
+
+      <!-- =============================================
+           PROJETO QUALIDADE
+      ============================================== -->
+      <section id="viewProjetoQualidade" class="page-view" data-page="projeto-qualidade">
+
+        <div class="pq-hero">
+          <div>
+            <span class="pq-eyebrow">Gestão de Projetos · Qualidade</span>
+            <h2>Projeto Qualidade</h2>
+            <p>Visão consolidada dos projetos e tarefas armazenados no Supabase, preservando o histórico da base.</p>
+          </div>
+          <div class="pq-source" id="pqFonte">Carregando dados...</div>
+        </div>
+
+        <div class="pq-kpis">
+          <article><span>Projetos</span><strong id="pqTotalProjetos">--</strong><small>projetos cadastrados</small></article>
+          <article><span>Tarefas</span><strong id="pqTotalTarefas">--</strong><small>ações vinculadas</small></article>
+          <article><span>Em progresso</span><strong id="pqEmProgresso">--</strong><small>projetos em andamento</small></article>
+          <article><span>Finalizados</span><strong id="pqFinalizados">--</strong><small>projetos concluídos</small></article>
+          <article><span>Sem vínculo</span><strong id="pqSemVinculo">--</strong><small>tarefas sem projeto identificado</small></article>
+        </div>
+
+        <div class="pq-toolbar">
+          <div class="pq-search-wrap">
+            <label for="pqBusca">Buscar</label>
+            <input id="pqBusca" type="search" placeholder="Projeto, responsável/sponsor, status ou tarefa">
+          </div>
+
+          <div class="pq-filter-wrap">
+            <label for="pqFiltroStatus">Status do projeto</label>
+            <select id="pqFiltroStatus">
+              <option value="">Todos</option>
+            </select>
+          </div>
+
+          <div class="pq-filter-wrap">
+            <label for="pqFiltroSponsor">Sponsor / Responsável</label>
+            <select id="pqFiltroSponsor">
+              <option value="">Todos</option>
+            </select>
+          </div>
+
+          <button type="button" class="pq-button-secondary" id="pqLimparFiltros">Limpar filtros</button>
+        </div>
+
+        <div class="pq-summary-line">
+          <span id="pqResumoFiltro">--</span>
+          <span id="pqUltimaImportacao">Última importação: --</span>
+        </div>
+
+        <div class="pq-list" id="pqListaProjetos">
+          <div class="pq-empty">Carregando Projeto Qualidade...</div>
+        </div>
+
+      </section>
+
       <section id="viewOperacao" class="page-view" data-page="operacao">
         <div class="section-heading">
           <div>
@@ -1122,10 +1199,11 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260908-v23-2-formacao-cine"></script>
+    <script src="js/reuniao-nq.js?v=20260908-v23-3-uma-linha-professor"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
+  <script src="js/projeto-qualidade.js?v=20260908-v23-4-restaurado"></script>
   <script src="js/dashboard.js?v=20260901-v20-ordenacao-colunas"></script>
 
 

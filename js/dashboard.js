@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     "reuniao-nq": "Reunião NQ | Indicadores Executivos",
     "indicadores-uc": "Indicadores da Unidade Curricular",
     "gestores-materiais": "Gestores e Materiais",
+    "projeto-qualidade": "Projeto Qualidade",
     operacao: "Operação",
     ajustes: "Ajustes",
     equipe: "Equipe",
@@ -79,6 +80,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.atualizarReuniaoNQ?.();
     window.inicializarIndicadoresUC?.();
     window.atualizarGestoresMateriais?.(dadosFiltrados);
+    window.atualizarProjetoQualidade?.();
 
     if (quantidadeFiltrada) {
       quantidadeFiltrada.textContent = `${dadosFiltrados.length} registros no filtro atual`;
@@ -106,7 +108,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     filtrosGlobais?.classList.toggle("page-filters-hidden", paginaUc);
     statusGlobal?.classList.toggle("page-status-hidden", paginaUc);
 
-    if (["resumo", "resultados", "reuniao-nq", "indicadores-uc", "gestores-materiais", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
+    if (["resumo", "resultados", "reuniao-nq", "indicadores-uc", "gestores-materiais", "projeto-qualidade", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
       setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
     }
   }
