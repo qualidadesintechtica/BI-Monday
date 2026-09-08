@@ -23,8 +23,17 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260908-v23-5-menu-scroll"
+    href="css/dashboard.css?v=20260908-v24-6"
   >
+
+
+  <script>
+    (function () {
+      if (window.location.hash === "#projeto-qualidade") {
+        window.location.replace("projetos.html?v=20260908-v24-6");
+      }
+    })();
+  </script>
 
 </head>
 
@@ -50,7 +59,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v20 · ordenação por colunas</small>
+        <small class="build-badge">v24.6 · Projeto Qualidade V24.4</small>
 
       </div>
 
@@ -1231,7 +1240,7 @@
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v23-9-2-multiabas-cachefix"></script>
-  <script src="js/dashboard.js?v=20260901-v20-ordenacao-colunas"></script>
+  <script src="js/dashboard.js?v=20260908-v24-6"></script>
 
 
 <div data-build-version="20260901-v20-ordenacao-colunas" style="display:none"></div>
