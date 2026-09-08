@@ -147,16 +147,20 @@
     return url;
   }
 
+  function mesmoId(a, b) {
+    return String(a ?? "") === String(b ?? "");
+  }
+
   function projetoAtual() {
-    return estado.projetos.find((item) => item.id === estado.projetoId) || null;
+    return estado.projetos.find((item) => mesmoId(item.id, estado.projetoId)) || null;
   }
 
   function tarefasAtuais() {
-    return estado.tarefas.filter((item) => item.projeto_id === estado.projetoId);
+    return estado.tarefas.filter((item) => mesmoId(item.projeto_id, estado.projetoId));
   }
 
   function edicoesAtuais() {
-    return estado.edicoes.filter((item) => item.projeto_id === estado.projetoId);
+    return estado.edicoes.filter((item) => mesmoId(item.projeto_id, estado.projetoId));
   }
 
   function origemAtual() {
@@ -370,7 +374,7 @@
             <td>${escapar(tarefa.azure_id || "—")}</td>
             <td><span class="row-type task">${escapar(tarefa.tipo || "Tarefa")}</span></td>
             <td><span class="parent-project-name">↳ ${escapar(projeto.nome || "—")}</span></td>
-            <td>${escapar(tarefa.descricao || "—")}</td>
+            <td>${escapar(tarefa.descricao || tarefa.nome || "—")}</td>
             <td>${escapar(limparNome(tarefa.sponsor || sponsorOriginalPorId(tarefa.azure_id) || sponsorProjeto) || "—")}</td>
             <td><span class="row-status">${escapar(tarefa.status || "—")}</span></td>
             <td>${escapar(formatarData(tarefa.data_inicio))}</td>
@@ -404,8 +408,13 @@
     if (!estado.projetoId) return;
 
     const projeto = projetoAtual();
-    $("selectedProjectTitle").textContent = projeto.nome;
-    $("selectedProjectMeta").textContent = `ID ${projeto.azure_id} · ${projeto.status || "Sem status"}`;
+    if (!projeto) {
+      mostrarFeedback("Não foi possível localizar os dados deste projeto na base atual. Recarregue a página.", "error");
+      $("editorWorkspace").hidden = true;
+      return;
+    }
+    $("selectedProjectTitle").textContent = projeto.nome || "Projeto da Qualidade";
+    $("selectedProjectMeta").textContent = `ID ${projeto.azure_id || "—"} · ${projeto.status || "Sem status"}`;
     renderizarOrigem();
     renderizarHistorico();
 
@@ -428,8 +437,12 @@
 
   function renderizarOrigem() {
     const origem = origemAtual();
-    const projeto = origem.projeto || {};
-    const tarefas = Array.isArray(origem.tarefas) ? origem.tarefas : [];
+    const projeto = {
+      ...(projetoAtual() || {}),
+      ...(origem.projeto || {})
+    };
+    const tarefasOrigem = Array.isArray(origem.tarefas) ? origem.tarefas : [];
+    const tarefas = tarefasOrigem.length ? tarefasOrigem : tarefasAtuais();
 
     $("sourceMetadata").innerHTML = [
       metadado("ID", projeto.azure_id),
@@ -449,7 +462,7 @@
 
     $("sourceTaskList").innerHTML = tarefas.map((tarefa) => `
       <article class="source-task">
-        <strong>${escapar(tarefa.descricao || "Ação sem descrição")}</strong>
+        <strong>${escapar(tarefa.descricao || tarefa.nome || "Ação sem descrição")}</strong>
         <span>ID ${escapar(tarefa.azure_id || "—")} · ${escapar(formatarData(tarefa.data_inicio))} a ${escapar(formatarData(tarefa.data_fim))}</span>
         <span class="task-status">${escapar(tarefa.status || "—")}</span>
       </article>
@@ -578,8 +591,13 @@
     if (!estado.projetoId) return;
     const dados = obterFormulario();
     const origem = origemAtual();
-    const projeto = origem.projeto || projetoAtual() || {};
-    const tarefas = Array.isArray(origem.tarefas) ? origem.tarefas : [];
+    const projetoBase = projetoAtual() || {};
+    const projeto = {
+      ...projetoBase,
+      ...(origem.projeto || {})
+    };
+    const tarefasOrigem = Array.isArray(origem.tarefas) ? origem.tarefas : [];
+    const tarefas = tarefasOrigem.length ? tarefasOrigem : tarefasAtuais();
     const faltantes = validarFinalizacao(dados);
     const edicoes = edicoesAtuais();
     const proximaVersao = edicoes.length ? Math.max(...edicoes.map((e) => e.versao)) + 1 : 1;
