@@ -6,6 +6,7 @@
     projetos: [],
     tarefas: [],
     edicoes: [],
+    linhasOriginais: [],
     projetoId: null,
     origemPreview: null,
     edicaoVisualizada: null,
@@ -68,6 +69,7 @@
     const valores = [
       ...estado.projetos.map((projeto) => projeto.sponsor),
       ...estado.tarefas.map((tarefa) => tarefa.sponsor),
+      ...estado.linhasOriginais.map((linha) => linha.dados_originais?.sponsor),
     ];
 
     valores.flatMap(separarResponsaveis).forEach((nome) => {
@@ -119,6 +121,24 @@
       dateStyle: "short",
       timeStyle: "short",
     }).format(new Date(valor));
+  }
+
+  function linhasOriginaisDoProjeto(projeto) {
+    const nome = normalizar(projeto?.nome);
+    const azureId = texto(projeto?.azure_id);
+
+    return estado.linhasOriginais.filter((linha) => {
+      const dados = linha.dados_originais || {};
+      return texto(dados.id) === azureId || normalizar(dados.projeto) === nome;
+    });
+  }
+
+  function sponsorOriginalPorId(azureId) {
+    const id = texto(azureId);
+    const linha = estado.linhasOriginais.find(
+      (item) => texto(item.dados_originais?.id) === id,
+    );
+    return limparNome(linha?.dados_originais?.sponsor);
   }
 
   function urlSegura(valor) {
@@ -173,23 +193,19 @@
 
       const [projetosResp, tarefasResp, edicoesResp, importacaoResp] = await Promise.all([
         window.biSupabase
-          .from("pq_projetos")
+          .from("vw_pq_projetos_v245")
           .select("*")
-          .eq("ativo", true)
-          .eq("presente_ultima_importacao", true)
           .order("nome", { ascending: true }),
         window.biSupabase
-          .from("pq_tarefas")
+          .from("vw_pq_tarefas_v245")
           .select("*")
-          .eq("ativo", true)
-          .eq("presente_ultima_importacao", true)
           .order("data_inicio", { ascending: true, nullsFirst: false }),
         window.biSupabase
           .from("pq_projetos_edicoes")
           .select("*")
           .order("criado_em", { ascending: false }),
         window.biSupabase
-          .from("pq_importacoes")
+          .from("vw_pq_importacoes_v245")
           .select("id, total_linhas, linhas_com_erro, finalizado_em")
           .eq("status", "concluida")
           .order("finalizado_em", { ascending: false })
@@ -204,6 +220,10 @@
       estado.tarefas = tarefasResp.data || [];
       estado.edicoes = edicoesResp.data || [];
       estado.importacaoAtual = importacaoResp.data || null;
+
+      // A base atual já preserva os responsáveis diretamente nos projetos/tarefas.
+      // A consulta às linhas brutas da estrutura antiga não é necessária na V24.5.
+      estado.linhasOriginais = [];
 
       renderizarResumo();
       preencherFiltros();
@@ -291,7 +311,13 @@
 
     const filtrados = estado.projetos.filter((projeto) => {
       const tarefas = estado.tarefas.filter((tarefa) => tarefa.projeto_id === projeto.id);
-      const celulasResponsaveis = [projeto.sponsor, ...tarefas.map((tarefa) => tarefa.sponsor)];
+      const sponsorsOriginais = linhasOriginaisDoProjeto(projeto)
+        .map((linha) => linha.dados_originais?.sponsor);
+      const celulasResponsaveis = [
+        projeto.sponsor,
+        ...tarefas.map((tarefa) => tarefa.sponsor),
+        ...sponsorsOriginais,
+      ];
       const responsaveis = celulasResponsaveis
         .flatMap(separarResponsaveis)
         .map(normalizar)
@@ -320,6 +346,9 @@
 
     projetos.forEach((projeto) => {
       const tarefas = estado.tarefas.filter((tarefa) => tarefa.projeto_id === projeto.id);
+      const sponsorProjeto = limparNome(
+        projeto.sponsor || sponsorOriginalPorId(projeto.azure_id),
+      );
       totalTarefas += tarefas.length;
       const selecionado = projeto.id === estado.projetoId ? " selected" : "";
 
@@ -329,7 +358,7 @@
           <td><span class="row-type project">Projeto principal</span></td>
           <td><strong>${escapar(projeto.nome || "—")}</strong><small>${tarefas.length} tarefa(s)</small></td>
           <td>—</td>
-          <td>${escapar(limparNome(projeto.sponsor) || "—")}</td>
+          <td>${escapar(sponsorProjeto || "—")}</td>
           <td><span class="row-status">${escapar(projeto.status || "—")}</span></td>
           <td>${escapar(formatarData(projeto.data_inicio))}</td>
           <td>${escapar(formatarData(projeto.data_fim))}</td>
@@ -342,7 +371,7 @@
             <td><span class="row-type task">${escapar(tarefa.tipo || "Tarefa")}</span></td>
             <td><span class="parent-project-name">↳ ${escapar(projeto.nome || "—")}</span></td>
             <td>${escapar(tarefa.descricao || "—")}</td>
-            <td>${escapar(limparNome(tarefa.sponsor || projeto.sponsor) || "—")}</td>
+            <td>${escapar(limparNome(tarefa.sponsor || sponsorOriginalPorId(tarefa.azure_id) || sponsorProjeto) || "—")}</td>
             <td><span class="row-status">${escapar(tarefa.status || "—")}</span></td>
             <td>${escapar(formatarData(tarefa.data_inicio))}</td>
             <td>${escapar(formatarData(tarefa.data_fim))}</td>
