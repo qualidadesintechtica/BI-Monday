@@ -1,9 +1,8 @@
-BI Monday V23.9.1
+BI Monday V23.9.2
 Data: 08/09/2026
 
-Correção Projeto Qualidade:
-- corrigida referência residual à variável sheetName;
-- envio agora registra abasParaLer;
-- importação multiabas da V23.9 preservada;
-- não exige novo SQL;
-- não exige alteração da Edge Function V23.8.
+Correção crítica:
+- index.html ainda carregava projeto-qualidade.js com cache key da V23.6;
+- navegador podia continuar executando JavaScript antigo;
+- cache key atualizada para V23.9.2;
+- lógica multiabas V23.9.1 preservada.

@@ -1,0 +1,21 @@
+V23.9.2 — CACHE FIX
+
+CAUSA:
+O index.html da V23.9.1 ainda apontava para:
+js/projeto-qualidade.js?v=20260908-v23-6-importacao-pq
+
+Assim o GitHub Pages/navegador podia reutilizar o JavaScript antigo, mantendo
+o erro "sheetName is not defined" mesmo com o arquivo JS corrigido.
+
+FAÇA:
+1. Não mexa no SQL.
+2. Não mexa na Edge Function.
+3. No GitHub, substitua PELO MENOS:
+   - index.html
+   - js/projeto-qualidade.js
+   - js/config.js
+4. Aguarde o GitHub Pages concluir.
+5. Feche a aba do BI.
+6. Abra novamente o site.
+7. Pressione Ctrl+F5.
+8. Importe a planilha outra vez.
