@@ -65,11 +65,23 @@
       const sb = window.biSupabase;
       if (!sb) throw new Error("Cliente Supabase não disponível.");
 
-      const [p, t, i] = await Promise.all([
-        sb.from("pq_projetos").select("*").order("id", { ascending: true }),
-        sb.from("pq_tarefas").select("*").order("id", { ascending: true }),
+      const [pAtual, tAtual, i] = await Promise.all([
+        sb.from("pq_projetos_atual").select("*").eq("ativo", true).order("projeto", { ascending: true }),
+        sb.from("pq_tarefas_atual").select("*").eq("ativo", true).order("projeto", { ascending: true }),
         sb.from("pq_importacoes").select("*").order("created_at", { ascending: false }).limit(10)
       ]);
+
+      let p = pAtual;
+      let t = tAtual;
+
+      // Compatibilidade: enquanto a nova base ainda estiver vazia,
+      // usa a estrutura histórica para não quebrar o painel.
+      if ((pAtual.error || !(pAtual.data || []).length) && (tAtual.error || !(tAtual.data || []).length)) {
+        [p, t] = await Promise.all([
+          sb.from("pq_projetos").select("*").order("id", { ascending: true }),
+          sb.from("pq_tarefas").select("*").order("id", { ascending: true })
+        ]);
+      }
 
       if (p.error) throw p.error;
       if (t.error) throw t.error;
@@ -262,7 +274,7 @@
 
   function renderImportacao() {
     const fonte = $("pqFonte");
-    if (fonte) fonte.textContent = `Dados reais · ${projetos.length} projetos · ${tarefas.length} tarefas`;
+    if (fonte) fonte.textContent = `Base atual · ${projetos.length} projetos · ${tarefas.length} tarefas`;
 
     const ultima = importacoes[0];
     const el = $("pqUltimaImportacao");
@@ -428,7 +440,12 @@
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok || payload?.success === false) {
-          throw new Error(payload?.error || payload?.mensagem || `Falha HTTP ${response.status}`);
+          const detalhe = payload?.error || payload?.mensagem || `Falha HTTP ${response.status}`;
+          throw new Error(
+            typeof detalhe === "string"
+              ? detalhe
+              : JSON.stringify(detalhe)
+          );
         }
 
         resultado.hidden = false;

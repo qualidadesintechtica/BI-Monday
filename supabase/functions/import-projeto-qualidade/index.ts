@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     if (!rows.length) throw new Error("Nenhuma linha foi recebida.");
 
     const headers = new Set(Object.keys(rows[0] || {}));
-    const obrigatorias = ["Projetos", "State", "Sponsor"];
+    const obrigatorias = ["Projetos", "State"];
     const ausentes = obrigatorias.filter(h => !headers.has(h));
 
     if (ausentes.length) {
@@ -176,8 +176,8 @@ Deno.serve(async (req) => {
 
     // Guarda o estado anterior para calcular novos x atualizados
     const [oldP, oldT] = await Promise.all([
-      admin.from("pq_projetos").select("source_key"),
-      admin.from("pq_tarefas").select("source_key")
+      admin.from("pq_projetos_atual").select("source_key"),
+      admin.from("pq_tarefas_atual").select("source_key")
     ]);
 
     if (oldP.error) throw oldP.error;
@@ -195,8 +195,8 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
 
     const [inactiveP, inactiveT] = await Promise.all([
-      admin.from("pq_projetos").update({ ativo: false, updated_at: now }).eq("ativo", true),
-      admin.from("pq_tarefas").update({ ativo: false, updated_at: now }).eq("ativo", true)
+      admin.from("pq_projetos_atual").update({ ativo: false, updated_at: now }).eq("ativo", true),
+      admin.from("pq_tarefas_atual").update({ ativo: false, updated_at: now }).eq("ativo", true)
     ]);
 
     if (inactiveP.error) throw inactiveP.error;
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < projetos.length; i += 100) {
       const lote = projetos.slice(i, i + 100);
       const { error } = await admin
-        .from("pq_projetos")
+        .from("pq_projetos_atual")
         .upsert(lote, { onConflict: "source_key" });
 
       if (error) throw error;
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < tarefas.length; i += 100) {
       const lote = tarefas.slice(i, i + 100);
       const { error } = await admin
-        .from("pq_tarefas")
+        .from("pq_tarefas_atual")
         .upsert(lote, { onConflict: "source_key" });
 
       if (error) throw error;

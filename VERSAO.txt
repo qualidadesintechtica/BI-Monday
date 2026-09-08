@@ -1,16 +1,12 @@
-BI Monday V23.6
+BI Monday V23.7
 Data: 08/09/2026
 
 Projeto Qualidade:
-- Upload da planilha de atualização diretamente no BI.
-- Nova Edge Function import-projeto-qualidade.
-- Atualização de nomes, sponsors, status, datas, projetos e tarefas.
-- Novos registros inseridos automaticamente.
-- Registros ausentes na nova planilha ficam inativos.
-- Suporte às tarefas sem ID/tipo quando Projeto + Ação estiverem preenchidos.
+- nova base atual isolada do legado;
+- pq_projetos_atual;
+- pq_tarefas_atual;
+- novos nomes/sponsors vindos diretamente da planilha;
+- fallback automático para base histórica antes da primeira importação;
+- mensagens de erro do backend mais legíveis.
 
-Mantido:
-- Relatório NQ
-- Formação/CINE
-- Projeto Qualidade
-- Menu lateral com rolagem em 100%
+Demais módulos preservados.

@@ -1,0 +1,39 @@
+V23.7 — PROJETO QUALIDADE | BASE ATUAL
+
+POR QUE ESTA VERSÃO EXISTE
+A estrutura histórica pq_projetos/pq_tarefas já possuía regras e colunas de
+importações anteriores. Para evitar conflito com campos obrigatórios e garantir
+que novos nomes/sponsors entrem corretamente, a V23.7 cria duas tabelas controladas:
+
+- pq_projetos_atual
+- pq_tarefas_atual
+
+O histórico antigo NÃO é apagado.
+
+INSTALAÇÃO
+
+1. Supabase > SQL Editor
+Execute INTEIRO:
+docs/V23_7_CRIAR_BASE_ATUAL_PROJETO_QUALIDADE.sql
+
+2. Supabase > Edge Functions > import-projeto-qualidade > Code
+Substitua TODO o código por:
+supabase/functions/import-projeto-qualidade/index.ts
+Clique Deploy.
+
+3. GitHub
+Substitua pelos arquivos da V23.7.
+Aguarde GitHub Pages e pressione Ctrl+F5.
+
+4. Projeto Qualidade
+Selecione a planilha atualizada e clique:
+Enviar atualização para o banco.
+
+5. Depois da primeira importação V23.7
+o painel passa a ler pq_projetos_atual/pq_tarefas_atual.
+Se essas tabelas estiverem vazias, ele ainda usa a base antiga como fallback.
+
+RESULTADO ESPERADO
+- Novos nomes e sponsors aparecem após a importação.
+- Busca por Clea/Luciana passa a refletir a planilha atual.
+- Projetos e tarefas ausentes ficam inativos, não são apagados.
