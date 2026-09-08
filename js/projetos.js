@@ -110,11 +110,72 @@
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
   }
 
+  function normalizarDataVisual(valor) {
+    if (valor === null || valor === undefined || valor === "") return "";
+
+    const numero = Number(valor);
+    if (Number.isFinite(numero) && numero > 20000 && numero < 80000) {
+      const baseUtc = Date.UTC(1899, 11, 30);
+      return new Date(baseUtc + Math.floor(numero) * 86400000)
+        .toISOString()
+        .slice(0, 10);
+    }
+
+    const s = String(valor).trim();
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+    const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (br) return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+
+    return s;
+  }
+
+  function dataProjeto(projeto, tipo) {
+    const dados = projeto?.dados_origem || {};
+
+    if (tipo === "inicio") {
+      return projeto?.data_inicio
+        || dados["Data de inicio"]
+        || dados["Data de início"]
+        || dados["Start Date"]
+        || "";
+    }
+
+    return projeto?.data_fim
+      || dados["Data de fim"]
+      || dados["Data fim"]
+      || dados["Target Date"]
+      || "";
+  }
+
+  function dataTarefa(tarefa, tipo) {
+    const dados = tarefa?.dados_origem || {};
+
+    if (tipo === "inicio") {
+      return tarefa?.data_inicio
+        || dados["Data de inicio"]
+        || dados["Data de início"]
+        || dados["Start Date"]
+        || "";
+    }
+
+    return tarefa?.data_fim
+      || dados["Data de fim"]
+      || dados["Data fim"]
+      || dados["Target Date"]
+      || "";
+  }
+
+
   function formatarData(valor) {
-    if (!valor) return "—";
-    const partes = String(valor).slice(0, 10).split("-");
+    const normalizada = normalizarDataVisual(valor);
+    if (!normalizada) return "—";
+
+    const partes = normalizada.slice(0, 10).split("-");
     if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
-    return String(valor);
+
+    return normalizada;
   }
 
   function formatarDataHora(valor) {
@@ -366,8 +427,8 @@
           <td>—</td>
           <td>${escapar(sponsorProjeto || "—")}</td>
           <td><span class="row-status">${escapar(projeto.status || "—")}</span></td>
-          <td>${escapar(formatarData(projeto.data_inicio))}</td>
-          <td>${escapar(formatarData(projeto.data_fim))}</td>
+          <td>${escapar(formatarData(dataProjeto(projeto, "inicio")))}</td>
+          <td>${escapar(formatarData(dataProjeto(projeto, "fim")))}</td>
         </tr>`);
 
       tarefas.forEach((tarefa) => {
@@ -379,8 +440,8 @@
             <td>${escapar(tarefa.descricao || tarefa.nome || "—")}</td>
             <td>${escapar(limparNome(tarefa.sponsor || sponsorOriginalPorId(tarefa.azure_id) || sponsorProjeto) || "—")}</td>
             <td><span class="row-status">${escapar(tarefa.status || "—")}</span></td>
-            <td>${escapar(formatarData(tarefa.data_inicio))}</td>
-            <td>${escapar(formatarData(tarefa.data_fim))}</td>
+            <td>${escapar(formatarData(dataTarefa(tarefa, "inicio")))}</td>
+            <td>${escapar(formatarData(dataTarefa(tarefa, "fim")))}</td>
           </tr>`);
       });
     });
@@ -496,8 +557,8 @@
       metadado("ID", projeto.azure_id),
       metadado("Tipo", projeto.work_item_type),
       metadado("Status", projeto.status),
-      metadado("Data inicial", formatarData(projeto.data_inicio)),
-      metadado("Data final", formatarData(projeto.data_fim)),
+      metadado("Data inicial", formatarData(dataProjeto(projeto, "inicio"))),
+      metadado("Data final", formatarData(dataProjeto(projeto, "fim"))),
       metadado("Sponsor original", limparNome(projeto.sponsor)),
       metadado("Sponsors identificados", Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.join(", ") : ""),
       metadado("Esforço", projeto.esforco),
@@ -514,7 +575,7 @@
     const tarefasHtml = tarefas.map((tarefa) => `
       <article class="source-task">
         <strong>${escapar(tarefa.descricao || tarefa.nome || "Ação sem descrição")}</strong>
-        <span>ID ${escapar(tarefa.azure_id || "—")} · ${escapar(formatarData(tarefa.data_inicio))} a ${escapar(formatarData(tarefa.data_fim))}</span>
+        <span>ID ${escapar(tarefa.azure_id || "—")} · ${escapar(formatarData(dataTarefa(tarefa, "inicio")))} a ${escapar(formatarData(dataTarefa(tarefa, "fim")))}</span>
         <span>Sponsor: ${escapar(limparNome(tarefa.sponsor) || "—")}</span>
         <span class="task-status">${escapar(tarefa.status || "—")}</span>
       </article>
@@ -676,8 +737,8 @@
         ${metadadoRelatorio("ID Ajure", projeto.azure_id)}
         ${metadadoRelatorio("Tipo", projeto.work_item_type)}
         ${metadadoRelatorio("Status", projeto.status)}
-        ${metadadoRelatorio("Data inicial", formatarData(projeto.data_inicio))}
-        ${metadadoRelatorio("Data final", formatarData(projeto.data_fim))}
+        ${metadadoRelatorio("Data inicial", formatarData(dataProjeto(projeto, "inicio")))}
+        ${metadadoRelatorio("Data final", formatarData(dataProjeto(projeto, "fim")))}
         ${metadadoRelatorio("Sponsor original", limparNome(projeto.sponsor))}
         ${metadadoRelatorio("Sponsors identificados", Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.join(", ") : "")}
         ${metadadoRelatorio("Esforço", projeto.esforco)}

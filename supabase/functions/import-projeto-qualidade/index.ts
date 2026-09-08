@@ -104,7 +104,17 @@ function separarSponsors(v: unknown): string[] {
 }
 
 function isoDate(v: unknown): string | null {
-  if (!v) return null;
+  if (v === null || v === undefined || v === "") return null;
+
+  // Excel serial date, including values with fractional time.
+  const numero = typeof v === "number" ? v : Number(String(v).trim());
+  if (Number.isFinite(numero) && numero > 20000 && numero < 80000) {
+    const diasInteiros = Math.floor(numero);
+    const baseUtc = Date.UTC(1899, 11, 30);
+    return new Date(baseUtc + diasInteiros * 86400000)
+      .toISOString()
+      .slice(0, 10);
+  }
 
   const s = String(v).trim();
 

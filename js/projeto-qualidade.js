@@ -311,19 +311,30 @@
     if (v === null || v === undefined || v === "") return null;
 
     if (v instanceof Date && !Number.isNaN(v.getTime())) {
-      return v.toISOString();
+      return v.toISOString().slice(0, 10);
     }
 
-    if (typeof v === "number" && window.XLSX?.SSF?.parse_date_code) {
-      const d = window.XLSX.SSF.parse_date_code(v);
-      if (d) {
-        const mm = String(d.m).padStart(2, "0");
-        const dd = String(d.d).padStart(2, "0");
-        return `${d.y}-${mm}-${dd}`;
-      }
+    // Excel stores many dates as serial numbers (e.g. 46090).
+    // Convert without depending on SheetJS date helpers.
+    const numero = Number(v);
+    if (Number.isFinite(numero) && numero > 20000 && numero < 80000) {
+      const diasInteiros = Math.floor(numero);
+      const baseUtc = Date.UTC(1899, 11, 30);
+      const d = new Date(baseUtc + diasInteiros * 86400000);
+      return d.toISOString().slice(0, 10);
     }
 
-    return v;
+    const s = String(v).trim();
+
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+    const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (br) {
+      return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+    }
+
+    return s || null;
   }
 
   function prepararLinhasProjetoQualidade(rows) {
