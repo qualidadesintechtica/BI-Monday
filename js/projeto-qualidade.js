@@ -482,7 +482,8 @@
             body: JSON.stringify({
               arquivo_nome: file.name,
               arquivo_tamanho: file.size,
-              aba: sheetName,
+              aba: abasParaLer.join(", "),
+              abas: abasParaLer,
               rows
             })
           }
