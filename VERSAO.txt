@@ -1,40 +1,12 @@
-BI Monday V24.3
-Data: 06/09/2026
+BI Monday V23
+Data: 08/09/2026
+Módulo: Reunião NQ
 
-Objetivo:
-- Editar relatórios de projetos sem alterar os dados originais do Ajure.
-- Registrar cada salvamento como uma nova versão imutável e auditável.
-- Gerar PDF com dados originais, complementos, resultados e evidências.
-- Manter o importador da V23 e todas as páginas anteriores.
-
-Instalação complementar:
-- Executar docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no projeto
-  nkjmgzyjjbepebzurowy.
-
-Correção V24.1:
-- Oculta corretamente os avisos de carregamento e erro depois que os dados
-  forem carregados.
-
-Melhoria V24.2:
-- Filtros independentes e combináveis por responsável, status e projeto.
-- Resultado em tabela com o projeto principal e suas tarefas vinculadas.
-- Clique em qualquer linha da tabela para abrir o editor do projeto.
-
-Correção V24.3:
-- Separa os responsáveis informados juntos por vírgula, "e", "/" ou "&".
-- Remove espaços duplicados e unifica nomes repetidos com e sem acento.
-- Mantém a busca pelo responsável dentro das combinações originais da planilha.
-
-Histórico V23:
-
-Objetivo:
-- Adicionar importação manual e segura da planilha de Projetos da Qualidade.
-- Eliminar a dependência da ação HTTP Premium do Power Automate.
-- Validar estrutura, linhas e duplicidade antes de atualizar o banco.
-- Preservar todas as páginas e indicadores existentes.
-
-Fontes:
-- public.monday_criterios_avaliacao_uas -> gráfico dos 7 indicadores
-- public.monday_criterios_pareceres -> respostas e padrões
-- public.sync_log -> sincronização automática
-- planilha recebida do Ajure -> importador autenticado -> tabelas public.pq_*
+Novo:
+- Upload recorrente da planilha de especialistas.
+- Envio autenticado para Edge Function.
+- Histórico das últimas importações.
+- Atualização/inserção automática de especialistas.
+- Separação das formações pelo caractere |.
+- Professores ausentes da planilha atual ficam inativos, sem exclusão.
+- Preparação segura para as novas visões de Formação e Cobertura.

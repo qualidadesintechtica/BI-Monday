@@ -18,12 +18,12 @@
 
   <link
     rel="stylesheet"
-    href="css/global.css?v=20260905-v23-1-menu-projetos"
+    href="css/global.css?v=20260901-v20-ordenacao-colunas"
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260905-v23-1-menu-projetos"
+    href="css/dashboard.css?v=20260901-v20-ordenacao-colunas"
   >
 
 </head>
@@ -50,7 +50,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v24 · relatórios de projetos</small>
+        <small class="build-badge">v20 · ordenação por colunas</small>
 
       </div>
 
@@ -70,11 +70,6 @@
         <a href="#dias-validacao" data-view="dias-validacao">Dias para Validação</a>
         <a href="#historico" data-view="historico">Histórico de Atualizações</a>
         <a href="#indicadores-uc" data-view="indicadores-uc">Indicadores da UC</a>
-
-        <a class="nav-project-link" href="projetos.html">
-          <strong>Projetos da Qualidade</strong>
-          <small>Editar e gerar relatório</small>
-        </a>
 
       </nav>
 
@@ -399,6 +394,69 @@
             </div>
           </div>
         </section>
+
+        <section class="meeting-section nq-import-section">
+          <div class="meeting-section-title">
+            <span>06</span>
+            <div>
+              <h3>Base de especialistas</h3>
+              <p>Atualize a base do NQ enviando a planilha Excel mais recente. O histórico de importações é preservado.</p>
+            </div>
+          </div>
+
+          <div class="nq-import-grid">
+            <div class="nq-import-card">
+              <div class="nq-import-head">
+                <div>
+                  <strong>Importar planilha atualizada</strong>
+                  <small>Formato aceito: .xlsx ou .xls · aba obrigatória: Export</small>
+                </div>
+                <span class="nq-import-badge">Excel → Supabase</span>
+              </div>
+
+              <label class="nq-file-drop" for="nqArquivoEspecialistas">
+                <input id="nqArquivoEspecialistas" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                <span class="nq-file-title">Selecionar planilha</span>
+                <small id="nqArquivoNome">Nenhum arquivo selecionado</small>
+              </label>
+
+              <div class="nq-import-actions">
+                <button id="nqBtnImportarEspecialistas" type="button" class="nq-import-button" disabled>Enviar para o banco</button>
+                <span id="nqImportStatus" class="nq-import-status">Aguardando planilha.</span>
+              </div>
+
+              <div id="nqImportResultado" class="nq-import-result" hidden></div>
+            </div>
+
+            <div class="nq-import-card">
+              <div class="nq-import-head">
+                <div>
+                  <strong>Últimas importações</strong>
+                  <small>Controle da atualização da base de especialistas.</small>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="data-table nq-import-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Arquivo</th>
+                      <th>Status</th>
+                      <th>Linhas</th>
+                      <th>Especialistas</th>
+                      <th>Formações</th>
+                      <th>Erros</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyNQImportacoes">
+                    <tr><td colspan="7">Nenhuma importação carregada.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase.  Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
       </section>
 
@@ -974,7 +1032,7 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260906-v24-editor-relatorios"></script>
+  <script src="js/config.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
 
@@ -994,14 +1052,14 @@
 
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/reuniao-nq.js?v=20260901-v20-ordenacao-colunas"></script>
+  <script src="js/reuniao-nq.js?v=20260908-v23-importacao-nq"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/dashboard.js?v=20260901-v20-ordenacao-colunas"></script>
 
 
-<div data-build-version="20260906-v24-editor-relatorios" style="display:none"></div>
+<div data-build-version="20260901-v20-ordenacao-colunas" style="display:none"></div>
 </body>
 
 </html>

@@ -2,15 +2,11 @@ window.BI_CONFIG = {
   SUPABASE_URL: "https://nkjmgzyjjbepebzurowy.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_6Tuuyz6nYSBa782OGDi1rg_XkBHmO8U",
   VIEW_NAME: "vw_materiais_bi_consolidada",
-  BUILD_ID: "20260906-v24-3-responsaveis",
+  BUILD_ID: "20260908-v23-nq-importacao",
   REUNIAO_RESUMO_VIEW_NAME: "vw_nq_reuniao_resumo",
   REUNIAO_NC_VIEW_NAME: "vw_nq_reuniao_nao_conformidades",
   RESULTADOS_VIEW_NAME: "vw_resultados_alcancados",
-  PQ_IMPORT_FUNCTION_URL:
-    "https://nkjmgzyjjbepebzurowy.supabase.co/functions/v1/sincronizar-projetos-qualidade",
-  PQ_IMPORT_FUNCTION_NAME: "sincronizar-projetos-qualidade",
-  PQ_IMPORT_MAX_ROWS: 5000,
-  DOMINIOS_PERMITIDOS: ["animaeducacao.com.br"],
+  DOMINIOS_PERMITIDOS: ["animaeducacao.com.br"]
 };
 
 console.log("BI BUILD:", window.BI_CONFIG.BUILD_ID);

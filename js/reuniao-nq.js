@@ -112,12 +112,170 @@
       renderResumo();
       renderTabela();
       renderGrafico();
+      configurarImportacaoNQ();
+      await carregarHistoricoImportacoesNQ();
       if (status) status.textContent = "Dados carregados diretamente das views executivas do Supabase.";
     } catch (e) {
       console.error("Erro ao carregar Reunião NQ:", e);
       if (status) status.textContent = "Erro ao carregar a página da reunião: " + (e?.message || "erro desconhecido");
     }
   }
+
+
+  // ============================================================
+  // V23 · Importação da base de especialistas NQ
+  // ============================================================
+
+  function formatarDataHoraBR(valor) {
+    if (!valor) return "--";
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return String(valor);
+    return d.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  async function carregarHistoricoImportacoesNQ() {
+    const tbody = document.getElementById("tbodyNQImportacoes");
+    if (!tbody) return;
+
+    const { data, error } = await window.biSupabase
+      .from("nq_importacoes")
+      .select("id,arquivo_nome,status,total_linhas,especialistas_gravados,formacoes_gravadas,linhas_com_erro,mensagem,created_at,finished_at")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.warn("Histórico de importação NQ:", error);
+      tbody.innerHTML = `<tr><td colspan="7">Não foi possível carregar o histórico: ${escapeHtml(error.message || "erro")}</td></tr>`;
+      return;
+    }
+
+    const linhas = data || [];
+    if (!linhas.length) {
+      tbody.innerHTML = '<tr><td colspan="7">Nenhuma importação realizada.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = linhas.map(r => `
+      <tr>
+        <td>${escapeHtml(formatarDataHoraBR(r.finished_at || r.created_at))}</td>
+        <td>${escapeHtml(r.arquivo_nome || "--")}</td>
+        <td><span class="nq-status-pill nq-status-${escapeHtml(String(r.status || "").toLowerCase())}">${escapeHtml(r.status || "--")}</span></td>
+        <td>${n(r.total_linhas)}</td>
+        <td>${n(r.especialistas_gravados)}</td>
+        <td>${n(r.formacoes_gravadas)}</td>
+        <td>${n(r.linhas_com_erro)}</td>
+      </tr>
+    `).join("");
+  }
+
+  function configurarImportacaoNQ() {
+    const input = document.getElementById("nqArquivoEspecialistas");
+    const btn = document.getElementById("nqBtnImportarEspecialistas");
+    const nome = document.getElementById("nqArquivoNome");
+    const status = document.getElementById("nqImportStatus");
+    const resultado = document.getElementById("nqImportResultado");
+
+    if (!input || !btn || input.dataset.v23Ready === "1") return;
+    input.dataset.v23Ready = "1";
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) {
+        nome.textContent = "Nenhum arquivo selecionado";
+        btn.disabled = true;
+        status.textContent = "Aguardando planilha.";
+        return;
+      }
+
+      const ext = String(file.name).toLowerCase();
+      if (!ext.endsWith(".xlsx") && !ext.endsWith(".xls")) {
+        nome.textContent = file.name;
+        btn.disabled = true;
+        status.textContent = "Selecione um arquivo Excel (.xlsx ou .xls).";
+        return;
+      }
+
+      nome.textContent = `${file.name} · ${(file.size / 1024 / 1024).toLocaleString("pt-BR", {maximumFractionDigits:1})} MB`;
+      btn.disabled = false;
+      status.textContent = "Planilha pronta para envio.";
+      resultado.hidden = true;
+      resultado.innerHTML = "";
+    });
+
+    btn.addEventListener("click", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+      status.textContent = "Validando e enviando a planilha para o Supabase...";
+      resultado.hidden = true;
+
+      try {
+        const { data: sessionData, error: sessionError } = await window.biSupabase.auth.getSession();
+        const session = sessionData?.session;
+        if (sessionError || !session?.access_token) {
+          throw new Error("Sessão expirada. Entre novamente no BI.");
+        }
+
+        const form = new FormData();
+        form.append("file", file, file.name);
+        form.append("sheet", "Export");
+
+        const response = await fetch(
+          `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/import-nq-especialistas`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
+            },
+            body: form
+          }
+        );
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload?.success === false) {
+          throw new Error(payload?.error || payload?.mensagem || `Falha HTTP ${response.status}`);
+        }
+
+        const r = payload;
+        resultado.hidden = false;
+        resultado.innerHTML = `
+          <strong>Importação concluída.</strong>
+          <div class="nq-import-summary">
+            <span><b>${n(r.total_linhas)}</b> linhas</span>
+            <span><b>${n(r.especialistas_gravados)}</b> especialistas</span>
+            <span><b>${n(r.formacoes_gravadas)}</b> formações</span>
+            <span><b>${n(r.linhas_com_erro)}</b> erros</span>
+          </div>
+          <small>${escapeHtml(r.mensagem || "Base atualizada com sucesso.")}</small>
+        `;
+        status.textContent = "Base NQ atualizada com sucesso.";
+        input.value = "";
+        nome.textContent = "Nenhum arquivo selecionado";
+
+        await carregarHistoricoImportacoesNQ();
+      } catch (e) {
+        console.error("Erro na importação NQ:", e);
+        resultado.hidden = false;
+        resultado.innerHTML = `<strong>Não foi possível importar.</strong><small>${escapeHtml(e?.message || "Erro desconhecido")}</small>`;
+        status.textContent = "A importação não foi concluída.";
+      } finally {
+        btn.textContent = "Enviar para o banco";
+        btn.disabled = !input.files?.[0];
+      }
+    });
+  }
+
 
   window.addEventListener("resize", () => grafico?.resize());
   window.atualizarReuniaoNQ = atualizarReuniaoNQ;

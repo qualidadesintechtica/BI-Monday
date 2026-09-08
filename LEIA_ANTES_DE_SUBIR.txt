@@ -1,21 +1,3 @@
-V24 - EDITOR E RELATORIOS DOS PROJETOS DA QUALIDADE
-
-ANTES DE ENVIAR OS ARQUIVOS AO GITHUB:
-1. Leia COMECE_AQUI_PROJETOS_QUALIDADE.txt.
-2. Execute docs/00_CRIAR_BANCO_PROJETOS_QUALIDADE.sql no projeto Supabase datahub-validadores (nkjmgzyjjbepebzurowy).
-3. Publique a função contida em supabase/functions/sincronizar-projetos-qualidade/index.ts.
-4. Configure os segredos descritos no manual.
-5. Execute docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no mesmo projeto.
-
-Depois envie os arquivos diretamente para a RAIZ do repositório BI-Monday.
-Não crie uma pasta "BI Monday" dentro do repositório.
-
-As páginas novas ficam disponíveis pelo menu lateral:
-- projetos.html: editar, versionar e gerar PDF;
-- importar.html: importar a planilha recebida do Ajure.
-
-HISTÓRICO ANTERIOR
-
 V17 - INDICADORES DA UC COM DADOS REAIS
 
 Envie ESTES arquivos diretamente para a RAIZ do repositório BI-Monday.
