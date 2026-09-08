@@ -1,12 +1,8 @@
-BI Monday V23.8
+BI Monday V23.9
 Data: 08/09/2026
-
 Projeto Qualidade:
-- pq_projetos_atual;
-- pq_tarefas_atual;
-- pq_importacoes_atual;
-- isolamento completo da estrutura histórica;
-- mensagens de erro detalhadas;
-- novos nomes e sponsors passam a refletir a planilha após importação.
-
-Demais módulos preservados.
+- importação multiabas: Em Progresso_14_08, Não Iniciado, Pausado e Finalizados;
+- fallback para Work item e filhos (1);
+- deduplicação por ID Azure;
+- aliases Projeto/Projetos, Status/State e Sponsor/Responsável;
+- base isolada da V23.8 preservada.

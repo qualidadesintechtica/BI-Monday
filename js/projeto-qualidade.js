@@ -330,12 +330,12 @@
     return rows.map(r => ({
       "ID": r["ID"] ?? null,
       "Work Item Type": r["Work Item Type"] ?? null,
-      "Projetos": r["Projetos"] ?? r["Projeto"] ?? null,
+      "Projetos": (r["Projetos"] ?? r["Projeto"]) ?? r["Projeto"] ?? null,
       "Ações": r["Ações"] ?? r["Acoes"] ?? null,
-      "State": r["State"] ?? null,
+      "State": (r["State"] ?? r["Status"]) ?? null,
       "Start Date": excelDateToISO(r["Start Date"]),
       "Target Date": excelDateToISO(r["Target Date"]),
-      "Sponsor": r["Sponsor"] ?? null,
+      "Sponsor": (r["Sponsor"] ?? r["Responsável"] ?? r["Responsavel"]) ?? null,
       "Esforço": r["Esforço"] ?? r["Esforco"] ?? null,
       "Prioridade": r["Prioridade"] ?? null,
       "link evidências": r["link evidências"] ?? r["link evidencias"] ?? null
@@ -405,23 +405,69 @@
           cellText: false
         });
 
-        const sheetName = workbook.SheetNames.includes("Work item e filhos (1)")
-          ? "Work item e filhos (1)"
-          : workbook.SheetNames[0];
+        const abasPrioritarias = [
+          "Em Progresso_14_08",
+          "Não Iniciado",
+          "Pausado",
+          "Finalizados"
+        ];
 
-        const worksheet = workbook.Sheets[sheetName];
-        if (!worksheet) throw new Error("Nenhuma aba válida foi encontrada.");
+        const normalizarAba = (v) => String(v || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+          .toLowerCase();
 
-        const rawRows = window.XLSX.utils.sheet_to_json(worksheet, {
-          defval: null,
-          raw: true
+        const mapaAbas = new Map(
+          workbook.SheetNames.map(nome => [normalizarAba(nome), nome])
+        );
+
+        const abasEncontradas = abasPrioritarias
+          .map(nome => mapaAbas.get(normalizarAba(nome)))
+          .filter(Boolean);
+
+        const abasParaLer = abasEncontradas.length
+          ? [...new Set(abasEncontradas)]
+          : [
+              workbook.SheetNames.includes("Work item e filhos (1)")
+                ? "Work item e filhos (1)"
+                : workbook.SheetNames[0]
+            ];
+
+        const rawRows = [];
+        abasParaLer.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          if (!worksheet) return;
+
+          const dados = window.XLSX.utils.sheet_to_json(worksheet, {
+            defval: null,
+            raw: true
+          });
+
+          dados.forEach(row => rawRows.push({
+            ...row,
+            __aba_origem: sheetName
+          }));
         });
 
-        if (!rawRows.length) throw new Error(`A aba "${sheetName}" está vazia.`);
+        if (!rawRows.length) {
+          throw new Error("Nenhuma linha foi localizada nas abas atuais da planilha.");
+        }
 
-        const rows = prepararLinhasProjetoQualidade(rawRows);
+        const rowsPreparadas = prepararLinhasProjetoQualidade(rawRows);
+        const vistos = new Set();
+        const rows = rowsPreparadas.filter(row => {
+          const id = String(row["ID Azure"] || row["ID"] || "").trim();
+          const projeto = String(row["Projetos"] || row["Projeto"] || "").trim().toLowerCase();
+          const acao = String(row["Ações"] || row["Ações / Tarefas"] || row["Tarefa"] || "").trim().toLowerCase();
+          const sponsor = String(row["Sponsor"] || row["Responsável"] || row["Responsavel"] || "").trim().toLowerCase();
+          const chave = id ? `id:${id}` : `txt:${projeto}|${acao}|${sponsor}`;
+          if (vistos.has(chave)) return false;
+          vistos.add(chave);
+          return true;
+        });
 
-        status.textContent = `${rows.length} linha(s) localizadas. Enviando atualização...`;
+        status.textContent = `${rows.length} linha(s) únicas em ${abasParaLer.length} aba(s). Enviando atualização...`;
         btn.textContent = "Enviando...";
 
         const response = await fetch(
