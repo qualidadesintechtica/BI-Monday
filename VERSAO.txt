@@ -1,10 +1,11 @@
-BI Monday V24.7
+BI Monday V24.8
 Data: 08/09/2026
 
-Projeto Qualidade:
-- corrigida comparação entre ID string do HTML e bigint do Supabase;
-- projeto selecionado passa a preencher corretamente o relatório;
-- tarefas originais voltam a aparecer;
-- compatibilidade com campos nome/descricao/tipo das tarefas;
-- preview usa fallback seguro para a base atual;
-- metadados ID Ajure, status, sponsor, esforço, prioridade e ações originais corrigidos.
+Correções do Projeto Qualidade:
+- Ações / Tarefas mapeado corretamente;
+- Data de inicio e Data de fim mapeadas;
+- Contexto / Objetivo importado;
+- Resultados Esperados importados;
+- Impacto importado;
+- Resultados Alcançados importados;
+- tarefas deixam de ficar com nome/descricao NULL após reimportação.

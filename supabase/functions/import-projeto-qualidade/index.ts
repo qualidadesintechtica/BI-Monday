@@ -184,6 +184,10 @@ Deno.serve(async (req) => {
           source_key: sourceKey("P", r["ID"], projeto),
           esforco: txt(r["Esforço"]),
           prioridade: txt(r["Prioridade"]),
+          contexto_objetivo_original: txt(r["Contexto / Objetivo"]),
+          resultados_esperados_original: txt(r["Resultados Esperados"]),
+          impacto_original: txt(r["Impacto"]),
+          resultados_alcancados_original: txt(r["Resultados Alcançados"]),
         });
       } else if (tipo === "tarefa") {
         tarefas.push({

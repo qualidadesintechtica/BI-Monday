@@ -330,15 +330,69 @@
     return rows.map(r => ({
       "ID": r["ID"] ?? null,
       "Work Item Type": r["Work Item Type"] ?? null,
-      "Projetos": (r["Projetos"] ?? r["Projeto"]) ?? r["Projeto"] ?? null,
-      "Ações": r["Ações"] ?? r["Acoes"] ?? null,
-      "State": (r["State"] ?? r["Status"]) ?? null,
-      "Start Date": excelDateToISO(r["Start Date"]),
-      "Target Date": excelDateToISO(r["Target Date"]),
-      "Sponsor": (r["Sponsor"] ?? r["Responsável"] ?? r["Responsavel"]) ?? null,
-      "Esforço": r["Esforço"] ?? r["Esforco"] ?? null,
+      "Projetos": r["Projetos"] ?? r["Projeto"] ?? null,
+
+      "Contexto / Objetivo":
+        r["Contexto / Objetivo"] ??
+        r["Contexto/Objetivo"] ??
+        null,
+
+      "Resultados Esperados":
+        r["Resultados Esperados"] ??
+        r["Resultado Esperado"] ??
+        null,
+
+      "Ações":
+        r["Ações"] ??
+        r["Ações / Tarefas"] ??
+        r["Acoes"] ??
+        r["Acoes / Tarefas"] ??
+        r["Tarefa"] ??
+        r["Tarefas"] ??
+        null,
+
+      "State":
+        r["State"] ??
+        r["Status"] ??
+        null,
+
+      "Start Date": excelDateToISO(
+        r["Start Date"] ??
+        r["Data de inicio"] ??
+        r["Data de início"] ??
+        null
+      ),
+
+      "Target Date": excelDateToISO(
+        r["Target Date"] ??
+        r["Data de fim"] ??
+        r["Data fim"] ??
+        null
+      ),
+
+      "Sponsor":
+        r["Sponsor"] ??
+        r["Responsável"] ??
+        r["Responsavel"] ??
+        null,
+
+      "Esforço":
+        r["Esforço"] ??
+        r["Esforco"] ??
+        null,
+
       "Prioridade": r["Prioridade"] ?? null,
-      "link evidências": r["link evidências"] ?? r["link evidencias"] ?? null
+      "Impacto": r["Impacto"] ?? null,
+
+      "Resultados Alcançados":
+        r["Resultados Alcançados"] ??
+        r["Resultados Alcancados"] ??
+        null,
+
+      "link evidências":
+        r["link evidências"] ??
+        r["link evidencias"] ??
+        null
     }));
   }
 
