@@ -214,30 +214,67 @@
       if (!file) return;
 
       btn.disabled = true;
-      btn.textContent = "Enviando...";
-      status.textContent = "Validando e enviando a planilha para o Supabase...";
+      btn.textContent = "Processando...";
+      status.textContent = "Lendo a aba Export no seu computador...";
       resultado.hidden = true;
 
       try {
+        if (!window.XLSX) {
+          throw new Error("Leitor de Excel não foi carregado. Atualize a página com Ctrl+F5.");
+        }
+
         const { data: sessionData, error: sessionError } = await window.biSupabase.auth.getSession();
         const session = sessionData?.session;
+
         if (sessionError || !session?.access_token) {
           throw new Error("Sessão expirada. Entre novamente no BI.");
         }
 
-        const form = new FormData();
-        form.append("file", file, file.name);
-        form.append("sheet", "Export");
+        const buffer = await file.arrayBuffer();
+
+        // Importante:
+        // A planilha é aberta no navegador do usuário, evitando estourar
+        // a memória da Edge Function do Supabase.
+        const workbook = window.XLSX.read(buffer, {
+          type: "array",
+          cellDates: true,
+          cellText: false
+        });
+
+        const sheetName = "Export";
+        const worksheet = workbook.Sheets[sheetName];
+
+        if (!worksheet) {
+          throw new Error(`A aba "${sheetName}" não foi encontrada. Abas disponíveis: ${workbook.SheetNames.join(", ")}.`);
+        }
+
+        const rows = window.XLSX.utils.sheet_to_json(worksheet, {
+          defval: null,
+          raw: true
+        });
+
+        if (!rows.length) {
+          throw new Error('A aba "Export" está vazia.');
+        }
+
+        status.textContent = `${rows.length} linha(s) localizadas. Enviando somente os dados necessários...`;
+        btn.textContent = "Enviando...";
 
         const response = await fetch(
           `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/import-nq-especialistas`,
           {
             method: "POST",
             headers: {
+              "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`,
               apikey: window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
             },
-            body: form
+            body: JSON.stringify({
+              arquivo_nome: file.name,
+              arquivo_tamanho: file.size,
+              aba: sheetName,
+              rows
+            })
           }
         );
 
@@ -259,6 +296,7 @@
           </div>
           <small>${escapeHtml(r.mensagem || "Base atualizada com sucesso.")}</small>
         `;
+
         status.textContent = "Base NQ atualizada com sucesso.";
         input.value = "";
         nome.textContent = "Nenhum arquivo selecionado";
@@ -267,7 +305,10 @@
       } catch (e) {
         console.error("Erro na importação NQ:", e);
         resultado.hidden = false;
-        resultado.innerHTML = `<strong>Não foi possível importar.</strong><small>${escapeHtml(e?.message || "Erro desconhecido")}</small>`;
+        resultado.innerHTML = `
+          <strong>Não foi possível importar.</strong>
+          <small>${escapeHtml(e?.message || "Erro desconhecido")}</small>
+        `;
         status.textContent = "A importação não foi concluída.";
       } finally {
         btn.textContent = "Enviar para o banco";

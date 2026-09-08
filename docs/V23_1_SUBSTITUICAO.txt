@@ -1,0 +1,37 @@
+V23.1 — SUBSTITUIÇÃO DA IMPORTAÇÃO NQ
+
+NÃO É NECESSÁRIO ALTERAR O SQL.
+
+1. SUPABASE
+Edge Functions
+-> import-nq-especialistas
+-> Code
+-> apague TODO o código atual
+-> copie TODO o arquivo:
+supabase/functions/import-nq-especialistas/index.ts
+-> Deploy
+
+A V23.1 remove a biblioteca XLSX da Edge Function.
+
+2. GITHUB
+Substitua pelos arquivos da V23.1, principalmente:
+- index.html
+- js/reuniao-nq.js
+- js/config.js
+
+Recomendado: substituir o pacote inteiro para evitar cache/versões misturadas.
+
+3. GITHUB PAGES
+Aguarde o deploy.
+Abra o BI.
+Pressione Ctrl+F5.
+
+4. TESTE
+Reunião NQ
+-> Base de especialistas
+-> Selecionar planilha
+-> escolha 01. Profs TIs - NQ.xlsx
+-> Enviar para o banco
+
+Agora o Excel é processado no navegador e somente a aba Export é enviada
+como JSON para o Supabase.

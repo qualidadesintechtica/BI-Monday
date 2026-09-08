@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as XLSX from "npm:xlsx@0.18.5";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -28,32 +27,31 @@ function cpfDigits(v: unknown): string | null {
 function isoDate(v: unknown): string | null {
   if (!v) return null;
 
-  if (v instanceof Date && !Number.isNaN(v.getTime())) {
-    return v.toISOString().slice(0, 10);
-  }
+  if (typeof v === "string") {
+    const s = v.trim();
 
-  if (typeof v === "number") {
-    const o = XLSX.SSF.parse_date_code(v);
-    if (o) {
-      const mm = String(o.m).padStart(2, "0");
-      const dd = String(o.d).padStart(2, "0");
-      return `${o.y}-${mm}-${dd}`;
+    const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (br) {
+      return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
     }
+
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+    const jsDate = new Date(s);
+    if (!Number.isNaN(jsDate.getTime())) return jsDate.toISOString().slice(0, 10);
   }
 
-  const s = String(v).trim();
-  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (br) {
-    return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
-  }
-
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
+  return null;
 }
 
 function numberValue(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
-  const s = String(v).replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+  const s = String(v)
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -61,11 +59,15 @@ function numberValue(v: unknown): number | null {
 function splitFormacoes(v: unknown): string[] {
   const s = txt(v);
   if (!s) return [];
+
   const itens = s
     .split(/\s*\|\s*|\r?\n/)
     .map(x => x.replace(/\s+/g, " ").trim())
     .filter(Boolean);
-  return [...new Map(itens.map(x => [x.toLocaleLowerCase("pt-BR"), x])).values()];
+
+  return [...new Map(
+    itens.map(x => [x.toLocaleLowerCase("pt-BR"), x])
+  ).values()];
 }
 
 const COL = {
@@ -89,8 +91,13 @@ const COL = {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ success: false, error: "Método não permitido." }, 405);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS });
+  }
+
+  if (req.method !== "POST") {
+    return json({ success: false, error: "Método não permitido." }, 405);
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -98,14 +105,21 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") || "";
 
   const authClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
   });
 
   const { data: userData, error: userError } = await authClient.auth.getUser();
   const user = userData?.user;
 
   if (userError || !user) {
-    return json({ success: false, error: "Usuário não autenticado." }, 401);
+    return json({
+      success: false,
+      error: "Usuário não autenticado.",
+    }, 401);
   }
 
   const admin = createClient(supabaseUrl, serviceRole, {
@@ -115,24 +129,25 @@ Deno.serve(async (req) => {
   let importacaoId: number | null = null;
 
   try {
-    const form = await req.formData();
-    const file = form.get("file");
-    const sheetName = txt(form.get("sheet")) || "Export";
+    const body = await req.json();
 
-    if (!(file instanceof File)) {
-      return json({ success: false, error: "Arquivo Excel não recebido." }, 400);
-    }
+    const arquivoNome = txt(body?.arquivo_nome) || "planilha.xlsx";
+    const arquivoTamanho = Number(body?.arquivo_tamanho || 0);
+    const sheetName = txt(body?.aba) || "Export";
+    const rows = Array.isArray(body?.rows) ? body.rows : [];
 
-    const ext = file.name.toLowerCase();
-    if (!ext.endsWith(".xlsx") && !ext.endsWith(".xls")) {
-      return json({ success: false, error: "Envie um arquivo .xlsx ou .xls." }, 400);
+    if (!rows.length) {
+      return json({
+        success: false,
+        error: 'Nenhuma linha foi recebida da aba "Export".',
+      }, 400);
     }
 
     const { data: importacao, error: logError } = await admin
       .from("nq_importacoes")
       .insert({
-        arquivo_nome: file.name,
-        arquivo_tamanho: file.size,
+        arquivo_nome: arquivoNome,
+        arquivo_tamanho: arquivoTamanho,
         aba: sheetName,
         status: "processando",
         importado_por: user.id,
@@ -143,30 +158,14 @@ Deno.serve(async (req) => {
     if (logError) throw logError;
     importacaoId = importacao.id;
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const wb = XLSX.read(bytes, {
-      type: "array",
-      cellDates: true,
-      cellText: false,
-    });
-
-    const ws = wb.Sheets[sheetName];
-    if (!ws) {
-      throw new Error(`A aba "${sheetName}" não foi encontrada. Abas disponíveis: ${wb.SheetNames.join(", ")}.`);
-    }
-
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
-      defval: null,
-      raw: true,
-    });
-
-    if (!rows.length) throw new Error(`A aba "${sheetName}" está vazia.`);
-
     const headers = new Set(Object.keys(rows[0] || {}));
     const obrigatorias = [COL.professor, COL.formacao];
     const ausentes = obrigatorias.filter(h => !headers.has(h));
+
     if (ausentes.length) {
-      throw new Error(`Coluna(s) obrigatória(s) ausente(s): ${ausentes.join(", ")}.`);
+      throw new Error(
+        `Coluna(s) obrigatória(s) ausente(s): ${ausentes.join(", ")}.`
+      );
     }
 
     const validos: Array<{
@@ -179,10 +178,16 @@ Deno.serve(async (req) => {
 
     const erros: string[] = [];
 
-    rows.forEach((r, i) => {
+    rows.forEach((r: Record<string, unknown>, i: number) => {
       const professor = txt(r[COL.professor]);
+
       if (!professor) {
-        if (Object.values(r).some(v => txt(v))) erros.push(`Linha ${i + 2}: professor não informado.`);
+        const possuiDados = Object.values(r).some(v => txt(v));
+
+        if (possuiDados) {
+          erros.push(`Linha ${i + 2}: professor não informado.`);
+        }
+
         return;
       }
 
@@ -215,7 +220,9 @@ Deno.serve(async (req) => {
       });
     });
 
-    if (!validos.length) throw new Error("Nenhum especialista válido foi encontrado.");
+    if (!validos.length) {
+      throw new Error("Nenhum especialista válido foi encontrado.");
+    }
 
     const { data: existentes, error: existingError } = await admin
       .from("nq_especialistas")
@@ -223,8 +230,16 @@ Deno.serve(async (req) => {
 
     if (existingError) throw existingError;
 
-    const porCpf = new Map((existentes || []).filter(x => x.cpf_normalizado).map(x => [x.cpf_normalizado, x]));
-    const porNome = new Map((existentes || []).map(x => [String(x.professor).toLocaleLowerCase("pt-BR"), x]));
+    const porCpf = new Map(
+      (existentes || [])
+        .filter(x => x.cpf_normalizado)
+        .map(x => [x.cpf_normalizado, x])
+    );
+
+    const porNome = new Map(
+      (existentes || [])
+        .map(x => [String(x.professor).toLocaleLowerCase("pt-BR"), x])
+    );
 
     let novos = 0;
     let atualizados = 0;
@@ -232,9 +247,10 @@ Deno.serve(async (req) => {
     const idsAtivos: number[] = [];
 
     for (const item of validos) {
-      const atual = (item.cpf_normalizado && porCpf.get(item.cpf_normalizado))
-        || porNome.get(item.professor.toLocaleLowerCase("pt-BR"))
-        || null;
+      const atual =
+        (item.cpf_normalizado && porCpf.get(item.cpf_normalizado)) ||
+        porNome.get(item.professor.toLocaleLowerCase("pt-BR")) ||
+        null;
 
       let especialistaId: number;
 
@@ -246,7 +262,10 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
 
-        if (error) throw new Error(`Linha ${item.row}: ${error.message}`);
+        if (error) {
+          throw new Error(`Linha ${item.row}: ${error.message}`);
+        }
+
         especialistaId = data.id;
         atualizados++;
       } else {
@@ -256,7 +275,10 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
 
-        if (error) throw new Error(`Linha ${item.row}: ${error.message}`);
+        if (error) {
+          throw new Error(`Linha ${item.row}: ${error.message}`);
+        }
+
         especialistaId = data.id;
         novos++;
       }
@@ -281,13 +303,16 @@ Deno.serve(async (req) => {
           .from("nq_especialistas_formacoes")
           .insert(payloadFormacoes);
 
-        if (formError) throw new Error(`Formações de ${item.professor}: ${formError.message}`);
+        if (formError) {
+          throw new Error(
+            `Formações de ${item.professor}: ${formError.message}`
+          );
+        }
+
         formacoesGravadas += payloadFormacoes.length;
       }
     }
 
-    // Registros que estavam na base anterior, mas não vieram na planilha atual,
-    // ficam inativos. Nada é apagado.
     const todosIds = (existentes || []).map(x => Number(x.id));
     const ativosSet = new Set(idsAtivos);
     const idsInativar = todosIds.filter(id => !ativosSet.has(id));
@@ -295,13 +320,18 @@ Deno.serve(async (req) => {
     if (idsInativar.length) {
       const { error: inactiveError } = await admin
         .from("nq_especialistas")
-        .update({ ativo: false, updated_at: new Date().toISOString() })
+        .update({
+          ativo: false,
+          updated_at: new Date().toISOString(),
+        })
         .in("id", idsInativar);
 
       if (inactiveError) throw inactiveError;
     }
 
     const linhasComErro = erros.length;
+    const finalizadoEm = new Date().toISOString();
+
     const mensagem = linhasComErro
       ? `Importação concluída com ${linhasComErro} linha(s) ignorada(s).`
       : "Importação concluída com sucesso.";
@@ -309,7 +339,7 @@ Deno.serve(async (req) => {
     const result = {
       success: true,
       importacao_id: importacaoId,
-      arquivo: file.name,
+      arquivo: arquivoNome,
       aba: sheetName,
       total_linhas: rows.length,
       especialistas_gravados: validos.length,
@@ -320,7 +350,7 @@ Deno.serve(async (req) => {
       linhas_com_erro: linhasComErro,
       erros: erros.slice(0, 30),
       mensagem,
-      finalizado_em: new Date().toISOString(),
+      finalizado_em: finalizadoEm,
     };
 
     await admin
@@ -335,7 +365,7 @@ Deno.serve(async (req) => {
         formacoes_gravadas: formacoesGravadas,
         linhas_com_erro: linhasComErro,
         mensagem,
-        finished_at: result.finalizado_em,
+        finished_at: finalizadoEm,
       })
       .eq("id", importacaoId);
 
@@ -355,6 +385,10 @@ Deno.serve(async (req) => {
     }
 
     console.error("import-nq-especialistas:", e);
-    return json({ success: false, error: mensagem }, 400);
+
+    return json({
+      success: false,
+      error: mensagem,
+    }, 400);
   }
 });

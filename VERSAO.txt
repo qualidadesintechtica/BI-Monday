@@ -1,12 +1,11 @@
-BI Monday V23
+BI Monday V23.1
 Data: 08/09/2026
-Módulo: Reunião NQ
 
-Novo:
-- Upload recorrente da planilha de especialistas.
-- Envio autenticado para Edge Function.
-- Histórico das últimas importações.
-- Atualização/inserção automática de especialistas.
-- Separação das formações pelo caractere |.
-- Professores ausentes da planilha atual ficam inativos, sem exclusão.
-- Preparação segura para as novas visões de Formação e Cobertura.
+Correção:
+- Eliminado o erro HTTP 546 / Memory limit exceeded.
+- O Excel é lido no navegador do usuário.
+- A Edge Function recebe somente JSON com a aba Export.
+- A função não importa mais a biblioteca xlsx.
+- Mantida autenticação obrigatória.
+- Mantido histórico de importações.
+- Mantidas as regras de atualização, inclusão e inativação.
