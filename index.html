@@ -941,6 +941,33 @@
           <article><span>Sem vínculo</span><strong id="pqSemVinculo">--</strong><small>tarefas sem projeto identificado</small></article>
         </div>
 
+
+        <section class="pq-import-panel">
+          <div class="pq-import-head">
+            <div>
+              <span class="pq-eyebrow">Atualização da base</span>
+              <h3>Importar planilha do Projeto Qualidade</h3>
+              <p>Envie a versão mais recente da planilha. Projetos, tarefas, nomes e sponsors serão atualizados no Supabase.</p>
+            </div>
+            <span class="pq-import-badge">Excel → Supabase</span>
+          </div>
+
+          <div class="pq-import-body">
+            <label class="pq-file-drop" for="pqArquivoAtualizacao">
+              <input id="pqArquivoAtualizacao" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+              <strong>Selecionar planilha de atualização</strong>
+              <small id="pqArquivoNome">Nenhum arquivo selecionado</small>
+            </label>
+
+            <div class="pq-import-actions">
+              <button id="pqBtnImportar" type="button" class="pq-import-button" disabled>Enviar atualização para o banco</button>
+              <span id="pqImportStatus">Aguardando planilha.</span>
+            </div>
+
+            <div id="pqImportResultado" class="pq-import-result" hidden></div>
+          </div>
+        </section>
+
         <div class="pq-toolbar">
           <div class="pq-search-wrap">
             <label for="pqBusca">Buscar</label>
@@ -1203,7 +1230,7 @@
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
-  <script src="js/projeto-qualidade.js?v=20260908-v23-4-restaurado"></script>
+  <script src="js/projeto-qualidade.js?v=20260908-v23-6-importacao-pq"></script>
   <script src="js/dashboard.js?v=20260901-v20-ordenacao-colunas"></script>
 
 

@@ -74,8 +74,8 @@
       if (p.error) throw p.error;
       if (t.error) throw t.error;
 
-      projetos = p.data || [];
-      tarefas = t.data || [];
+      projetos = (p.data || []).filter(x => x.ativo !== false);
+      tarefas = (t.data || []).filter(x => x.ativo !== false);
       importacoes = i.error ? [] : (i.data || []);
 
       popularSelect("pqFiltroStatus", projetos.map(x => normalizarStatus(x.status)));
@@ -289,7 +289,183 @@
     renderImportacao();
   }
 
+
+  function excelDateToISO(v) {
+    if (v === null || v === undefined || v === "") return null;
+
+    if (v instanceof Date && !Number.isNaN(v.getTime())) {
+      return v.toISOString();
+    }
+
+    if (typeof v === "number" && window.XLSX?.SSF?.parse_date_code) {
+      const d = window.XLSX.SSF.parse_date_code(v);
+      if (d) {
+        const mm = String(d.m).padStart(2, "0");
+        const dd = String(d.d).padStart(2, "0");
+        return `${d.y}-${mm}-${dd}`;
+      }
+    }
+
+    return v;
+  }
+
+  function prepararLinhasProjetoQualidade(rows) {
+    return rows.map(r => ({
+      "ID": r["ID"] ?? null,
+      "Work Item Type": r["Work Item Type"] ?? null,
+      "Projetos": r["Projetos"] ?? r["Projeto"] ?? null,
+      "Ações": r["Ações"] ?? r["Acoes"] ?? null,
+      "State": r["State"] ?? null,
+      "Start Date": excelDateToISO(r["Start Date"]),
+      "Target Date": excelDateToISO(r["Target Date"]),
+      "Sponsor": r["Sponsor"] ?? null,
+      "Esforço": r["Esforço"] ?? r["Esforco"] ?? null,
+      "Prioridade": r["Prioridade"] ?? null,
+      "link evidências": r["link evidências"] ?? r["link evidencias"] ?? null
+    }));
+  }
+
+  function configurarImportacaoPQ() {
+    const input = $("pqArquivoAtualizacao");
+    const btn = $("pqBtnImportar");
+    const nome = $("pqArquivoNome");
+    const status = $("pqImportStatus");
+    const resultado = $("pqImportResultado");
+
+    if (!input || !btn || input.dataset.ready === "1") return;
+    input.dataset.ready = "1";
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+
+      if (!file) {
+        nome.textContent = "Nenhum arquivo selecionado";
+        btn.disabled = true;
+        status.textContent = "Aguardando planilha.";
+        return;
+      }
+
+      const low = file.name.toLowerCase();
+      if (!low.endsWith(".xlsx") && !low.endsWith(".xls")) {
+        nome.textContent = file.name;
+        btn.disabled = true;
+        status.textContent = "Selecione um arquivo Excel (.xlsx ou .xls).";
+        return;
+      }
+
+      nome.textContent = `${file.name} · ${(file.size / 1024 / 1024).toLocaleString("pt-BR", {maximumFractionDigits:1})} MB`;
+      btn.disabled = false;
+      status.textContent = "Planilha pronta para atualização.";
+      resultado.hidden = true;
+      resultado.innerHTML = "";
+    });
+
+    btn.addEventListener("click", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      btn.disabled = true;
+      btn.textContent = "Processando...";
+      status.textContent = "Lendo a planilha no seu computador...";
+      resultado.hidden = true;
+
+      try {
+        if (!window.XLSX) {
+          throw new Error("Leitor de Excel não carregado. Atualize a página com Ctrl+F5.");
+        }
+
+        const { data: sessionData, error: sessionError } = await window.biSupabase.auth.getSession();
+        const session = sessionData?.session;
+
+        if (sessionError || !session?.access_token) {
+          throw new Error("Sessão expirada. Entre novamente no BI.");
+        }
+
+        const buffer = await file.arrayBuffer();
+        const workbook = window.XLSX.read(buffer, {
+          type: "array",
+          cellDates: true,
+          cellText: false
+        });
+
+        const sheetName = workbook.SheetNames.includes("Work item e filhos (1)")
+          ? "Work item e filhos (1)"
+          : workbook.SheetNames[0];
+
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) throw new Error("Nenhuma aba válida foi encontrada.");
+
+        const rawRows = window.XLSX.utils.sheet_to_json(worksheet, {
+          defval: null,
+          raw: true
+        });
+
+        if (!rawRows.length) throw new Error(`A aba "${sheetName}" está vazia.`);
+
+        const rows = prepararLinhasProjetoQualidade(rawRows);
+
+        status.textContent = `${rows.length} linha(s) localizadas. Enviando atualização...`;
+        btn.textContent = "Enviando...";
+
+        const response = await fetch(
+          `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/import-projeto-qualidade`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
+            },
+            body: JSON.stringify({
+              arquivo_nome: file.name,
+              arquivo_tamanho: file.size,
+              aba: sheetName,
+              rows
+            })
+          }
+        );
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload?.success === false) {
+          throw new Error(payload?.error || payload?.mensagem || `Falha HTTP ${response.status}`);
+        }
+
+        resultado.hidden = false;
+        resultado.innerHTML = `
+          <strong>Atualização concluída.</strong>
+          <div class="pq-import-summary">
+            <span><b>${payload.total_linhas ?? 0}</b> linhas</span>
+            <span><b>${payload.projetos_gravados ?? 0}</b> projetos</span>
+            <span><b>${payload.tarefas_gravadas ?? 0}</b> tarefas</span>
+            <span><b>${payload.linhas_com_erro ?? 0}</b> erros</span>
+          </div>
+          <small>${escapeHtml(payload.mensagem || "Base atualizada com sucesso.")}</small>
+        `;
+
+        status.textContent = "Projeto Qualidade atualizado com sucesso.";
+        input.value = "";
+        nome.textContent = "Nenhum arquivo selecionado";
+
+        carregado = false;
+        await carregar();
+      } catch (e) {
+        console.error("Importação Projeto Qualidade:", e);
+        resultado.hidden = false;
+        resultado.innerHTML = `
+          <strong>Não foi possível atualizar.</strong>
+          <small>${escapeHtml(e?.message || "Erro desconhecido")}</small>
+        `;
+        status.textContent = "A atualização não foi concluída.";
+      } finally {
+        btn.textContent = "Enviar atualização para o banco";
+        btn.disabled = !input.files?.[0];
+      }
+    });
+  }
+
   function configurar() {
+    configurarImportacaoPQ();
     const busca = $("pqBusca");
     const status = $("pqFiltroStatus");
     const sponsor = $("pqFiltroSponsor");

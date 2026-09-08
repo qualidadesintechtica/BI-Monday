@@ -1,8 +1,16 @@
-BI Monday V23.5
+BI Monday V23.6
 Data: 08/09/2026
 
-Correção:
-- Menu lateral com rolagem vertical independente.
-- Todos os itens do menu ficam acessíveis em zoom de 100%.
-- Conteúdo principal permanece sem alteração.
-- Projeto Qualidade e Relatório NQ preservados.
+Projeto Qualidade:
+- Upload da planilha de atualização diretamente no BI.
+- Nova Edge Function import-projeto-qualidade.
+- Atualização de nomes, sponsors, status, datas, projetos e tarefas.
+- Novos registros inseridos automaticamente.
+- Registros ausentes na nova planilha ficam inativos.
+- Suporte às tarefas sem ID/tipo quando Projeto + Ação estiverem preenchidos.
+
+Mantido:
+- Relatório NQ
+- Formação/CINE
+- Projeto Qualidade
+- Menu lateral com rolagem em 100%

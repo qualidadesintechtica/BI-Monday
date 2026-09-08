@@ -1,0 +1,42 @@
+V23.6 — PROJETO QUALIDADE ATUALIZÁVEL
+
+O que foi corrigido:
+- Incluída a opção de subir a planilha diretamente na tela Projeto Qualidade.
+- Após a importação, nomes de projetos, tarefas, sponsors, status e datas são atualizados.
+- Novos projetos e tarefas são inseridos.
+- Registros antigos ficam inativos, não são apagados.
+- As 4 linhas da planilha atual sem ID/Work Item Type são tratadas como tarefas quando possuem Projeto + Ação.
+- O painel recarrega automaticamente ao finalizar.
+
+PLANILHA ANALISADA
+Aba: Work item e filhos (1)
+338 linhas de dados:
+- 51 projetos
+- 283 tarefas com tipo preenchido
+- 4 tarefas sem tipo/ID, agora aproveitadas
+Total esperado após a importação: 51 projetos e 287 tarefas, salvo alterações futuras no arquivo.
+
+INSTALAÇÃO
+
+1. Supabase > SQL Editor
+Execute INTEIRO:
+docs/V23_6_PREPARAR_IMPORTACAO_PROJETO_QUALIDADE.sql
+
+2. Supabase > Edge Functions
+Crie uma nova função chamada:
+import-projeto-qualidade
+
+Cole TODO o conteúdo de:
+supabase/functions/import-projeto-qualidade/index.ts
+
+Faça Deploy.
+
+3. GitHub
+Substitua os arquivos do BI pela V23.6.
+Aguarde GitHub Pages e pressione Ctrl+F5.
+
+4. Uso
+Projeto Qualidade
+> Importar planilha do Projeto Qualidade
+> Selecionar planilha
+> Enviar atualização para o banco

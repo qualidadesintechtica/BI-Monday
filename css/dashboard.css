@@ -1469,3 +1469,94 @@
     max-height:100dvh;
   }
 }
+
+
+/* ============================================================
+   V23.6 · Upload de atualização do Projeto Qualidade
+   ============================================================ */
+.pq-import-panel{
+  background:#fff;
+  border:1px solid #e5ddea;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 6px 18px rgba(45,21,83,.04);
+}
+.pq-import-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:13px;
+}
+.pq-import-head h3{
+  margin:4px 0;
+  color:#2d1553;
+  font-size:15px;
+}
+.pq-import-head p{
+  margin:0;
+  color:#746a79;
+  font-size:11px;
+}
+.pq-import-badge{
+  white-space:nowrap;
+  background:#f5e8f4;
+  color:#6b1972;
+  border-radius:999px;
+  padding:6px 9px;
+  font-size:10px;
+  font-weight:800;
+}
+.pq-file-drop{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:110px;
+  border:2px dashed #d9c9df;
+  border-radius:13px;
+  background:#fcfafc;
+  cursor:pointer;
+  padding:16px;
+  text-align:center;
+}
+.pq-file-drop:hover{border-color:#a30085;background:#fff9fc}
+.pq-file-drop input{position:absolute;opacity:0;pointer-events:none}
+.pq-file-drop strong{color:#2d1553;font-size:13px}
+.pq-file-drop small{margin-top:5px;color:#786f7d;overflow-wrap:anywhere}
+.pq-import-actions{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:12px;
+}
+.pq-import-button{
+  border:0;
+  background:#2d1553;
+  color:#fff;
+  border-radius:9px;
+  padding:9px 13px;
+  font-weight:800;
+  cursor:pointer;
+}
+.pq-import-button:disabled{opacity:.45;cursor:not-allowed}
+#pqImportStatus{font-size:10px;color:#746a79}
+.pq-import-result{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid #e4dbe8;
+  border-radius:11px;
+  background:#f8f5fa;
+}
+.pq-import-result strong{display:block;color:#2d1553;margin-bottom:7px}
+.pq-import-result small{display:block;margin-top:7px;color:#6d6472}
+.pq-import-summary{display:flex;gap:7px;flex-wrap:wrap}
+.pq-import-summary span{
+  background:#fff;
+  border:1px solid #e5ddea;
+  border-radius:8px;
+  padding:5px 7px;
+  font-size:10px;
+}
