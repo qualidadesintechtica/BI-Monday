@@ -29,9 +29,12 @@
 
   <script>
     (function () {
-      if (window.location.hash === "#projeto-qualidade") {
-        window.location.replace("projetos.html?v=20260908-v24-6");
-      }
+      if (
+  window.location.hash === "#projeto-qualidade" &&
+  new URLSearchParams(window.location.search).get("abrir_importacao_pq") !== "1"
+) {
+  window.location.replace("projetos.html?v=20260908-v24-11");
+}
     })();
   </script>
 
@@ -1239,11 +1242,26 @@
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
-  <script src="js/projeto-qualidade.js?v=20260908-v24-8-campos"></script>
+  <script src="js/projeto-qualidade.js?v=20260908-v24-11-importacao"></script>
   <script src="js/dashboard.js?v=20260908-v24-6"></script>
 
 
 <div data-build-version="20260901-v20-ordenacao-colunas" style="display:none"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("abrir_importacao_pq") === "1") {
+    // Mantém a aba Projeto Qualidade aberta e limpa o parâmetro auxiliar da URL.
+    setTimeout(function () {
+      try {
+        history.replaceState(null, "", "index.html#projeto-qualidade");
+      } catch (_) {}
+    }, 1200);
+  }
+});
+</script>
+
 </body>
 
 </html>

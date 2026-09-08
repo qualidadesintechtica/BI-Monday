@@ -1,10 +1,9 @@
-BI Monday V24.10
+BI Monday V24.11
 Data: 08/09/2026
 
-Correção definitiva das datas do Projeto Qualidade:
-- Excel serial (ex.: 46090) convertido corretamente para data;
-- conversão no navegador e na Edge Function;
-- fallback visual diretamente de dados_origem;
-- SQL de backfill para registros já importados;
-- datas exibidas como DD/MM/AAAA;
-- projetos e tarefas cobertos.
+Correção:
+- botão "Importar nova planilha" voltou a funcionar;
+- link do editor abre diretamente a área de importação do Projeto Qualidade;
+- redirect legado da V24.6 não intercepta mais o fluxo de importação;
+- mantém o editor standalone em projetos.html;
+- mantém a importação no index.html#projeto-qualidade.
