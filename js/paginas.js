@@ -125,51 +125,44 @@
   function classificarNivelOperacao(item) {
     const categoria = normalizar(item?.categoria_material);
     const escopo = normalizar(item?.escopo);
-    const formato = normalizar(item?.formato);
     const nome = normalizar(item?.item_name || item?.unidade_material);
     const titulo = normalizar(item?.titulo);
     const tituloUa = normalizar(item?.titulo_ua);
-    const idUa = String(item?.id_ua || "").trim();
-    const chaveUa = String(item?.chave_ua || "").trim();
-    const base = [categoria, escopo, formato, nome, titulo, tituloUa].join(" ");
 
-    // NÍVEL 2 - AVALIAÇÕES: sinais mais específicos primeiro.
+    // O DataHub do Monday pode ganhar/renomear colunas. Para a Operação,
+    // também varremos os valores textuais reais da linha em vez de depender
+    // de uma única coluna da view consolidada.
+    const todosValores = normalizar(
+      Object.values(item || {})
+        .filter(v => typeof v === "string" || typeof v === "number")
+        .join(" | ")
+    );
+    const base = [categoria, escopo, nome, titulo, tituloUa, todosValores].join(" ");
+
+    // NÍVEL 2 - AVALIAÇÕES: A1-A5, BDQ e avaliações.
     if (
       /^a[1-5](?:\s|[-–—_]|$)/.test(nome) ||
-      /^avaliacao\b/.test(categoria) ||
-      /\bavaliacao\b|\bbdq\b/.test(base)
+      /\bavaliacao(?:es)?\b|\bbdq\b|\ba[1-5]\b/.test(base)
     ) return "nivel2-avaliacoes";
 
-    // NÍVEL 2 - UA: usa identificadores estruturados da própria view.
+    // NÍVEL 2 - UA: identificadores ou nomenclatura de Unidade de Aprendizagem.
     if (
       item?.eh_ua === true ||
-      !!idUa ||
-      !!chaveUa ||
-      !!tituloUa ||
-      categoria === "unidade de aprendizagem" ||
-      categoria === "ua" ||
-      /^ua(?:\s|[-–—_]|\d|$)/.test(nome) ||
-      /\bunidade de aprendizagem\b/.test(base)
+      String(item?.id_ua || "").trim() ||
+      String(item?.chave_ua || "").trim() ||
+      tituloUa ||
+      /\bunidade de aprendizagem\b|(^|\W)ua(?:\W|$)/.test(base)
     ) return "nivel2-ua";
 
-    // NÍVEL 1 - PLANOS.
+    // NÍVEL 1 - PLANOS: Plano de Produção / PP / Nível 1.
     if (
-      /(^|\b)(nivel 1|nivel1|n1)(\b|$)/.test(escopo) ||
-      /\bplano de producao\b/.test(base) ||
-      /^pp(?:\s|[-–—_]|\d|$)/.test(nome) ||
-      categoria === "plano de producao" ||
-      categoria === "plano producao"
+      /\bplano de producao\b|\bnivel 1\b|\bn1\b|(^|\W)pp(?:\W|$)/.test(base)
     ) return "nivel1-planos";
 
-    // NÍVEL 3 - GLOBAL explícito.
-    if (
-      /(^|\b)(nivel 3|nivel3|n3)(\b|$)/.test(escopo) ||
-      /\bglobal\b/.test(base)
-    ) return "nivel3-global";
+    // NÍVEL 3 - GLOBAL: marcações explícitas de global / nível 3.
+    if (/\bglobal\b|\bnivel 3\b|\bn3\b/.test(base)) return "nivel3-global";
 
-    // No board do Monday, GLOBAL é a visão de fechamento. Registros que não
-    // pertencem aos níveis específicos acima entram aqui em vez de sumirem.
-    return "nivel3-global";
+    return "nao-classificado";
   }
 
   function filtrarPorNivelOperacao(dados) {
@@ -259,7 +252,8 @@
     }
 
     if (!gruposOrdenados.length) {
-      board.innerHTML = '<div class="monday-board-empty">Nenhum registro encontrado nesta visão com os filtros atuais.</div>';
+      const totalFonte = dadosOperacaoAtuais.length;
+      board.innerHTML = `<div class="monday-board-empty">Nenhum registro foi classificado nesta visão. Fonte operacional carregada: ${totalFonte} registro(s). Use <b>Quadro principal</b> para conferir todos os dados.</div>`;
       return;
     }
 
@@ -460,8 +454,8 @@
     `).join("");
   }
 
-  function atualizarPaginas(dadosFiltrados) {
-    atualizarOperacao(dadosFiltrados);
+  function atualizarPaginas(dadosFiltrados, dadosOperacao) {
+    atualizarOperacao(Array.isArray(dadosOperacao) ? dadosOperacao : dadosFiltrados);
     renderAjustes(dadosFiltrados);
     renderEquipe(dadosFiltrados);
   }

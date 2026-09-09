@@ -1,0 +1,9 @@
+V24.18
+2026-09-09
+
+Correção estrutural da Operação:
+- a página Validação de Materiais deixa de depender da vw_materiais_bi_consolidada para o board;
+- os dados operacionais são lidos diretamente de monday_validacao_materiais;
+- os filtros atuais do BI continuam sendo aplicados;
+- Quadro principal mostra o board real carregado;
+- níveis são classificados a partir dos campos reais da linha do Monday, com aliases e tolerância a nomes de coluna.

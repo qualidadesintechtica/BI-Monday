@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const tituloPagina = document.querySelector(".topbar h1");
 
   let dadosCompletos = [];
+  let dadosOperacaoMonday = [];
   let paginaAtual = "resumo";
 
   const filtros = [
@@ -74,7 +75,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
-    window.atualizarPaginasBI?.(dadosFiltrados);
+    const dadosOperacaoFiltrados = window.aplicarFiltros(dadosOperacaoMonday.length ? dadosOperacaoMonday : dadosCompletos);
+    window.atualizarPaginasBI?.(dadosFiltrados, dadosOperacaoFiltrados);
     window.atualizarIndicadoresBI?.(dadosFiltrados);
     window.atualizarResultadosAlcancados?.();
     window.atualizarReuniaoNQ?.();
@@ -133,6 +135,13 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (statusCarregamento) statusCarregamento.textContent = "Carregando dados...";
       dadosCompletos = await window.carregarDadosBI();
       console.log("Total de registros:", dadosCompletos.length);
+
+      try {
+        dadosOperacaoMonday = await window.carregarDadosOperacaoMonday();
+      } catch (erroOperacao) {
+        console.warn("Não foi possível carregar diretamente monday_validacao_materiais; usando a view consolidada como contingência.", erroOperacao);
+        dadosOperacaoMonday = dadosCompletos;
+      }
       popularFiltros();
       mostrarUltimaAtualizacao();
       atualizarTela();

@@ -84,5 +84,60 @@
     return todosOsDados;
   }
 
+
+  async function carregarDadosOperacaoMonday() {
+    const TABLE_NAME = "monday_validacao_materiais";
+    const tamanhoLote = 1000;
+    let inicio = 0;
+    let todos = [];
+
+    while (true) {
+      const fim = inicio + tamanhoLote - 1;
+      const { data, error } = await window.biSupabase
+        .from(TABLE_NAME)
+        .select("*")
+        .range(inicio, fim);
+
+      if (error) {
+        console.error("Erro ao carregar o board Validação de Materiais:", error);
+        throw error;
+      }
+
+      const lote = data || [];
+      todos = todos.concat(lote);
+      if (lote.length < tamanhoLote) break;
+      inicio += tamanhoLote;
+    }
+
+    const normalizados = todos.map(function (item, indice) {
+      return {
+        ...item,
+        monday_item_validacao: item.monday_item_validacao || item.monday_item_id || item.id || null,
+        monday_group_title: item.monday_group_title || item.group_title || item.grupo || null,
+        item_name: item.item_name || item.name || item.nome_item || item.material || null,
+        titulo: item.titulo || item.titulo_validacao || item.nome_material || item.item_name || item.name || null,
+        titulo_ua: item.titulo_ua || item.unidade_material || item.nome_ua || null,
+        unidade_material: item.unidade_material || item.titulo_ua || item.item_name || item.name || null,
+        esteira_producao: item.esteira_producao || item.esteira || null,
+        matriz_oferta: item.matriz_oferta || item.matriz || item.matriz_de_oferta || null,
+        bloco: item.bloco || null,
+        categoria_material: item.categoria_material || item.categoria || item.tipo_material || null,
+        escopo: item.escopo || item.nivel || item.nível || null,
+        formato: item.formato || null,
+        status_validacao: item.status_validacao || item.status || null,
+        revisor_validador: item.revisor_validador || item.revisor || null,
+        gestor_validacao_nq: item.gestor_validacao_nq || item.gestor || null,
+        chave_material: item.chave_material || item.monday_item_id || item.id_titulo || item.id || `monday:${indice}`,
+        __fonte_operacao: "monday_validacao_materiais"
+      };
+    });
+
+    console.log("Board Validação de Materiais carregado diretamente:", normalizados.length);
+    console.log("Grupos do board:", [...new Set(normalizados.map(x => x.monday_group_title || "Em branco"))]);
+    console.log("Categorias do board:", [...new Set(normalizados.map(x => x.categoria_material || "Em branco"))]);
+    return normalizados;
+  }
+
   window.carregarDadosBI = carregarDadosBI;
+  window.carregarDadosOperacaoMonday = carregarDadosOperacaoMonday;
 })();
