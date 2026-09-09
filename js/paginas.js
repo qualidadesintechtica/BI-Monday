@@ -165,69 +165,9 @@
     return "nao-classificado";
   }
 
-  function agregarMateriaisOperacao(dados, modo) {
-    const mapa = new Map();
-
-    (dados || []).forEach((item, indice) => {
-      const chave = String(
-        item?.id_titulo ||
-        item?.titulo ||
-        item?.titulo_ua ||
-        item?.chave_material ||
-        item?.monday_item_validacao ||
-        `material:${indice}`
-      ).trim();
-
-      if (!mapa.has(chave)) mapa.set(chave, []);
-      mapa.get(chave).push(item);
-    });
-
-    function statusGlobal(itens) {
-      const status = itens.map(x => normalizar(x?.status_validacao));
-      if (status.length && status.every(x => x.includes("validado"))) return "Validado";
-      if (status.some(x => x.includes("ajust"))) return "Ajustes - CONTEUDISTA E DA";
-      if (status.some(x => x.includes("revalidar") || x.includes("liberado"))) return "Liberado para validação - NQ";
-      if (status.length && status.every(x => x.includes("paus"))) return "Pausado";
-      if (status.some(x => x === "n/a" || x === "na")) return "N/A";
-      return "A liberar";
-    }
-
-    return [...mapa.entries()].map(([chave, itens]) => {
-      const base = itens[0] || {};
-      const status = statusGlobal(itens);
-      const grupos = itens.map(x => String(x?.monday_group_title || "").trim()).filter(Boolean);
-      const grupoMaisComum = grupos.length
-        ? [...new Set(grupos)].sort((a,b) => grupos.filter(x => x===b).length - grupos.filter(x => x===a).length)[0]
-        : null;
-
-      return {
-        ...base,
-        chave_material: chave,
-        item_name: modo === "nivel1-planos" ? (base?.titulo || base?.item_name || chave) : (base?.item_name || base?.titulo || chave),
-        unidade_material: modo === "nivel1-planos" ? `${itens.length} subelementos` : (base?.unidade_material || base?.titulo_ua || base?.item_name || ""),
-        categoria_material: modo === "nivel1-planos" ? "Plano de Produção" : "Global",
-        status_validacao: status,
-        monday_group_title: grupoMaisComum || nomeGrupoOperacao({ status_validacao: status }),
-        __subitems_count: itens.length,
-        __visao_sintetica: modo
-      };
-    });
-  }
-
   function filtrarPorNivelOperacao(dados) {
     if (nivelOperacaoAtual === "quadro-principal") return dados;
-
-    const classificados = (dados || []).filter(item => classificarNivelOperacao(item) === nivelOperacaoAtual);
-    if (classificados.length) return classificados;
-
-    // Os views NÍVEL 1 e NÍVEL 3 do Monday são visões agregadas do mesmo board.
-    // Quando a tabela sincronizada contém apenas subelementos, construímos a visão
-    // de materiais a partir dos registros já carregados em vez de devolver tela vazia.
-    if (nivelOperacaoAtual === "nivel1-planos" || nivelOperacaoAtual === "nivel3-global") {
-      return agregarMateriaisOperacao(dados, nivelOperacaoAtual);
-    }
-
-    return classificados;
+    return dados.filter(item => classificarNivelOperacao(item) === nivelOperacaoAtual);
   }
 
   function nomeGrupoOperacao(item) {
@@ -313,7 +253,7 @@
 
     if (!gruposOrdenados.length) {
       const totalFonte = dadosOperacaoAtuais.length;
-      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V24.19.</div>`;
+      board.innerHTML = `<div class="monday-board-empty">Nenhum registro foi classificado nesta visão. Fonte operacional carregada: ${totalFonte} registro(s). Use <b>Quadro principal</b> para conferir todos os dados.</div>`;
       return;
     }
 
