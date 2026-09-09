@@ -94,6 +94,38 @@
     });
   }
 
+  const ORDEM_GRUPOS_OPERACAO = [
+    "A liberar",
+    "Liberado para Validação",
+    "Em Ajustes – Conteudista e DA",
+    "Em Ajustes - Conteudista e DA",
+    "Em ajustes – MODELAGEM",
+    "Em ajustes - MODELAGEM",
+    "Em ajustes – Gerência de Tecnologia",
+    "Em ajustes - Gerência de Tecnologia",
+    "Validados",
+    "Aguardando geração PDF do PP",
+    "Pausado",
+    "Emailed Elementos",
+    "Em branco"
+  ];
+
+  function classeStatusOperacao(status) {
+    const s = normalizar(status);
+    if (s.includes("validado") && !s.includes("liberado")) return "board-status-validado";
+    if (s.includes("liberado") || s.includes("revalidar")) return "board-status-liberado";
+    if (s.includes("ajuste")) return "board-status-ajuste";
+    if (s.includes("pausado")) return "board-status-pausado";
+    if (s.includes("liberar")) return "board-status-aliberar";
+    return "board-status-neutro";
+  }
+
+  function ordemGrupo(nome) {
+    const n = normalizar(nome);
+    const idx = ORDEM_GRUPOS_OPERACAO.findIndex(x => normalizar(x) === n);
+    return idx === -1 ? 999 : idx;
+  }
+
   function renderTabelaOperacao(dados) {
     dadosOperacaoAtuais = dados || [];
     const filtrados = aplicarBuscaOperacao(dadosOperacaoAtuais);
@@ -102,7 +134,8 @@
     if (!tbody) return;
 
     if (contador) {
-      contador.textContent = `${filtrados.length} linha${filtrados.length === 1 ? "" : "s"} exibida${filtrados.length === 1 ? "" : "s"}`;
+      const grupos = new Set(filtrados.map(x => texto(x.monday_group_title))).size;
+      contador.textContent = `${filtrados.length} linha${filtrados.length === 1 ? "" : "s"} · ${grupos} grupo${grupos === 1 ? "" : "s"}`;
     }
 
     if (filtrados.length === 0) {
@@ -110,15 +143,40 @@
       return;
     }
 
-    tbody.innerHTML = filtrados.slice(0, 500).map(item => `
-      <tr>
-        ${COLUNAS_OPERACAO.map(c => `<td>${escapeHtml(c.get(item))}</td>`).join("")}
-      </tr>
-    `).join("");
+    const grupos = new Map();
+    filtrados.forEach(item => {
+      const grupo = texto(item.monday_group_title);
+      if (!grupos.has(grupo)) grupos.set(grupo, []);
+      grupos.get(grupo).push(item);
+    });
 
-    if (filtrados.length > 500 && contador) {
-      contador.textContent += " · mostrando as primeiras 500 na tela; o CSV exporta todas";
-    }
+    const gruposOrdenados = [...grupos.entries()].sort((a,b) => {
+      const oa = ordemGrupo(a[0]), ob = ordemGrupo(b[0]);
+      return oa !== ob ? oa-ob : a[0].localeCompare(b[0], "pt-BR");
+    });
+
+    tbody.innerHTML = gruposOrdenados.map(([grupo, itens], gi) => {
+      const id = `board-grupo-${gi}`;
+      const linhas = itens.map(item => `
+        <tr class="board-item-row" data-board-group="${id}">
+          ${COLUNAS_OPERACAO.map((c, ci) => {
+            const valor = c.get(item);
+            return ci === 6
+              ? `<td><span class="board-status ${classeStatusOperacao(valor)}">${escapeHtml(valor)}</span></td>`
+              : `<td>${escapeHtml(valor)}</td>`;
+          }).join("")}
+        </tr>`).join("");
+      return `
+        <tr class="board-group-row" data-board-toggle="${id}">
+          <td colspan="12">
+            <button type="button" class="board-group-toggle" aria-expanded="true">
+              <span class="board-chevron">▾</span>
+              <strong>${escapeHtml(grupo)}</strong>
+              <span class="board-group-count">${itens.length} item${itens.length === 1 ? "" : "s"}</span>
+            </button>
+          </td>
+        </tr>${linhas}`;
+    }).join("");
   }
 
   function atualizarOperacao(dados) {
@@ -282,6 +340,17 @@
   });
 
   document.addEventListener("click", function (event) {
+    const grupoRow = event.target?.closest?.("[data-board-toggle]");
+    if (grupoRow) {
+      const id = grupoRow.dataset.boardToggle;
+      const botao = grupoRow.querySelector(".board-group-toggle");
+      const recolher = botao?.getAttribute("aria-expanded") !== "false";
+      document.querySelectorAll(`[data-board-group="${id}"]`).forEach(row => row.classList.toggle("board-row-hidden", recolher));
+      if (botao) botao.setAttribute("aria-expanded", String(!recolher));
+      const seta = grupoRow.querySelector(".board-chevron");
+      if (seta) seta.textContent = recolher ? "▸" : "▾";
+      return;
+    }
     if (event.target?.id === "exportarOperacao") {
       const filtrados = aplicarBuscaOperacao(dadosOperacaoAtuais);
       baixarCSV("operacao_validacao_materiais.csv", COLUNAS_OPERACAO, filtrados);

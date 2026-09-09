@@ -1659,3 +1659,24 @@
     table-layout:auto;
   }
 }
+
+/* V24.14 — Operação em formato de board da Validação de Materiais */
+#viewOperacao .table-card{border-radius:14px;overflow:hidden}
+#viewOperacao .table-scroll{max-height:68vh;background:#fff}
+#viewOperacao .monday-board-table{border-collapse:separate;border-spacing:0;min-width:1450px}
+#viewOperacao .monday-board-table thead th{position:sticky;top:0;z-index:8;background:#f7f7f9;border-bottom:1px solid #dedbe3;color:#514b5b;font-weight:700}
+#viewOperacao .monday-board-table tbody td{background:#fff;border-right:1px solid #f0edf2;border-bottom:1px solid #ece9ef;white-space:nowrap;max-width:330px;overflow:hidden;text-overflow:ellipsis}
+#viewOperacao .monday-board-table tbody tr.board-item-row:hover td{background:#fff8fc}
+#viewOperacao .board-group-row td{padding:0!important;border:0!important;background:#fff!important;position:relative}
+#viewOperacao .board-group-toggle{width:100%;border:0;border-left:6px solid #db007d;background:#faf8fc;padding:11px 14px;display:flex;align-items:center;gap:9px;text-align:left;cursor:pointer;color:#2d1553;font:inherit}
+#viewOperacao .board-group-toggle strong{font-size:15px}
+#viewOperacao .board-chevron{width:16px;font-size:15px;color:#6f647a}
+#viewOperacao .board-group-count{margin-left:4px;padding:3px 8px;border-radius:999px;background:#eee8f3;color:#655a70;font-size:11px;font-weight:700}
+#viewOperacao .board-row-hidden{display:none}
+#viewOperacao .board-status{display:inline-block;min-width:118px;max-width:220px;padding:6px 10px;border-radius:4px;text-align:center;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#viewOperacao .board-status-validado{background:#00c875;color:#fff}
+#viewOperacao .board-status-liberado{background:#579bfc;color:#fff}
+#viewOperacao .board-status-ajuste{background:#fdab3d;color:#3b2a00}
+#viewOperacao .board-status-pausado{background:#c4c4c4;color:#333}
+#viewOperacao .board-status-aliberar{background:#e2445c;color:#fff}
+#viewOperacao .board-status-neutro{background:#c4c4c4;color:#333}
