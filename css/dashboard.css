@@ -1715,3 +1715,15 @@
 #viewOperacao .board-status-neutro{background:#8495b5;color:#fff}
 #viewOperacao .monday-more-row{padding:9px 12px;background:#30344e;color:#afb3c6;font-size:10px;text-align:center}
 @media(max-width:900px){#viewOperacao{margin:-18px;padding:18px 14px 32px}.monday-group-column-preview,.monday-group-summary-row{overflow-x:auto}#viewOperacao .monday-operation-titlebar h2{font-size:23px}}
+
+
+/* ============================================================
+   V24.16 · Operação — níveis reais do board + grupos recolhidos
+   ============================================================ */
+#viewOperacao .monday-level-tab{font-weight:500;letter-spacing:0}
+#viewOperacao .monday-level-tab.active{font-weight:700}
+#viewOperacao .monday-group-header{min-height:58px}
+#viewOperacao .monday-group-name{line-height:1.05}
+#viewOperacao .monday-group-count{display:block}
+#viewOperacao .monday-board-meta{min-height:34px}
+#viewOperacao .monday-board-empty{margin-top:4px}

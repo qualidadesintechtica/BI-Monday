@@ -109,28 +109,66 @@
     ].filter(Boolean).join(" "));
   }
 
+  /*
+    As abas do Monday são VISÕES do mesmo board.
+    Aqui a classificação usa primeiro os campos estruturados da base
+    (categoria_material / escopo) e só depois aplica fallbacks de texto.
+
+    Categorias confirmadas no próprio BI:
+      - Plano de Produção
+      - Unidade de Aprendizagem
+      - Avaliação Lato / Avaliação A1 ... A5
+
+    Isso evita o erro da V24.15, que tentava descobrir o nível apenas
+    procurando palavras soltas no título do material.
+  */
+  function classificarNivelOperacao(item) {
+    const categoria = normalizar(item?.categoria_material);
+    const escopo = normalizar(item?.escopo);
+    const formato = normalizar(item?.formato);
+    const nome = normalizar(item?.item_name || item?.unidade_material);
+    const titulo = normalizar(item?.titulo);
+    const base = [categoria, escopo, formato, nome, titulo, normalizar(item?.titulo_ua)].join(" ");
+
+    // NÍVEL 3 tem prioridade porque uma categoria como "Avaliação Global"
+    // também contém a palavra avaliação.
+    if (
+      /(^|\b)(nivel 3|nivel3|n3)(\b|$)/.test(escopo) ||
+      /(^|\b)global(\b|$)/.test(categoria) ||
+      /(^|\b)global(\b|$)/.test(escopo) ||
+      /(^|\b)global(\b|$)/.test(formato) ||
+      /(^|\b)global(\b|$)/.test(nome)
+    ) return "nivel3-global";
+
+    if (
+      categoria === "plano de producao" ||
+      categoria === "plano producao" ||
+      /^plano de producao\b/.test(categoria) ||
+      /(^|\b)(nivel 1|nivel1|n1)(\b|$)/.test(escopo) ||
+      /(^|\b)plano de producao(\b|$)/.test(base)
+    ) return "nivel1-planos";
+
+    if (
+      item?.eh_ua === true ||
+      categoria === "unidade de aprendizagem" ||
+      categoria === "ua" ||
+      /(^|\b)(nivel 2|nivel2|n2)(\b|$)/.test(escopo) && /\bua\b|unidade de aprendizagem/.test(base) ||
+      /^ua(?:\s|[-–—_]|\d|$)/.test(nome)
+    ) return "nivel2-ua";
+
+    if (
+      /^avaliacao\b/.test(categoria) ||
+      categoria === "bdq" ||
+      /(^|\b)(nivel 2|nivel2|n2)(\b|$)/.test(escopo) && /avaliacao|\bbdq\b/.test(base) ||
+      /^a[1-5](?:\s|[-–—_]|$)/.test(nome)
+    ) return "nivel2-avaliacoes";
+
+    return "nao-classificado";
+  }
+
   function filtrarPorNivelOperacao(dados) {
     if (nivelOperacaoAtual === "quadro-principal") return dados;
-
-    return dados.filter(item => {
-      const base = campoTextoOperacao(item);
-      const categoria = normalizar(item?.categoria_material);
-      const nome = normalizar(item?.item_name || item?.unidade_material);
-
-      if (nivelOperacaoAtual === "nivel1-planos") {
-        return /plano/.test(base) || /producao/.test(categoria) && /plano/.test(base);
-      }
-      if (nivelOperacaoAtual === "nivel2-ua") {
-        return categoria === normalizar("Unidade de Aprendizagem") || /unidade de aprendizagem/.test(base) || /^ua\b/.test(nome);
-      }
-      if (nivelOperacaoAtual === "nivel2-avaliacoes") {
-        return /avaliacao/.test(base) || /^a[1-5]\b/.test(nome) || /\ba[1-5]\b/.test(categoria);
-      }
-      if (nivelOperacaoAtual === "nivel3-global") {
-        return /\bglobal\b/.test(base) || /nivel 3/.test(base);
-      }
-      return true;
-    });
+    return dados.filter(item => classificarNivelOperacao(item) === nivelOperacaoAtual);
   }
 
   function nomeGrupoOperacao(item) {
@@ -202,6 +240,18 @@
       contador.textContent = `${materiais} materiais · ${filtrados.length} registros`;
     }
 
+    const descricao = document.getElementById("operacaoNivelDescricao");
+    if (descricao) {
+      const nomes = {
+        "nivel1-planos": "NÍVEL 1 - PLANOS · Plano de Produção",
+        "nivel2-ua": "NÍVEL 2 - UA · Unidade de Aprendizagem",
+        "nivel2-avaliacoes": "NÍVEL 2 - AVALIAÇÕES · Avaliações",
+        "nivel3-global": "NÍVEL 3 - GLOBAL",
+        "quadro-principal": "Quadro principal · todos os materiais"
+      };
+      descricao.textContent = nomes[nivelOperacaoAtual] || "Quadro principal";
+    }
+
     if (!gruposOrdenados.length) {
       board.innerHTML = '<div class="monday-board-empty">Nenhum registro encontrado nesta visão com os filtros atuais.</div>';
       return;
@@ -209,6 +259,11 @@
 
     board.innerHTML = gruposOrdenados.map(([nome, itens]) => {
       const chaveGrupo = normalizar(nome).replace(/[^a-z0-9]+/g, "-");
+      // Monday abre a visão com os grupos recolhidos. O usuário expande quando quiser.
+      if (!gruposFechadosOperacao.has(`__visto__:${chaveGrupo}`)) {
+        gruposFechadosOperacao.add(chaveGrupo);
+        gruposFechadosOperacao.add(`__visto__:${chaveGrupo}`);
+      }
       const fechado = gruposFechadosOperacao.has(chaveGrupo);
       const materiais = new Set(itens.map(chaveMaterialOperacao).filter(Boolean)).size;
       const amostra = itens.slice(0, 300);

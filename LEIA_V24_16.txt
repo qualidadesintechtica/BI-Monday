@@ -1,0 +1,13 @@
+BI Monday V24.16 — Operação
+
+Correção da V24.15: as abas não são mais inferidas apenas por palavras no título.
+A classificação usa os campos estruturados categoria_material e escopo, preservando o filtro global atual do BI.
+
+Mapeamento:
+- NÍVEL 1 - PLANOS = Plano de Produção
+- NÍVEL 2 - UA = Unidade de Aprendizagem
+- NÍVEL 2 - AVALIAÇÕES = categorias iniciadas por Avaliação, BDQ e A1-A5
+- NÍVEL 3 - GLOBAL = registros marcados como Global / Nível 3
+- Quadro principal = todos os registros que passaram pelos filtros
+
+Os grupos são apresentados recolhidos, no padrão visual do Monday, e podem ser expandidos para consultar as linhas.
