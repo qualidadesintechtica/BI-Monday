@@ -1577,7 +1577,6 @@
 .nq-profile-empty{color:#aaa1ad}
 .nq-academic-source{font-size:10px;color:#877e8d}
 @media(max-width:900px){.nq-profile-search{width:100%;max-width:none;min-width:0}.nq-academic-table-card .nq-viz-head{flex-direction:column}}
-
 /* ============================================================
    V24.14 · Correção de leitura da matriz NQ
    - evita coluna Professor cobrindo Formações

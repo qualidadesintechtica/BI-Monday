@@ -1,2 +1,9 @@
 V24.14
+2026-09-09
+
 Correção de leitura das tabelas NQ: matriz de formação sem sobreposição da coluna Professor e com conteúdo integral.
+
+Implementação da visão de Operações em formato de board da Validação de Materiais, preservando os filtros atuais do BI.
+
+Histórico:
+V24.13 — Perfil Acadêmico NQ + Currículo Lattes integrado à importação Excel.
