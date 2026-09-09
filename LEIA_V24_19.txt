@@ -1,0 +1,6 @@
+V24.19 — Operação com Níveis agregados
+
+Esta versão corrige o vazio em NÍVEL 1 - PLANOS e NÍVEL 3 - GLOBAL.
+Essas abas são tratadas como visões agregadas do board: se não houver linhas explicitamente classificadas, o BI agrupa os registros do Monday por material/título e gera uma linha de material com status consolidado.
+
+O selo V24.19 aparece na barra da Operação. Se ele não aparecer após publicar, a versão antiga ainda está sendo servida.
