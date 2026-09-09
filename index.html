@@ -413,7 +413,7 @@
               <div class="nq-import-head">
                 <div>
                   <strong>Importar planilha atualizada</strong>
-                  <small>Formato aceito: .xlsx ou .xls · aba obrigatória: Export</small>
+                  <small>Formato aceito: .xlsx ou .xls · usa a aba Export e, quando existir, Currículo Lattes Estruturado</small>
                 </div>
                 <span class="nq-import-badge">Excel → Supabase</span>
               </div>
@@ -449,11 +449,12 @@
                       <th>Linhas</th>
                       <th>Especialistas</th>
                       <th>Formações</th>
+                      <th>Perfis Lattes</th>
                       <th>Erros</th>
                     </tr>
                   </thead>
                   <tbody id="tbodyNQImportacoes">
-                    <tr><td colspan="7">Nenhuma importação carregada.</td></tr>
+                    <tr><td colspan="8">Nenhuma importação carregada.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -549,7 +550,54 @@
           </div>
         </section>
 
-        <p class="meeting-source">Fonte: Monday.com sincronizada no Supabase.  Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
+
+
+        <section class="meeting-section nq-academic-section">
+          <div class="meeting-section-title">
+            <span>08</span>
+            <div>
+              <h3>Perfil acadêmico dos especialistas</h3>
+              <p>Formação acadêmica, titulação, experiência docente e profissional, gestão, pesquisa e áreas de atuação consolidadas do Currículo Lattes.</p>
+            </div>
+          </div>
+
+          <div class="meeting-kpis meeting-kpis-6 nq-academic-kpis">
+            <article><span>Doutores</span><strong id="nqDoutores">--</strong><small>titulação máxima concluída</small></article>
+            <article><span>Mestres</span><strong id="nqMestres">--</strong><small>titulação máxima concluída</small></article>
+            <article><span>Especialistas</span><strong id="nqEspecialistas">--</strong><small>titulação máxima concluída</small></article>
+            <article><span>Mestres/Doutores</span><strong id="nqPctStricto">--</strong><small>percentual do corpo</small></article>
+            <article><span>Experiência docente</span><strong id="nqComDocencia">--</strong><small>com registro no Lattes</small></article>
+            <article><span>Pesquisa</span><strong id="nqComPesquisa">--</strong><small>com grupos/projetos informados</small></article>
+          </div>
+
+          <div class="nq-coverage-grid">
+            <article class="nq-viz-card">
+              <div class="nq-viz-head"><div><strong>Titulação máxima</strong><small>Distribuição dos especialistas pela maior titulação concluída.</small></div></div>
+              <div id="graficoNQTitulacao" class="nq-viz-chart nq-viz-chart-compact"></div>
+            </article>
+            <article class="nq-viz-card">
+              <div class="nq-viz-head"><div><strong>Dimensões de experiência</strong><small>Quantidade de especialistas com registro em cada dimensão.</small></div></div>
+              <div id="graficoNQExperiencias" class="nq-viz-chart nq-viz-chart-compact"></div>
+            </article>
+          </div>
+
+          <div class="nq-viz-card nq-academic-table-card">
+            <div class="nq-viz-head">
+              <div><strong>Perfil individual</strong><small>Uma linha por professor. Passe pelas colunas para consultar o perfil acadêmico completo.</small></div>
+              <input id="nqBuscaPerfil" class="nq-profile-search" type="search" placeholder="Buscar professor, formação ou área...">
+            </div>
+            <div class="table-scroll">
+              <table class="data-table nq-academic-table">
+                <thead><tr>
+                  <th>Professor</th><th>Titulação</th><th>Graduação</th><th>Especializações</th><th>Mestrado</th><th>Doutorado</th><th>Pós-doc</th><th>Docência</th><th>Experiência profissional</th><th>Gestão</th><th>Pesquisa</th><th>Áreas de atuação</th><th>Status</th>
+                </tr></thead>
+                <tbody id="tbodyNQPerfilAcademico"><tr><td colspan="13">Carregando...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <p class="meeting-source">Fonte: Monday.com + base de especialistas + Currículo Lattes, consolidados no Supabase. Operação e qualidade refletem o estado atual das bases sincronizadas.</p>
       </section>
 
       <section id="viewIndicadoresUC" class="page-view" data-page="indicadores-uc">
@@ -1298,7 +1346,7 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260908-v23-3-uma-linha-professor"></script>
+    <script src="js/reuniao-nq.js?v=20260909-v24-13-lattes"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>

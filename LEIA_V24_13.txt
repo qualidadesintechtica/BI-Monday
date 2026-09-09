@@ -1,0 +1,18 @@
+BI MONDAY V24.13 — PERFIL ACADÊMICO NQ / LATTES
+
+O QUE FOI ALTERADO
+1. A importação NQ continua usando a aba Export.
+2. Se existir a aba “Currículo Lattes Estruturado”, ela é lida automaticamente.
+3. Os perfis são associados pelo nome do professor e gravados no Supabase.
+4. A página Reunião NQ ganhou KPIs, gráficos e tabela de perfil acadêmico.
+5. O perfil mostra graduação, especialização, mestrado, doutorado, pós-doc, docência, experiência profissional, gestão, pesquisa e áreas de atuação.
+
+ANTES DE PUBLICAR
+1. No Supabase SQL Editor, execute docs/V24_13_PERFIL_ACADEMICO_LATTES_NQ.sql.
+2. Publique novamente a Edge Function supabase/functions/import-nq-especialistas.
+3. Suba os arquivos atualizados no GitHub.
+4. Abra o BI com Ctrl+F5.
+5. Em Reunião NQ, importe Professores_Lattes_Estruturado.xlsx.
+
+IMPORTANTE
+A função continua compatível com planilhas antigas que contenham somente a aba Export; nesse caso apenas o perfil Lattes não é atualizado.

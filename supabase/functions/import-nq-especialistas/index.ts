@@ -92,6 +92,34 @@ function splitFormacoes(v: unknown): string[] {
   return [...new Map(itens.map(x => [x.toLocaleLowerCase("pt-BR"), x])).values()];
 }
 
+
+const LATTES_COL = {
+  professor: "PROFESSOR",
+  graduacao1: "GRADUAÇÃO 1",
+  graduacao2: "GRADUAÇÃO 2",
+  graduacao3: "GRADUAÇÃO 3+",
+  especializacao1: "ESPECIALIZAÇÃO 1",
+  especializacao2: "ESPECIALIZAÇÃO 2",
+  especializacao3: "ESPECIALIZAÇÃO 3+",
+  mestrado: "MESTRADO",
+  doutorado: "DOUTORADO",
+  posDoutorado: "PÓS-DOUTORADO",
+  titulacaoConcluida: "TITULAÇÃO MÁXIMA CONCLUÍDA",
+  titulacaoAndamento: "TITULAÇÃO EM ANDAMENTO",
+  experienciaDocente: "EXPERIÊNCIA DOCENTE",
+  experienciaProfissional: "EXPERIÊNCIA PROFISSIONAL",
+  gestao: "GESTÃO / COORDENAÇÃO",
+  pesquisa: "PESQUISA / GRUPOS",
+  areas: "ÁREAS DE ATUAÇÃO",
+  destaques: "DESTAQUES / OBSERVAÇÕES",
+  status: "STATUS DA VERIFICAÇÃO",
+  fonte: "FONTE COMPLEMENTAR",
+};
+
+function nomeKey(v: unknown): string {
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toLocaleLowerCase("pt-BR");
+}
+
 const COL = {
   area: "MARCA | ÁREA CONTRATANTE",
   origem: "MARCA ORIGEM",
@@ -157,6 +185,7 @@ Deno.serve(async (req) => {
     const arquivoTamanho = Number(body?.arquivo_tamanho || 0);
     const sheetName = txt(body?.aba) || "Export";
     const rows = Array.isArray(body?.rows) ? body.rows : [];
+    const rowsLattes = Array.isArray(body?.rows_lattes) ? body.rows_lattes : [];
 
     if (!rows.length) {
       return json({
@@ -199,6 +228,12 @@ Deno.serve(async (req) => {
     }> = [];
 
     const erros: string[] = [];
+    const lattesPorProfessor = new Map<string, Record<string, unknown>>();
+    rowsLattes.forEach((r: Record<string, unknown>) => {
+      const professor = txt(r[LATTES_COL.professor]);
+      if (professor) lattesPorProfessor.set(nomeKey(professor), r);
+    });
+
 
     rows.forEach((r: Record<string, unknown>, i: number) => {
       const professor = txt(r[COL.professor]);
@@ -266,6 +301,7 @@ Deno.serve(async (req) => {
     let novos = 0;
     let atualizados = 0;
     let formacoesGravadas = 0;
+    let perfisLattesGravados = 0;
     const idsAtivos: number[] = [];
 
     for (const item of validos) {
@@ -349,6 +385,42 @@ Deno.serve(async (req) => {
 
         formacoesGravadas += payloadFormacoes.length;
       }
+
+      const perfilLattes = lattesPorProfessor.get(nomeKey(item.professor));
+      if (perfilLattes) {
+        const perfilPayload = {
+          especialista_id: especialistaId,
+          graduacao_1: txt(perfilLattes[LATTES_COL.graduacao1]),
+          graduacao_2: txt(perfilLattes[LATTES_COL.graduacao2]),
+          graduacao_3_mais: txt(perfilLattes[LATTES_COL.graduacao3]),
+          especializacao_1: txt(perfilLattes[LATTES_COL.especializacao1]),
+          especializacao_2: txt(perfilLattes[LATTES_COL.especializacao2]),
+          especializacao_3_mais: txt(perfilLattes[LATTES_COL.especializacao3]),
+          mestrado: txt(perfilLattes[LATTES_COL.mestrado]),
+          doutorado: txt(perfilLattes[LATTES_COL.doutorado]),
+          pos_doutorado: txt(perfilLattes[LATTES_COL.posDoutorado]),
+          titulacao_maxima_concluida: txt(perfilLattes[LATTES_COL.titulacaoConcluida]),
+          titulacao_em_andamento: txt(perfilLattes[LATTES_COL.titulacaoAndamento]),
+          experiencia_docente: txt(perfilLattes[LATTES_COL.experienciaDocente]),
+          experiencia_profissional: txt(perfilLattes[LATTES_COL.experienciaProfissional]),
+          gestao_coordenacao: txt(perfilLattes[LATTES_COL.gestao]),
+          pesquisa_grupos: txt(perfilLattes[LATTES_COL.pesquisa]),
+          areas_atuacao: txt(perfilLattes[LATTES_COL.areas]),
+          destaques_observacoes: txt(perfilLattes[LATTES_COL.destaques]),
+          status_verificacao: txt(perfilLattes[LATTES_COL.status]),
+          fonte_complementar: txt(perfilLattes[LATTES_COL.fonte]),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: perfilError } = await admin
+          .from("nq_especialistas_perfil_academico")
+          .upsert(perfilPayload, { onConflict: "especialista_id" });
+
+        if (perfilError) {
+          throw new Error(`Perfil Lattes de ${item.professor}: ${perfilError.message}`);
+        }
+        perfisLattesGravados++;
+      }
     }
 
     const todosIds = (existentes || []).map(x => Number(x.id));
@@ -385,6 +457,7 @@ Deno.serve(async (req) => {
       especialistas_atualizados: atualizados,
       especialistas_inativados: idsInativar.length,
       formacoes_gravadas: formacoesGravadas,
+      perfis_lattes_gravados: perfisLattesGravados,
       linhas_com_erro: linhasComErro,
       erros: erros.slice(0, 30),
       mensagem,
@@ -401,6 +474,7 @@ Deno.serve(async (req) => {
         especialistas_atualizados: atualizados,
         especialistas_inativados: idsInativar.length,
         formacoes_gravadas: formacoesGravadas,
+        perfis_lattes_gravados: perfisLattesGravados,
         linhas_com_erro: linhasComErro,
         mensagem,
         finished_at: finalizadoEm,

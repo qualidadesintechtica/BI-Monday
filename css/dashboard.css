@@ -1560,3 +1560,102 @@
   padding:5px 7px;
   font-size:10px;
 }
+
+
+/* V24.13 · Perfil acadêmico NQ / Currículo Lattes */
+.nq-academic-section{margin-top:24px}
+.nq-academic-kpis{margin-bottom:18px}
+.nq-academic-kpis article small{display:block;margin-top:4px;color:#776e7d;font-size:10px}
+.nq-viz-chart-compact{height:300px}
+.nq-profile-search{min-width:280px;max-width:420px;width:38%;border:1px solid #d8cce0;border-radius:10px;padding:9px 11px;background:#fff;color:#2d1553;font:inherit;font-size:12px}
+.nq-academic-table{min-width:2200px}
+.nq-academic-table th{white-space:nowrap}
+.nq-academic-table td{vertical-align:top;max-width:310px;line-height:1.4}
+.nq-academic-table td:nth-child(1){min-width:190px;position:sticky;left:0;background:#fff;z-index:1}
+.nq-academic-table thead th:first-child{position:sticky;left:0;z-index:3;background:#f8f4fa}
+.nq-profile-text{white-space:normal;overflow-wrap:anywhere;color:#4c4352;font-size:11px}
+.nq-profile-empty{color:#aaa1ad}
+.nq-academic-source{font-size:10px;color:#877e8d}
+@media(max-width:900px){.nq-profile-search{width:100%;max-width:none;min-width:0}.nq-academic-table-card .nq-viz-head{flex-direction:column}}
+
+/* ============================================================
+   V24.14 · Correção de leitura da matriz NQ
+   - evita coluna Professor cobrindo Formações
+   - preserva comportamento de célula de tabela
+   - faz a visão de 5 colunas caber integralmente em desktop
+   ============================================================ */
+.nq-matrix-card .table-scroll{
+  overflow-x:auto;
+  overflow-y:auto;
+}
+
+.nq-formation-matrix.nq-professor-one-row{
+  width:100%;
+  min-width:0;
+  table-layout:fixed;
+}
+
+.nq-formation-matrix.nq-professor-one-row th:nth-child(1),
+.nq-formation-matrix.nq-professor-one-row td:nth-child(1){
+  width:24%;
+  min-width:0;
+  position:static;
+  left:auto;
+}
+
+.nq-formation-matrix.nq-professor-one-row th:nth-child(2),
+.nq-formation-matrix.nq-professor-one-row td:nth-child(2){
+  width:30%;
+  min-width:0;
+}
+
+.nq-formation-matrix.nq-professor-one-row th:nth-child(3),
+.nq-formation-matrix.nq-professor-one-row td:nth-child(3){
+  width:10%;
+  min-width:0;
+  text-align:center;
+}
+
+.nq-formation-matrix.nq-professor-one-row th:nth-child(4),
+.nq-formation-matrix.nq-professor-one-row td:nth-child(4){
+  width:26%;
+  min-width:0;
+}
+
+.nq-formation-matrix.nq-professor-one-row th:nth-child(5),
+.nq-formation-matrix.nq-professor-one-row td:nth-child(5){
+  width:10%;
+  min-width:0;
+}
+
+/* TD precisa continuar sendo table-cell. Os chips continuam quebrando linha. */
+.nq-formation-matrix .nq-multivalue-cell,
+.nq-formacoes-lista .nq-multivalue-cell{
+  display:table-cell;
+  white-space:normal;
+  overflow:visible;
+  vertical-align:top;
+}
+
+.nq-formation-matrix .nq-chip,
+.nq-formacoes-lista .nq-chip{
+  display:inline-block;
+  max-width:100%;
+  margin:2px 4px 2px 0;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+
+.nq-formation-matrix td,
+.nq-formation-matrix th{
+  overflow:visible;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:900px){
+  .nq-formation-matrix.nq-professor-one-row{
+    min-width:900px;
+    table-layout:auto;
+  }
+}
