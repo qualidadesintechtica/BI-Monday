@@ -1727,3 +1727,10 @@
 #viewOperacao .monday-group-count{display:block}
 #viewOperacao .monday-board-meta{min-height:34px}
 #viewOperacao .monday-board-empty{margin-top:4px}
+
+
+/* V24.21 · Exportação da visão Operação */
+#viewOperacao .monday-export-button{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:9px 14px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+#viewOperacao .monday-export-button:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.34)}
+#viewOperacao .monday-export-button:focus-visible{outline:2px solid #a86cf5;outline-offset:2px}
+@media(max-width:700px){#viewOperacao .monday-operation-titlebar{align-items:flex-start;gap:12px;flex-wrap:wrap}#viewOperacao .monday-export-button{width:100%}}

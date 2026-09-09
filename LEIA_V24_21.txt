@@ -1,0 +1,7 @@
+V24.21 — Exportação da Operação
+
+Alteração única sobre a V24.20:
+- botão Exportar CSV na página Operação;
+- exporta somente a aba selecionada;
+- respeita os filtros atuais do BI;
+- não altera consultas, classificação, Supabase ou carregamento dos dados.

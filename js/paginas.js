@@ -540,6 +540,25 @@
       return;
     }
 
+    if (event.target?.id === "exportarOperacao") {
+      const linhas = filtrarPorNivelOperacao(dadosOperacaoAtuais || []);
+      if (!linhas.length) {
+        alert("Não há registros para exportar nesta visão com os filtros atuais.");
+        return;
+      }
+      const nomes = {
+        "nivel1-planos": "Nivel_1_Planos",
+        "nivel2-ua": "Nivel_2_UA",
+        "nivel2-avaliacoes": "Nivel_2_Avaliacoes",
+        "nivel3-global": "Nivel_3_Global",
+        "quadro-principal": "Quadro_Principal"
+      };
+      const hoje = new Date().toISOString().slice(0, 10);
+      const visao = nomes[nivelOperacaoAtual] || "Quadro_Principal";
+      baixarCSV(`Validacao_Materiais_${visao}_${hoje}.csv`, COLUNAS_OPERACAO, linhas);
+      return;
+    }
+
     if (event.target?.id === "exportarAjustes") {
       const colunas = [
         { label: "Título", get: x => texto(x.titulo) },

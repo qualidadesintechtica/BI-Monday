@@ -1,8 +1,5 @@
-V24.20
+V24.21
 2026-09-09
 
-Correção definitiva da fonte da página Operação:
-- a Operação usa a mesma base consolidada já carregada pelo BI;
-- removida dependência da leitura direta de monday_validacao_materiais no navegador;
-- evita retorno vazio causado por RLS da tabela operacional;
-- Quadro principal e níveis recebem a base já filtrada pelo filtro atual do BI.
+Operação: adicionada exportação CSV da visão atual, respeitando os filtros do BI e a aba selecionada.
+Base funcional preservada da V24.20.
