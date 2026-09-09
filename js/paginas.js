@@ -70,117 +70,189 @@
 
   const COLUNAS_OPERACAO = [
     { label: "Título", get: x => texto(x.titulo) },
-    { label: "Unidade/Material", get: x => texto(x.unidade_material) },
+    { label: "Unidade/Material", get: x => texto(x.unidade_material || x.item_name || x.titulo_ua) },
     { label: "Categoria", get: x => texto(x.categoria_material) },
     { label: "Bloco", get: x => texto(x.bloco) },
-    { label: "Esteira", get: x => texto(x.esteira_producao) },
     { label: "Matriz", get: x => texto(x.matriz_oferta) },
-    { label: "Status", get: x => texto(x.status_validacao) },
+    { label: "Status Validação", get: x => texto(x.status_validacao) },
     { label: "Gestor", get: x => texto(x.gestor_validacao_nq) },
-    { label: "Revisor", get: x => texto(x.revisor_validador) },
-    { label: "Professor(es)", get: x => texto(x.professores || [x.professor_1, x.professor_2].filter(Boolean).join(", ")) },
-    { label: "Liberação", get: x => formatarData(x.data_liberacao_validacao) },
-    { label: "Validação", get: x => formatarData(x.data_validacao) }
+    { label: "Revisor", get: x => texto(x.revisor_validador) }
   ];
-
-  let dadosOperacaoAtuais = [];
-  let dadosAjustesAtuais = [];
-
-  function aplicarBuscaOperacao(dados) {
-    const busca = normalizar(document.getElementById("buscaOperacao")?.value);
-    if (!busca) return dados;
-    return dados.filter(item => {
-      return COLUNAS_OPERACAO.some(c => normalizar(c.get(item)).includes(busca));
-    });
-  }
 
   const ORDEM_GRUPOS_OPERACAO = [
     "A liberar",
     "Liberado para Validação",
-    "Em Ajustes – Conteudista e DA",
     "Em Ajustes - Conteudista e DA",
-    "Em ajustes – MODELAGEM",
-    "Em ajustes - MODELAGEM",
-    "Em ajustes – Gerência de Tecnologia",
+    "Em ajustes - Modelagem",
     "Em ajustes - Gerência de Tecnologia",
     "Validados",
+    "Validado",
+    "N/A",
     "Aguardando geração PDF do PP",
     "Pausado",
-    "Emailed Elementos",
-    "Em branco"
+    "Emailed Elementos"
   ];
 
+  let dadosOperacaoAtuais = [];
+  let dadosAjustesAtuais = [];
+  let nivelOperacaoAtual = "quadro-principal";
+  const gruposFechadosOperacao = new Set();
+
+  function campoTextoOperacao(item) {
+    return normalizar([
+      item?.categoria_material,
+      item?.escopo,
+      item?.item_name,
+      item?.titulo,
+      item?.titulo_ua,
+      item?.formato
+    ].filter(Boolean).join(" "));
+  }
+
+  function filtrarPorNivelOperacao(dados) {
+    if (nivelOperacaoAtual === "quadro-principal") return dados;
+
+    return dados.filter(item => {
+      const base = campoTextoOperacao(item);
+      const categoria = normalizar(item?.categoria_material);
+      const nome = normalizar(item?.item_name || item?.unidade_material);
+
+      if (nivelOperacaoAtual === "nivel1-planos") {
+        return /plano/.test(base) || /producao/.test(categoria) && /plano/.test(base);
+      }
+      if (nivelOperacaoAtual === "nivel2-ua") {
+        return categoria === normalizar("Unidade de Aprendizagem") || /unidade de aprendizagem/.test(base) || /^ua\b/.test(nome);
+      }
+      if (nivelOperacaoAtual === "nivel2-avaliacoes") {
+        return /avaliacao/.test(base) || /^a[1-5]\b/.test(nome) || /\ba[1-5]\b/.test(categoria);
+      }
+      if (nivelOperacaoAtual === "nivel3-global") {
+        return /\bglobal\b/.test(base) || /nivel 3/.test(base);
+      }
+      return true;
+    });
+  }
+
+  function nomeGrupoOperacao(item) {
+    const grupo = String(item?.monday_group_title || "").trim();
+    if (grupo) return grupo;
+    const status = normalizar(item?.status_validacao);
+    if (!status || status === "em branco") return "A liberar";
+    if (status.includes("paus")) return "Pausado";
+    if (status === "n/a" || status === "na") return "N/A";
+    if (status.includes("validado")) return "Validado";
+    if (status.includes("liberado")) return "Liberado para Validação";
+    if (status.includes("modelagem")) return "Em ajustes - Modelagem";
+    if (status.includes("tecnologia")) return "Em ajustes - Gerência de Tecnologia";
+    if (status.includes("conteudista")) return "Em Ajustes - Conteudista e DA";
+    return "Outros";
+  }
+
+  function classeGrupoOperacao(nome) {
+    const n = normalizar(nome);
+    if (n.includes("valid")) return "green";
+    if (n.includes("paus")) return "gray";
+    if (n.includes("ajust")) return "orange";
+    if (n.includes("liber")) return "blue";
+    if (n === "n/a" || n === "na") return "lightblue";
+    return "purple";
+  }
+
   function classeStatusOperacao(status) {
-    const s = normalizar(status);
-    if (s.includes("validado") && !s.includes("liberado")) return "board-status-validado";
-    if (s.includes("liberado") || s.includes("revalidar")) return "board-status-liberado";
-    if (s.includes("ajuste")) return "board-status-ajuste";
-    if (s.includes("pausado")) return "board-status-pausado";
-    if (s.includes("liberar")) return "board-status-aliberar";
-    return "board-status-neutro";
+    const n = normalizar(status);
+    if (n.includes("validado")) return "validado";
+    if (n.includes("liberado") || n.includes("revalidar")) return "liberado";
+    if (n.includes("ajust")) return "ajuste";
+    if (n.includes("paus")) return "pausado";
+    if (!n || n === "em branco" || n.includes("a liberar")) return "aliberar";
+    return "neutro";
+  }
+
+  function chaveMaterialOperacao(item) {
+    return String(item?.monday_item_validacao || item?.id_titulo || item?.titulo || item?.chave_material || item?.item_name || "").trim();
   }
 
   function ordemGrupo(nome) {
-    const n = normalizar(nome);
-    const idx = ORDEM_GRUPOS_OPERACAO.findIndex(x => normalizar(x) === n);
+    const idx = ORDEM_GRUPOS_OPERACAO.findIndex(x => normalizar(x) === normalizar(nome));
     return idx === -1 ? 999 : idx;
   }
 
-  function renderTabelaOperacao(dados) {
+  function renderBoardOperacao(dados) {
     dadosOperacaoAtuais = dados || [];
-    const filtrados = aplicarBuscaOperacao(dadosOperacaoAtuais);
-    const tbody = document.getElementById("tbodyOperacao");
+    const filtrados = filtrarPorNivelOperacao(dadosOperacaoAtuais);
+    const board = document.getElementById("operacaoBoard");
     const contador = document.getElementById("contadorOperacao");
-    if (!tbody) return;
-
-    if (contador) {
-      const grupos = new Set(filtrados.map(x => texto(x.monday_group_title))).size;
-      contador.textContent = `${filtrados.length} linha${filtrados.length === 1 ? "" : "s"} · ${grupos} grupo${grupos === 1 ? "" : "s"}`;
-    }
-
-    if (filtrados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" class="empty-table">Nenhum registro corresponde aos filtros atuais.</td></tr>';
-      return;
-    }
+    if (!board) return;
 
     const grupos = new Map();
     filtrados.forEach(item => {
-      const grupo = texto(item.monday_group_title);
+      const grupo = nomeGrupoOperacao(item);
       if (!grupos.has(grupo)) grupos.set(grupo, []);
       grupos.get(grupo).push(item);
     });
 
-    const gruposOrdenados = [...grupos.entries()].sort((a,b) => {
-      const oa = ordemGrupo(a[0]), ob = ordemGrupo(b[0]);
-      return oa !== ob ? oa-ob : a[0].localeCompare(b[0], "pt-BR");
+    const gruposOrdenados = [...grupos.entries()].sort((a, b) => {
+      const oa = ordemGrupo(a[0]);
+      const ob = ordemGrupo(b[0]);
+      return oa !== ob ? oa - ob : a[0].localeCompare(b[0], "pt-BR");
     });
 
-    tbody.innerHTML = gruposOrdenados.map(([grupo, itens], gi) => {
-      const id = `board-grupo-${gi}`;
-      const linhas = itens.map(item => `
-        <tr class="board-item-row" data-board-group="${id}">
-          ${COLUNAS_OPERACAO.map((c, ci) => {
-            const valor = c.get(item);
-            return ci === 6
-              ? `<td><span class="board-status ${classeStatusOperacao(valor)}">${escapeHtml(valor)}</span></td>`
-              : `<td>${escapeHtml(valor)}</td>`;
-          }).join("")}
-        </tr>`).join("");
+    if (contador) {
+      const materiais = new Set(filtrados.map(chaveMaterialOperacao).filter(Boolean)).size;
+      contador.textContent = `${materiais} materiais · ${filtrados.length} registros`;
+    }
+
+    if (!gruposOrdenados.length) {
+      board.innerHTML = '<div class="monday-board-empty">Nenhum registro encontrado nesta visão com os filtros atuais.</div>';
+      return;
+    }
+
+    board.innerHTML = gruposOrdenados.map(([nome, itens]) => {
+      const chaveGrupo = normalizar(nome).replace(/[^a-z0-9]+/g, "-");
+      const fechado = gruposFechadosOperacao.has(chaveGrupo);
+      const materiais = new Set(itens.map(chaveMaterialOperacao).filter(Boolean)).size;
+      const amostra = itens.slice(0, 300);
       return `
-        <tr class="board-group-row" data-board-toggle="${id}">
-          <td colspan="12">
-            <button type="button" class="board-group-toggle" aria-expanded="true">
-              <span class="board-chevron">▾</span>
-              <strong>${escapeHtml(grupo)}</strong>
-              <span class="board-group-count">${itens.length} item${itens.length === 1 ? "" : "s"}</span>
-            </button>
-          </td>
-        </tr>${linhas}`;
+        <section class="monday-board-group monday-group-${classeGrupoOperacao(nome)}" data-group-key="${escapeHtml(chaveGrupo)}">
+          <button type="button" class="monday-group-header" data-operacao-group-toggle="${escapeHtml(chaveGrupo)}" aria-expanded="${fechado ? "false" : "true"}">
+            <span class="monday-group-chevron">${fechado ? "›" : "⌄"}</span>
+            <span class="monday-group-name">${escapeHtml(nome)}</span>
+            <span class="monday-group-count">${materiais} Materiais / ${itens.length} Registros</span>
+          </button>
+          <div class="monday-group-content" ${fechado ? "hidden" : ""}>
+            <div class="monday-group-column-preview">
+              <span></span>
+              <span>Matriz de oferta</span>
+              <span>Bloco</span>
+              <span>Status Validação</span>
+            </div>
+            <div class="monday-group-summary-row">
+              <span class="monday-summary-title">${escapeHtml(nome)}</span>
+              <span class="monday-summary-bar monday-summary-matrix"></span>
+              <span class="monday-summary-bar monday-summary-block"></span>
+              <span class="monday-summary-bar monday-summary-status"></span>
+            </div>
+            <div class="monday-items-table-wrap">
+              <table class="monday-items-table">
+                <thead><tr>${COLUNAS_OPERACAO.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+                <tbody>
+                  ${amostra.map(item => `<tr>${COLUNAS_OPERACAO.map(c => {
+                    const valor = c.get(item);
+                    return c.label === "Status Validação"
+                      ? `<td><span class="board-status board-status-${classeStatusOperacao(valor)}">${escapeHtml(valor)}</span></td>`
+                      : `<td title="${escapeHtml(valor)}">${escapeHtml(valor)}</td>`;
+                  }).join("")}</tr>`).join("")}
+                </tbody>
+              </table>
+              ${itens.length > amostra.length ? `<div class="monday-more-row">Mostrando 300 de ${itens.length} registros neste grupo.</div>` : ""}
+            </div>
+          </div>
+        </section>`;
     }).join("");
   }
 
   function atualizarOperacao(dados) {
-    renderTabelaOperacao(dados || []);
+    renderBoardOperacao(dados || []);
   }
 
   function ehAjuste(item) {
@@ -333,27 +405,24 @@
     renderEquipe(dadosFiltrados);
   }
 
-  document.addEventListener("input", function (event) {
-    if (event.target?.id === "buscaOperacao") {
-      renderTabelaOperacao(dadosOperacaoAtuais);
-    }
-  });
-
   document.addEventListener("click", function (event) {
-    const grupoRow = event.target?.closest?.("[data-board-toggle]");
-    if (grupoRow) {
-      const id = grupoRow.dataset.boardToggle;
-      const botao = grupoRow.querySelector(".board-group-toggle");
-      const recolher = botao?.getAttribute("aria-expanded") !== "false";
-      document.querySelectorAll(`[data-board-group="${id}"]`).forEach(row => row.classList.toggle("board-row-hidden", recolher));
-      if (botao) botao.setAttribute("aria-expanded", String(!recolher));
-      const seta = grupoRow.querySelector(".board-chevron");
-      if (seta) seta.textContent = recolher ? "▸" : "▾";
+    const nivelTab = event.target?.closest?.("[data-operacao-nivel]");
+    if (nivelTab) {
+      nivelOperacaoAtual = nivelTab.dataset.operacaoNivel || "quadro-principal";
+      document.querySelectorAll("[data-operacao-nivel]").forEach(btn => btn.classList.toggle("active", btn === nivelTab));
+      const desc = document.getElementById("operacaoNivelDescricao");
+      if (desc) desc.textContent = nivelTab.textContent.replace(/^⌖\s*/, "").trim();
+      renderBoardOperacao(dadosOperacaoAtuais);
       return;
     }
-    if (event.target?.id === "exportarOperacao") {
-      const filtrados = aplicarBuscaOperacao(dadosOperacaoAtuais);
-      baixarCSV("operacao_validacao_materiais.csv", COLUNAS_OPERACAO, filtrados);
+
+    const groupToggle = event.target?.closest?.("[data-operacao-group-toggle]");
+    if (groupToggle) {
+      const key = groupToggle.dataset.operacaoGroupToggle;
+      if (gruposFechadosOperacao.has(key)) gruposFechadosOperacao.delete(key);
+      else gruposFechadosOperacao.add(key);
+      renderBoardOperacao(dadosOperacaoAtuais);
+      return;
     }
 
     if (event.target?.id === "exportarAjustes") {

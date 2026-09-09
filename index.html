@@ -23,7 +23,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260909-v24-14-board-operacao?v=20260908-v24-6"
+    href="css/dashboard.css?v=20260908-v24-6"
   >
 
 
@@ -950,7 +950,7 @@
         <div id="contadorGestoresMateriais" class="table-counter">--</div>
         <div class="table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr>
                 <th data-gm-sort="gestor" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="gestor">Gestor <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
                 <th data-gm-sort="titulo" aria-sort="none"><button class="gm-sort-button" type="button" data-gm-sort="titulo">Nome da UC <span class="gm-sort-icon" aria-hidden="true">↕</span></button></th>
@@ -1123,28 +1123,30 @@
 
 
 <section id="viewOperacao" class="page-view" data-page="operacao">
-        <div class="section-heading">
-          <div>
-            <h2>Operação · Validação de Materiais</h2>
-            <p>Visão operacional organizada pelos mesmos grupos da Validação de Materiais. Os filtros do BI acima foram mantidos.</p>
-          </div>
-          <div class="section-actions">
-            <input id="buscaOperacao" class="table-search" type="search" placeholder="Pesquisar nas linhas...">
-            <button id="exportarOperacao" class="action-button" type="button">Exportar CSV</button>
-          </div>
-        </div>
-        <div id="contadorOperacao" class="table-counter">--</div>
-        <div class="table-card">
-          <div class="table-scroll">
-            <table class="data-table monday-board-table">
-              <thead><tr>
-                <th>Título</th><th>UA</th><th>Categoria</th><th>Bloco</th><th>Esteira</th><th>Matriz</th><th>Status</th><th>Gestor</th><th>Revisor</th><th>Docente conteudista</th><th>Liberação</th><th>Validação</th>
-              </tr></thead>
-              <tbody id="tbodyOperacao" class="monday-board-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+  <div class="monday-operation-shell">
+    <div class="monday-operation-titlebar">
+      <div>
+        <span class="monday-board-icon">✓</span>
+        <h2>Validação de Materiais</h2>
+      </div>
+    </div>
+
+    <nav class="monday-level-tabs" id="operacaoNivelTabs" aria-label="Visões da operação">
+      <button type="button" class="monday-level-tab" data-operacao-nivel="nivel1-planos">⌖ NÍVEL 1 - PLANOS</button>
+      <button type="button" class="monday-level-tab" data-operacao-nivel="nivel2-ua">⌖ NÍVEL 2 - UA</button>
+      <button type="button" class="monday-level-tab" data-operacao-nivel="nivel2-avaliacoes">⌖ NÍVEL 2 - AVALIAÇÕES</button>
+      <button type="button" class="monday-level-tab" data-operacao-nivel="nivel3-global">⌖ NÍVEL 3 - GLOBAL</button>
+      <button type="button" class="monday-level-tab active" data-operacao-nivel="quadro-principal">Quadro principal</button>
+    </nav>
+
+    <div class="monday-board-meta">
+      <span id="contadorOperacao">--</span>
+      <span id="operacaoNivelDescricao">Quadro principal</span>
+    </div>
+
+    <div id="operacaoBoard" class="monday-board"></div>
+  </div>
+</section>
 
       <!-- =============================================
            AJUSTES
@@ -1171,7 +1173,7 @@
         <div id="contadorAjustes" class="table-counter">--</div>
         <div class="table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr>
                 <th>Título</th><th>UA</th><th>Status</th><th>Bloco</th><th>Gestor</th><th>Revisor</th><th>Conteudista/DA</th><th>Modelagem</th><th>Tecnologia</th><th>Em ajuste</th>
               </tr></thead>
@@ -1205,7 +1207,7 @@
         </section>
         <div class="table-card analytics-table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr><th>Bloco</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>Não liberadas</th></tr></thead>
               <tbody id="tbodyGraficoOperacional"></tbody>
             </table>
@@ -1235,7 +1237,7 @@
         </section>
         <div class="table-card analytics-table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr><th>Título</th><th>Unidade/Material</th><th>Bloco</th><th>Status</th><th>Liberação</th><th>Validação</th><th>Dias</th></tr></thead>
               <tbody id="tbodyDiasValidacao"></tbody>
             </table>
@@ -1265,7 +1267,7 @@
         </section>
         <div class="table-card analytics-table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr><th>Data</th><th>Liberações</th><th>Validações</th></tr></thead>
               <tbody id="tbodyHistorico"></tbody>
             </table>
@@ -1293,7 +1295,7 @@
         <div id="contadorEquipe" class="table-counter">--</div>
         <div class="table-card">
           <div class="table-scroll">
-            <table class="data-table monday-board-table">
+            <table class="data-table">
               <thead><tr>
                 <th>Tipo</th><th>Responsável</th><th>Total</th><th>Validadas</th><th>Em NQ</th><th>Em ajuste</th><th>Não liberadas</th>
               </tr></thead>
@@ -1339,7 +1341,7 @@
 
   <script src="js/graficos.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/paginas.js?v=20260909-v24-14-board-operacao"></script>
+  <script src="js/paginas.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="js/indicadores.js?v=20260901-v20-ordenacao-colunas"></script>
 

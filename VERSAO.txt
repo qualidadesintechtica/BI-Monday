@@ -1,9 +1,11 @@
-V24.14
+V24.15
 2026-09-09
 
-Correção de leitura das tabelas NQ: matriz de formação sem sobreposição da coluna Professor e com conteúdo integral.
+Operação redesenhada no padrão visual do board "Validação de Materiais" do Monday.
+Mantidos os filtros globais do BI.
+Incluídas as visões: NÍVEL 1 - PLANOS, NÍVEL 2 - UA, NÍVEL 2 - AVALIAÇÕES, NÍVEL 3 - GLOBAL e Quadro principal.
+Grupos operacionais recolhíveis e detalhamento das linhas dentro de cada grupo.
 
-Implementação da visão de Operações em formato de board da Validação de Materiais, preservando os filtros atuais do BI.
-
-Histórico:
+Histórico imediato:
+V24.14 — Correção de leitura das tabelas NQ e matriz de formação.
 V24.13 — Perfil Acadêmico NQ + Currículo Lattes integrado à importação Excel.
