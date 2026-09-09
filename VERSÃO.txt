@@ -1,0 +1,10 @@
+V24.17
+2026-09-09
+
+Correção definitiva da visão Operação:
+- atualização de cache dos arquivos JS/CSS;
+- NÍVEL 2 - UA usa id_ua, chave_ua, titulo_ua e eh_ua;
+- NÍVEL 2 - AVALIAÇÕES usa A1-A5, Avaliação e BDQ;
+- NÍVEL 1 - PLANOS usa Plano de Produção/PP/Nível 1;
+- NÍVEL 3 - GLOBAL recebe registros globais e os não classificados;
+- Quadro principal permanece com todos os registros filtrados.

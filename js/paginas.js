@@ -128,42 +128,48 @@
     const formato = normalizar(item?.formato);
     const nome = normalizar(item?.item_name || item?.unidade_material);
     const titulo = normalizar(item?.titulo);
-    const base = [categoria, escopo, formato, nome, titulo, normalizar(item?.titulo_ua)].join(" ");
+    const tituloUa = normalizar(item?.titulo_ua);
+    const idUa = String(item?.id_ua || "").trim();
+    const chaveUa = String(item?.chave_ua || "").trim();
+    const base = [categoria, escopo, formato, nome, titulo, tituloUa].join(" ");
 
-    // NÍVEL 3 tem prioridade porque uma categoria como "Avaliação Global"
-    // também contém a palavra avaliação.
+    // NÍVEL 2 - AVALIAÇÕES: sinais mais específicos primeiro.
     if (
-      /(^|\b)(nivel 3|nivel3|n3)(\b|$)/.test(escopo) ||
-      /(^|\b)global(\b|$)/.test(categoria) ||
-      /(^|\b)global(\b|$)/.test(escopo) ||
-      /(^|\b)global(\b|$)/.test(formato) ||
-      /(^|\b)global(\b|$)/.test(nome)
-    ) return "nivel3-global";
-
-    if (
-      categoria === "plano de producao" ||
-      categoria === "plano producao" ||
-      /^plano de producao\b/.test(categoria) ||
-      /(^|\b)(nivel 1|nivel1|n1)(\b|$)/.test(escopo) ||
-      /(^|\b)plano de producao(\b|$)/.test(base)
-    ) return "nivel1-planos";
-
-    if (
-      item?.eh_ua === true ||
-      categoria === "unidade de aprendizagem" ||
-      categoria === "ua" ||
-      /(^|\b)(nivel 2|nivel2|n2)(\b|$)/.test(escopo) && /\bua\b|unidade de aprendizagem/.test(base) ||
-      /^ua(?:\s|[-–—_]|\d|$)/.test(nome)
-    ) return "nivel2-ua";
-
-    if (
+      /^a[1-5](?:\s|[-–—_]|$)/.test(nome) ||
       /^avaliacao\b/.test(categoria) ||
-      categoria === "bdq" ||
-      /(^|\b)(nivel 2|nivel2|n2)(\b|$)/.test(escopo) && /avaliacao|\bbdq\b/.test(base) ||
-      /^a[1-5](?:\s|[-–—_]|$)/.test(nome)
+      /\bavaliacao\b|\bbdq\b/.test(base)
     ) return "nivel2-avaliacoes";
 
-    return "nao-classificado";
+    // NÍVEL 2 - UA: usa identificadores estruturados da própria view.
+    if (
+      item?.eh_ua === true ||
+      !!idUa ||
+      !!chaveUa ||
+      !!tituloUa ||
+      categoria === "unidade de aprendizagem" ||
+      categoria === "ua" ||
+      /^ua(?:\s|[-–—_]|\d|$)/.test(nome) ||
+      /\bunidade de aprendizagem\b/.test(base)
+    ) return "nivel2-ua";
+
+    // NÍVEL 1 - PLANOS.
+    if (
+      /(^|\b)(nivel 1|nivel1|n1)(\b|$)/.test(escopo) ||
+      /\bplano de producao\b/.test(base) ||
+      /^pp(?:\s|[-–—_]|\d|$)/.test(nome) ||
+      categoria === "plano de producao" ||
+      categoria === "plano producao"
+    ) return "nivel1-planos";
+
+    // NÍVEL 3 - GLOBAL explícito.
+    if (
+      /(^|\b)(nivel 3|nivel3|n3)(\b|$)/.test(escopo) ||
+      /\bglobal\b/.test(base)
+    ) return "nivel3-global";
+
+    // No board do Monday, GLOBAL é a visão de fechamento. Registros que não
+    // pertencem aos níveis específicos acima entram aqui em vez de sumirem.
+    return "nivel3-global";
   }
 
   function filtrarPorNivelOperacao(dados) {
