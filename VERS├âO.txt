@@ -1,5 +1,5 @@
-V24.21
+V24.22
 2026-09-09
 
-Operação: adicionada exportação CSV da visão atual, respeitando os filtros do BI e a aba selecionada.
-Base funcional preservada da V24.20.
+Operação: botão Exportar CSV reposicionado para uma barra própria e forçado como visível.
+A exportação respeita os filtros atuais do BI e a visão selecionada.

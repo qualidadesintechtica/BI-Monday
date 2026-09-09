@@ -1734,3 +1734,44 @@
 #viewOperacao .monday-export-button:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.34)}
 #viewOperacao .monday-export-button:focus-visible{outline:2px solid #a86cf5;outline-offset:2px}
 @media(max-width:700px){#viewOperacao .monday-operation-titlebar{align-items:flex-start;gap:12px;flex-wrap:wrap}#viewOperacao .monday-export-button{width:100%}}
+
+
+/* ============================================================
+   V24.22 · Botão Exportar visível na Operação
+   ============================================================ */
+#viewOperacao .monday-operation-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 6px 8px;
+}
+#viewOperacao .monday-operation-toolbar-note{
+  color:#aeb2ca;
+  font-size:11px;
+}
+#viewOperacao .monday-export-button{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:1px solid #a86cf5;
+  background:#8f6adc;
+  color:#fff;
+  border-radius:8px;
+  min-height:38px;
+  padding:9px 15px;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+  visibility:visible!important;
+  opacity:1!important;
+}
+#viewOperacao .monday-export-button:hover{background:#9b75e4;border-color:#b68af1}
+#viewOperacao .monday-export-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:700px){
+  #viewOperacao .monday-operation-toolbar{align-items:stretch;flex-direction:column}
+  #viewOperacao .monday-export-button{width:100%}
+}
