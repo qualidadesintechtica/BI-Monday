@@ -8,6 +8,9 @@
   let revisoresDistintos = null;
   let formacoesNQ = [];
   let experienciasNQ = [];
+  let perfilAcademicoNQ = [];
+  let graficoTitulacaoNQ = null;
+  let graficoExperienciasNQ = null;
   let graficoCineNQ = null;
   let graficoFormacoesNQ = null;
   const fmt = new Intl.NumberFormat("pt-BR");
@@ -135,17 +138,22 @@
 
 
   async function carregarFormacaoCoberturaNQ() {
-    const [f, e] = await Promise.all([
+    const [f, e, p] = await Promise.all([
       window.biSupabase.from("vw_nq_especialistas_formacoes")
         .select("especialista_id,professor,marca_area_contratante,marca_origem,titulacao_maxima,situacao_contratacao,formacao,area_formacao,area_cine,subarea_cine")
         .order("professor", { ascending: true }),
       window.biSupabase.from("nq_especialistas_experiencias")
-        .select("especialista_id,area_experiencia")
+        .select("especialista_id,area_experiencia"),
+      window.biSupabase.from("vw_nq_perfil_academico")
+        .select("*")
+        .order("professor", { ascending: true })
     ]);
     if (f.error) throw f.error;
     if (e.error) console.warn("Experiências NQ:", e.error);
+    if (p.error) console.warn("Perfil acadêmico NQ ainda não instalado:", p.error);
     formacoesNQ = (f.data || []).filter(r => r.professor);
     experienciasNQ = e.data || [];
+    perfilAcademicoNQ = p.error ? [] : (p.data || []).filter(r => r.professor);
   }
 
   function uniq(arr) {
@@ -309,6 +317,115 @@
     el.textContent=areas.length?`${areas.length} área(s) de experiência cadastrada(s): ${areas.join(", ")}.`:"Nenhuma área de experiência foi cadastrada na fonte atual. A estrutura já está pronta para receber essa informação.";
   }
 
+
+
+  function temValor(v) {
+    const t = normalizar(v);
+    return !!t && !["--","nao informado","não informado","n/a","na","null","undefined"].includes(t);
+  }
+
+  function classificarTitulacao(v) {
+    const t = normalizar(v);
+    if (t.includes("pos-dout") || t.includes("pós-dout")) return "Pós-doutorado";
+    if (t.includes("dout")) return "Doutorado";
+    if (t.includes("mestr")) return "Mestrado";
+    if (t.includes("especial")) return "Especialização";
+    if (t.includes("gradu") || t.includes("bacharel") || t.includes("licencia")) return "Graduação";
+    return v ? String(v) : "Não informado";
+  }
+
+  function juntarCampos(row, campos) {
+    return uniq(campos.map(c => row[c]).filter(temValor)).join(" · ");
+  }
+
+  function renderKPIsPerfilAcademicoNQ() {
+    const total = perfilAcademicoNQ.length;
+    const classes = perfilAcademicoNQ.map(r => classificarTitulacao(r.titulacao_maxima_concluida || r.titulacao_maxima));
+    const doutores = classes.filter(x => x === "Doutorado" || x === "Pós-doutorado").length;
+    const mestres = classes.filter(x => x === "Mestrado").length;
+    const especialistas = classes.filter(x => x === "Especialização").length;
+    const comDocencia = perfilAcademicoNQ.filter(r => temValor(r.experiencia_docente)).length;
+    const comPesquisa = perfilAcademicoNQ.filter(r => temValor(r.pesquisa_grupos)).length;
+    setText("nqDoutores", n(doutores));
+    setText("nqMestres", n(mestres));
+    setText("nqEspecialistas", n(especialistas));
+    setText("nqPctStricto", total ? pct(((doutores + mestres) / total) * 100) : "0,0%");
+    setText("nqComDocencia", n(comDocencia));
+    setText("nqComPesquisa", n(comPesquisa));
+  }
+
+  function renderGraficoTitulacaoNQ() {
+    const el = document.getElementById("graficoNQTitulacao");
+    if (!el || !window.echarts) return;
+    const mapa = new Map();
+    perfilAcademicoNQ.forEach(r => {
+      const k = classificarTitulacao(r.titulacao_maxima_concluida || r.titulacao_maxima);
+      mapa.set(k, (mapa.get(k) || 0) + 1);
+    });
+    const dados = [...mapa.entries()].map(([name,value]) => ({name,value})).sort((a,b)=>b.value-a.value);
+    graficoTitulacaoNQ?.dispose();
+    graficoTitulacaoNQ = echarts.init(el);
+    graficoTitulacaoNQ.setOption({
+      tooltip:{trigger:"item"}, legend:{bottom:0,type:"scroll"},
+      series:[{type:"pie",radius:["42%","70%"],center:["50%","43%"],data:dados,label:{formatter:"{b}: {c}"}}]
+    });
+  }
+
+  function renderGraficoExperienciasNQ() {
+    const el = document.getElementById("graficoNQExperiencias");
+    if (!el || !window.echarts) return;
+    const dados = [
+      ["Docência", "experiencia_docente"],
+      ["Profissional", "experiencia_profissional"],
+      ["Gestão", "gestao_coordenacao"],
+      ["Pesquisa", "pesquisa_grupos"]
+    ].map(([nome,campo]) => ({nome,total:perfilAcademicoNQ.filter(r=>temValor(r[campo])).length}));
+    graficoExperienciasNQ?.dispose();
+    graficoExperienciasNQ = echarts.init(el);
+    graficoExperienciasNQ.setOption({
+      grid:{left:92,right:26,top:18,bottom:28}, tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},
+      xAxis:{type:"value",minInterval:1}, yAxis:{type:"category",data:dados.map(d=>d.nome)},
+      series:[{type:"bar",data:dados.map(d=>d.total),barMaxWidth:28,label:{show:true,position:"right"},itemStyle:{borderRadius:[0,6,6,0]}}]
+    });
+  }
+
+  function renderTabelaPerfilAcademicoNQ(filtro = "") {
+    const tbody = document.getElementById("tbodyNQPerfilAcademico");
+    if (!tbody) return;
+    const q = normalizar(filtro);
+    const rows = perfilAcademicoNQ.filter(r => !q || normalizar(Object.values(r).join(" ")).includes(q));
+    if (!perfilAcademicoNQ.length) {
+      tbody.innerHTML = '<tr><td colspan="13">Perfil acadêmico ainda não disponível. Execute o SQL V24.13 e publique novamente a função import-nq-especialistas.</td></tr>';
+      return;
+    }
+    const cell = v => temValor(v) ? `<div class="nq-profile-text">${escapeHtml(v)}</div>` : '<span class="nq-profile-empty">--</span>';
+    tbody.innerHTML = rows.length ? rows.map(r => {
+      const graduacoes = juntarCampos(r,["graduacao_1","graduacao_2","graduacao_3_mais"]);
+      const especializacoes = juntarCampos(r,["especializacao_1","especializacao_2","especializacao_3_mais"]);
+      return `<tr>
+        <td><strong>${escapeHtml(r.professor)}</strong>${r.lattes ? `<div class="nq-academic-source">Lattes cadastrado</div>` : ""}</td>
+        <td>${cell(r.titulacao_maxima_concluida || r.titulacao_maxima)}</td>
+        <td>${cell(graduacoes)}</td><td>${cell(especializacoes)}</td><td>${cell(r.mestrado)}</td><td>${cell(r.doutorado)}</td><td>${cell(r.pos_doutorado)}</td>
+        <td>${cell(r.experiencia_docente)}</td><td>${cell(r.experiencia_profissional)}</td><td>${cell(r.gestao_coordenacao)}</td><td>${cell(r.pesquisa_grupos)}</td><td>${cell(r.areas_atuacao)}</td><td>${cell(r.status_verificacao)}</td>
+      </tr>`;
+    }).join("") : '<tr><td colspan="13">Nenhum professor corresponde à busca.</td></tr>';
+  }
+
+  function configurarBuscaPerfilNQ() {
+    const input = document.getElementById("nqBuscaPerfil");
+    if (!input || input.dataset.ready === "1") return;
+    input.dataset.ready = "1";
+    input.addEventListener("input", () => renderTabelaPerfilAcademicoNQ(input.value));
+  }
+
+  function renderPerfilAcademicoNQ() {
+    renderKPIsPerfilAcademicoNQ();
+    renderGraficoTitulacaoNQ();
+    renderGraficoExperienciasNQ();
+    renderTabelaPerfilAcademicoNQ(document.getElementById("nqBuscaPerfil")?.value || "");
+    configurarBuscaPerfilNQ();
+  }
+
   function renderCoberturaNQ() {
     renderKPIsCoberturaNQ();
     renderGraficoCineNQ();
@@ -316,6 +433,7 @@
     renderMatrizFormacaoNQ();
     renderListaFormacoesNQ();
     renderExperienciasNQ();
+    renderPerfilAcademicoNQ();
     const fonte=document.getElementById("nqCoberturaFonte");
     if(fonte) fonte.textContent=`Dados reais · ${uniq(formacoesNQ.map(r=>r.professor)).length} especialistas`;
   }
@@ -347,19 +465,19 @@
 
     const { data, error } = await window.biSupabase
       .from("nq_importacoes")
-      .select("id,arquivo_nome,status,total_linhas,especialistas_gravados,formacoes_gravadas,linhas_com_erro,mensagem,created_at,finished_at")
+      .select("id,arquivo_nome,status,total_linhas,especialistas_gravados,formacoes_gravadas,perfis_lattes_gravados,linhas_com_erro,mensagem,created_at,finished_at")
       .order("created_at", { ascending: false })
       .limit(10);
 
     if (error) {
       console.warn("Histórico de importação NQ:", error);
-      tbody.innerHTML = `<tr><td colspan="7">Não foi possível carregar o histórico: ${escapeHtml(error.message || "erro")}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8">Não foi possível carregar o histórico: ${escapeHtml(error.message || "erro")}</td></tr>`;
       return;
     }
 
     const linhas = data || [];
     if (!linhas.length) {
-      tbody.innerHTML = '<tr><td colspan="7">Nenhuma importação realizada.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8">Nenhuma importação realizada.</td></tr>';
       return;
     }
 
@@ -371,6 +489,7 @@
         <td>${n(r.total_linhas)}</td>
         <td>${n(r.especialistas_gravados)}</td>
         <td>${n(r.formacoes_gravadas)}</td>
+        <td>${n(r.perfis_lattes_gravados || 0)}</td>
         <td>${n(r.linhas_com_erro)}</td>
       </tr>
     `).join("");
@@ -416,7 +535,7 @@
 
       btn.disabled = true;
       btn.textContent = "Processando...";
-      status.textContent = "Lendo a aba Export no seu computador...";
+      status.textContent = "Lendo as abas Export e Currículo Lattes Estruturado...";
       resultado.hidden = true;
 
       try {
@@ -443,22 +562,24 @@
         });
 
         const sheetName = "Export";
+        const lattesSheetName = "Currículo Lattes Estruturado";
         const worksheet = workbook.Sheets[sheetName];
+        const lattesWorksheet = workbook.Sheets[lattesSheetName];
 
         if (!worksheet) {
           throw new Error(`A aba "${sheetName}" não foi encontrada. Abas disponíveis: ${workbook.SheetNames.join(", ")}.`);
         }
 
-        const rows = window.XLSX.utils.sheet_to_json(worksheet, {
-          defval: null,
-          raw: true
-        });
+        const rows = window.XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: true });
+        const rowsLattes = lattesWorksheet
+          ? window.XLSX.utils.sheet_to_json(lattesWorksheet, { defval: null, raw: true })
+          : [];
 
         if (!rows.length) {
           throw new Error('A aba "Export" está vazia.');
         }
 
-        status.textContent = `${rows.length} linha(s) localizadas. Enviando somente os dados necessários...`;
+        status.textContent = `${rows.length} especialista(s) e ${rowsLattes.length} perfil(is) Lattes localizados. Enviando dados...`;
         btn.textContent = "Enviando...";
 
         const response = await fetch(
@@ -474,7 +595,9 @@
               arquivo_nome: file.name,
               arquivo_tamanho: file.size,
               aba: sheetName,
-              rows
+              rows,
+              aba_lattes: rowsLattes.length ? lattesSheetName : null,
+              rows_lattes: rowsLattes
             })
           }
         );
@@ -493,6 +616,7 @@
             <span><b>${n(r.total_linhas)}</b> linhas</span>
             <span><b>${n(r.especialistas_gravados)}</b> especialistas</span>
             <span><b>${n(r.formacoes_gravadas)}</b> formações</span>
+            <span><b>${n(r.perfis_lattes_gravados || 0)}</b> perfis Lattes</span>
             <span><b>${n(r.linhas_com_erro)}</b> erros</span>
           </div>
           <small>${escapeHtml(r.mensagem || "Base atualizada com sucesso.")}</small>
@@ -503,6 +627,9 @@
         nome.textContent = "Nenhum arquivo selecionado";
 
         await carregarHistoricoImportacoesNQ();
+        resumo = null; naoConformidades = null;
+        await carregarFormacaoCoberturaNQ();
+        renderCoberturaNQ();
       } catch (e) {
         console.error("Erro na importação NQ:", e);
         resultado.hidden = false;
@@ -519,6 +646,6 @@
   }
 
 
-  window.addEventListener("resize", () => { grafico?.resize(); graficoCineNQ?.resize(); graficoFormacoesNQ?.resize(); });
+  window.addEventListener("resize", () => { grafico?.resize(); graficoCineNQ?.resize(); graficoFormacoesNQ?.resize(); graficoTitulacaoNQ?.resize(); graficoExperienciasNQ?.resize(); });
   window.atualizarReuniaoNQ = atualizarReuniaoNQ;
 })();

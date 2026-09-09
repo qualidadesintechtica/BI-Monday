@@ -1,10 +1,3 @@
-BI Monday V24.12
-Data: 08/09/2026
-
-Correção estrutural do Projeto Qualidade:
-- restaurada a seção real de importação no index.html;
-- removido o redirect legado #projeto-qualidade -> projetos.html;
-- botão Importar nova planilha abre index.html#projeto-qualidade;
-- os elementos pqArquivoAtualizacao e pqBtnImportar voltaram a existir no DOM;
-- importador js/projeto-qualidade.js volta a conseguir registrar os eventos;
-- badge atualizado para v24.12.
+V24.13
+2026-09-09
+Perfil Acadêmico NQ + Currículo Lattes integrado à importação Excel.
