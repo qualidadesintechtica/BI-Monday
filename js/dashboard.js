@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   const tituloPagina = document.querySelector(".topbar h1");
 
   let dadosCompletos = [];
-  let dadosOperacaoMonday = [];
   let paginaAtual = "resumo";
 
   const filtros = [
@@ -75,8 +74,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
-    const dadosOperacaoFiltrados = window.aplicarFiltros(dadosOperacaoMonday.length ? dadosOperacaoMonday : dadosCompletos);
-    window.atualizarPaginasBI?.(dadosFiltrados, dadosOperacaoFiltrados);
+    // A Operação usa exatamente a mesma base já carregada pelo BI.
+    // Não consultamos monday_validacao_materiais diretamente no navegador,
+    // porque RLS pode devolver [] sem erro e zerar a tela operacional.
+    window.atualizarPaginasBI?.(dadosFiltrados, dadosFiltrados);
     window.atualizarIndicadoresBI?.(dadosFiltrados);
     window.atualizarResultadosAlcancados?.();
     window.atualizarReuniaoNQ?.();
@@ -136,12 +137,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       dadosCompletos = await window.carregarDadosBI();
       console.log("Total de registros:", dadosCompletos.length);
 
-      try {
-        dadosOperacaoMonday = await window.carregarDadosOperacaoMonday();
-      } catch (erroOperacao) {
-        console.warn("Não foi possível carregar diretamente monday_validacao_materiais; usando a view consolidada como contingência.", erroOperacao);
-        dadosOperacaoMonday = dadosCompletos;
-      }
       popularFiltros();
       mostrarUltimaAtualizacao();
       atualizarTela();
