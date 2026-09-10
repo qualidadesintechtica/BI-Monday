@@ -1,0 +1,26 @@
+V23.2 — Formação e Cobertura NQ
+
+1. Supabase > SQL Editor:
+execute docs/V23_2_CINE_E_VISOES.sql INTEIRO.
+
+2. Supabase > Edge Functions > import-nq-especialistas > Code:
+substitua TODO o código por supabase/functions/import-nq-especialistas/index.ts e faça Deploy.
+
+3. GitHub:
+substitua pelos arquivos da V23.2. Aguarde GitHub Pages e use Ctrl+F5.
+
+4. Reimporte a planilha 01. Profs TIs - NQ.xlsx.
+A V23.2 separa formações por |, ponto e vírgula, vírgula e quebra de linha e normaliza abreviações.
+
+5. A seção 07 do Relatório NQ mostrará:
+- Professores
+- Formações únicas
+- Total de formações
+- Média por professor
+- Mais de X áreas
+- Áreas CINE
+- Área CINE x professores
+- Formações por professor
+- Matriz formação x especialista
+- Lista de formações e professores
+- Área de experiência (estrutura pronta; sem fonte na planilha atual)

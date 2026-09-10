@@ -82,6 +82,7 @@
   const ORDEM_GRUPOS_OPERACAO = [
     "A liberar",
     "Liberado para Validação",
+    "Revalidar - NQ",
     "Em Ajustes - Conteudista e DA",
     "Em ajustes - Modelagem",
     "Em ajustes - Gerência de Tecnologia",
@@ -186,7 +187,8 @@
       const status = itens.map(x => normalizar(x?.status_validacao));
       if (status.length && status.every(x => x.includes("validado"))) return "Validado";
       if (status.some(x => x.includes("ajust"))) return "Ajustes - CONTEUDISTA E DA";
-      if (status.some(x => x.includes("revalidar") || x.includes("liberado"))) return "Liberado para validação - NQ";
+      if (status.some(x => x.includes("revalidar"))) return "Revalidar - NQ";
+      if (status.some(x => x.includes("liberado"))) return "Liberado para validação - NQ";
       if (status.length && status.every(x => x.includes("paus"))) return "Pausado";
       if (status.some(x => x === "n/a" || x === "na")) return "N/A";
       return "A liberar";
@@ -238,6 +240,7 @@
     if (status.includes("paus")) return "Pausado";
     if (status === "n/a" || status === "na") return "N/A";
     if (status.includes("validado")) return "Validado";
+    if (status.includes("revalidar")) return "Revalidar - NQ";
     if (status.includes("liberado")) return "Liberado para Validação";
     if (status.includes("modelagem")) return "Em ajustes - Modelagem";
     if (status.includes("tecnologia")) return "Em ajustes - Gerência de Tecnologia";
@@ -248,9 +251,11 @@
   function classeGrupoOperacao(nome) {
     const n = normalizar(nome);
     if (n.includes("valid")) return "green";
+    if (n.includes("revalid")) return "orange";
+    if (n.includes("ajust")) return "blue";
+    if (n.includes("liber")) return "yellow";
+    if (n.includes("a liberar")) return "gray";
     if (n.includes("paus")) return "gray";
-    if (n.includes("ajust")) return "orange";
-    if (n.includes("liber")) return "blue";
     if (n === "n/a" || n === "na") return "lightblue";
     return "purple";
   }
@@ -258,7 +263,8 @@
   function classeStatusOperacao(status) {
     const n = normalizar(status);
     if (n.includes("validado")) return "validado";
-    if (n.includes("liberado") || n.includes("revalidar")) return "liberado";
+    if (n.includes("revalidar")) return "revalidar";
+    if (n.includes("liberado")) return "liberado";
     if (n.includes("ajust")) return "ajuste";
     if (n.includes("paus")) return "pausado";
     if (!n || n === "em branco" || n.includes("a liberar")) return "aliberar";

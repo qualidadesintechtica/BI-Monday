@@ -1,0 +1,29 @@
+V24.7 — DADOS COMPLETOS NO RELATÓRIO
+
+CAUSA
+O ID vindo do atributo data-project-id do HTML é string.
+O ID do Supabase é bigint/number.
+A V24.4 comparava com ===, portanto o preview podia não localizar o projeto,
+gerando Projeto da Qualidade e metadados vazios.
+
+INSTALAÇÃO
+1. Supabase > SQL Editor:
+   execute docs/V24_7_CORRIGIR_DADOS_RELATORIO.sql inteiro.
+2. GitHub:
+   substitua pelos arquivos desta V24.7, principalmente:
+   - projetos.html
+   - js/projetos.js
+   - js/config.js
+3. Aguarde GitHub Pages.
+4. Feche a aba, abra novamente e pressione Ctrl+F5.
+5. Abra um projeto e clique Visualizar PDF.
+
+Esperado:
+- nome do projeto;
+- ID Ajure;
+- status;
+- sponsor;
+- esforço;
+- prioridade;
+- quantidade de ações;
+- lista das tarefas originais.

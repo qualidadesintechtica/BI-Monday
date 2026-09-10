@@ -1775,3 +1775,10 @@
   #viewOperacao .monday-operation-toolbar{align-items:stretch;flex-direction:column}
   #viewOperacao .monday-export-button{width:100%}
 }
+
+/* V25.3 · Reunião NQ + sequência visual Monday */
+.nq-inner-tabs{display:flex;gap:8px;margin:14px 0 18px;border-bottom:1px solid #e7e0ec;padding-bottom:8px}.nq-inner-tabs button{border:1px solid #d9cfdf;background:#fff;color:#4b365c;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}.nq-inner-tabs button.active{background:#2d1553;color:#fff;border-color:#2d1553}.nq-tab-hidden{display:none!important}.nq-professor-filters{display:flex;gap:14px;align-items:end;flex-wrap:wrap}.nq-professor-filters label{display:grid;gap:5px;font-size:12px;font-weight:700}.nq-professor-filters select{min-width:220px;padding:8px 10px;border:1px solid #d9cfdf;border-radius:7px;background:#fff}.nq-hiring-card{margin-top:16px}
+#viewOperacao .monday-group-yellow{--group:#f2c94c}
+#viewOperacao .board-status-liberado{background:#f2c94c;color:#3b3100}
+#viewOperacao .board-status-revalidar{background:#fdab3d;color:#2f2500}
+#viewOperacao .board-status-ajuste{background:#579bfc;color:#fff}

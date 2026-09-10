@@ -1,0 +1,5 @@
+V24.18 — Operação / Validação de Materiais
+
+O erro das versões 24.15–24.17 era de fonte de dados: a tela nova estava recebendo a view consolidada usada pelo restante do BI. Essa view foi construída a partir de materiais planejados e faz JOIN de validação por id_titulo + id_ua, portanto não representa integralmente o board do Monday nem suas visões.
+
+Nesta versão, apenas a página Operação carrega diretamente public.monday_validacao_materiais. O restante do BI continua usando vw_materiais_bi_consolidada. Os filtros existentes são mantidos.

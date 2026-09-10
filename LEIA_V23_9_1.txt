@@ -1,0 +1,17 @@
+V23.9.1 — CORREÇÃO MULTIABAS
+
+O erro "sheetName is not defined" ocorria porque o frontend V23.9 ainda
+enviava "aba: sheetName" depois de a importação ter sido convertida para
+múltiplas abas.
+
+A correção envia:
+- aba: lista textual das abas processadas
+- abas: array com as abas processadas
+
+INSTALAÇÃO
+1. Não execute SQL.
+2. Não altere a Edge Function se a V23.8 já está funcionando.
+3. Substitua no GitHub os arquivos desta V23.9.1.
+4. Aguarde GitHub Pages.
+5. Pressione Ctrl+F5.
+6. Importe novamente a planilha.

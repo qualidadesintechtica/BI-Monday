@@ -1,12 +1,16 @@
-V24.22
-2026-09-09
+V25.3
+2026-09-10
 
-Versão limpa do BI Monday.
-- Removido o diretório .git do pacote.
-- Removidos arquivos LEIA_* históricos.
-- Removidos arquivos duplicados/corrompidos de versão.
-- Mantidos todos os arquivos operacionais do BI, scripts JS/CSS, páginas HTML,
-  funções Supabase e documentos SQL necessários para manutenção.
+Reunião NQ
+- Subabas Operação e Qualidade / Professores e Especialistas.
+- Produtividade e Operação atual passam a respeitar os filtros do BI.
+- Principais não conformidades sem limite fixo de 10 itens.
+- Detalhamento crítico com Matriz, UAs, Critério, Não conformidade, Conformidade e % não conformidade.
+- Filtros de professores por titulação e situação da formação.
+- Gráfico por marca.
+- Gráfico Data de contratação x semestre x professor quando a fonte possui data.
 
-Última alteração funcional registrada:
-- Operação: botão Exportar CSV em barra própria, respeitando filtros e visão selecionada.
+Operação
+- Removido Nível 3 Global.
+- Liberado e Revalidar separados.
+- Sequência visual: cinza A liberar, amarelo Liberado, laranja Revalidar, azul Em ajuste, verde Validado.

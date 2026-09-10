@@ -343,6 +343,11 @@
 
         <div id="nqStatus" class="meeting-status">Carregando indicadores da reunião...</div>
 
+        <nav class="nq-inner-tabs" aria-label="Seções da Reunião NQ">
+          <button type="button" class="active" data-nq-tab="operacao">Operação e Qualidade</button>
+          <button type="button" data-nq-tab="professores">Professores e Especialistas</button>
+        </nav>
+
         <section class="meeting-section">
           <div class="meeting-section-title"><span>01</span><div><h3>Produtividade no período</h3><p>Materiais validados no intervalo definido para a reunião.</p></div></div>
           <div class="meeting-kpis meeting-kpis-7">
@@ -392,8 +397,8 @@
           <div class="table-card">
             <div class="table-scroll">
               <table class="data-table">
-                <thead><tr><th>Critério</th><th>Não conformidades</th><th>Critérios avaliados</th><th>% não conformidade</th></tr></thead>
-                <tbody id="tbodyNQConformidades"><tr><td colspan="4">Carregando...</td></tr></tbody>
+                <thead><tr><th>Matriz</th><th>UAs</th><th>Critério</th><th>Não conformidade</th><th>Conformidade</th><th>% não conformidade</th></tr></thead>
+                <tbody id="tbodyNQConformidades"><tr><td colspan="6">Carregando...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -472,14 +477,21 @@
             </div>
           </div>
 
-          <div class="nq-coverage-toolbar">
-            <label>Professores com mais de
-              <select id="nqFiltroMaisAreas">
-                <option value="1">1 área</option>
-                <option value="2" selected>2 áreas</option>
-                <option value="3">3 áreas</option>
-                <option value="4">4 áreas</option>
-                <option value="5">5 áreas</option>
+          <div class="nq-coverage-toolbar nq-professor-filters">
+            <label>Titulação
+              <select id="nqFiltroTitulacao">
+                <option value="">Todas</option>
+                <option value="doutor">Doutor</option>
+                <option value="mestre">Mestre (Me. / Ma. / MSc.)</option>
+                <option value="especialista">Especialista (Especialização / MBA)</option>
+                <option value="graduado">Graduado (Bacharel / Licenciado / Tecnólogo)</option>
+              </select>
+            </label>
+            <label>Situação da formação
+              <select id="nqFiltroSituacaoFormacao">
+                <option value="">Todas</option>
+                <option value="concluido">Concluído</option>
+                <option value="andamento">Em andamento</option>
               </select>
             </label>
             <span id="nqCoberturaFonte" class="nq-coverage-source">Carregando dados do Supabase...</span>
@@ -490,7 +502,7 @@
             <article><span>Formações únicas</span><strong id="nqFormacoesUnicas">--</strong><small>sem repetição</small></article>
             <article><span>Total de formações</span><strong id="nqFormacoesTotal">--</strong><small>incluindo repetições</small></article>
             <article><span>Formações / professor</span><strong id="nqMediaFormacoes">--</strong><small>média da base</small></article>
-            <article><span>Mais de X áreas</span><strong id="nqMaisAreas">--</strong><small id="nqMaisAreasLegenda">mais de 2 áreas</small></article>
+            <article><span>No filtro atual</span><strong id="nqMaisAreas">--</strong><small id="nqMaisAreasLegenda">professores selecionados</small></article>
             <article><span>Áreas CINE</span><strong id="nqAreasCineTotal">--</strong><small>áreas gerais abrangidas</small></article>
           </div>
 
@@ -500,9 +512,15 @@
               <div id="graficoNQCine" class="nq-viz-chart"></div>
             </article>
             <article class="nq-viz-card">
-              <div class="nq-viz-head"><div><strong>Formações por professor</strong><small>Quantidade de formações distintas por especialista.</small></div></div>
+              <div class="nq-viz-head"><div><strong>Professores por marca</strong><small>Distribuição dos especialistas por marca de origem/contratante.</small></div></div>
               <div id="graficoNQFormacoesProfessor" class="nq-viz-chart"></div>
             </article>
+          </div>
+
+
+          <div class="nq-viz-card nq-hiring-card">
+            <div class="nq-viz-head"><div><strong>Data de contratação × semestre × professor</strong><small>Linha temporal dos professores com data de contratação disponível na base.</small></div></div>
+            <div id="graficoNQContratacao" class="nq-viz-chart"></div>
           </div>
 
           <div class="nq-viz-card nq-matrix-card">
@@ -1140,13 +1158,12 @@
       <button type="button" class="monday-level-tab" data-operacao-nivel="nivel1-planos">NÍVEL 1 - PLANOS</button>
       <button type="button" class="monday-level-tab" data-operacao-nivel="nivel2-ua">NÍVEL 2 - UA</button>
       <button type="button" class="monday-level-tab" data-operacao-nivel="nivel2-avaliacoes">NÍVEL 2 - AVALIAÇÕES</button>
-      <button type="button" class="monday-level-tab" data-operacao-nivel="nivel3-global">NÍVEL 3 - GLOBAL</button>
       <button type="button" class="monday-level-tab active" data-operacao-nivel="quadro-principal">Quadro principal</button>
     </nav>
 
     <div class="monday-board-meta">
       <span id="contadorOperacao">--</span>
-      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V24.22</span>
+      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.3</span>
     </div>
 
     <div id="operacaoBoard" class="monday-board"></div>
@@ -1353,7 +1370,7 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260909-v24-13-lattes"></script>
+    <script src="js/reuniao-nq.js?v=20260910-v25-3-nq"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>

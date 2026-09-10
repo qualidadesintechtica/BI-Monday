@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     window.atualizarPaginasBI?.(dadosFiltrados, dadosFiltrados);
     window.atualizarIndicadoresBI?.(dadosFiltrados);
     window.atualizarResultadosAlcancados?.();
-    window.atualizarReuniaoNQ?.();
+    window.atualizarReuniaoNQ?.(dadosFiltrados);
     window.inicializarIndicadoresUC?.();
     window.atualizarGestoresMateriais?.(dadosFiltrados);
     window.atualizarProjetoQualidade?.();

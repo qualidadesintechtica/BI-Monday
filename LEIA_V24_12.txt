@@ -1,0 +1,34 @@
+V24.12 — IMPORTAÇÃO RESTAURADA
+
+CAUSA EXATA
+O botão estava apontando para uma página que não existia mais no index.html.
+
+O JavaScript de importação procurava:
+- pqArquivoAtualizacao
+- pqBtnImportar
+- pqArquivoNome
+- pqImportStatus
+- pqImportResultado
+
+Esses elementos tinham sido removidos do index.html quando o Projeto Qualidade
+foi separado para projetos.html. Por isso não adiantava apenas corrigir o link.
+
+CORREÇÃO
+A V24.12 restaura uma página específica de importação dentro do index.html.
+
+PUBLICAÇÃO
+Substitua no GitHub principalmente:
+- index.html
+- projetos.html
+- js/config.js
+
+Mantenha também:
+- js/projeto-qualidade.js da versão atual
+- Edge Function import-projeto-qualidade da V24.10/V24.11
+
+Depois:
+1. Aguarde GitHub Pages.
+2. Pressione Ctrl+F5.
+3. Abra Projetos da Qualidade.
+4. Clique Importar nova planilha.
+5. A tela de seleção do Excel deve aparecer.

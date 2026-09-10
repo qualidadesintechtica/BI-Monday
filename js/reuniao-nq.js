@@ -13,6 +13,8 @@
   let graficoExperienciasNQ = null;
   let graficoCineNQ = null;
   let graficoFormacoesNQ = null;
+  let graficoContratacaoNQ = null;
+  let dadosBIAtuais = [];
   const fmt = new Intl.NumberFormat("pt-BR");
 
   function setText(id, valor) {
@@ -39,7 +41,7 @@
       const ncView = window.BI_CONFIG?.REUNIAO_NC_VIEW_NAME || "vw_nq_reuniao_nao_conformidades";
       const [r1, r2] = await Promise.all([
         window.biSupabase.from(resumoView).select("*").limit(1),
-        window.biSupabase.from(ncView).select("criterio,nao_conformidades,criterios_avaliados,percentual_nao_conformidade").order("nao_conformidades", { ascending: false }).limit(10)
+        window.biSupabase.from(ncView).select("*").order("nao_conformidades", { ascending: false })
       ]);
       if (r1.error) throw r1.error;
       if (r2.error) throw r2.error;
@@ -69,21 +71,62 @@
     try { await carregando; } finally { carregando = null; }
   }
 
+  function statusNQ(v) { return normalizar(v); }
+
+  function resumoDosFiltros(dados) {
+    if (!Array.isArray(dados) || !dados.length) return null;
+    const ini = resumo?.periodo_inicio ? new Date(`${resumo.periodo_inicio}T00:00:00`) : null;
+    const fim = resumo?.periodo_fim ? new Date(`${resumo.periodo_fim}T23:59:59`) : null;
+    const noPeriodo = dados.filter(x => {
+      const d = x.data_validacao ? new Date(x.data_validacao) : null;
+      return d && !Number.isNaN(d.getTime()) && (!ini || d >= ini) && (!fim || d <= fim) && statusNQ(x.status_validacao).includes("validado");
+    });
+    const nome = x => normalizar(`${x.item_name || ""} ${x.categoria_material || ""} ${x.formato || ""}`);
+    const contar = rx => noPeriodo.filter(x => rx.test(nome(x))).length;
+    const revisores = new Set();
+    noPeriodo.forEach(x => String(x.revisor_validador || "").split(",").map(v=>v.trim()).filter(Boolean).forEach(v=>revisores.add(v)));
+    const st = dados.map(x => statusNQ(x.status_validacao));
+    return {
+      uas_validadas: contar(/unidade de aprendizagem|(^|\s)ua(\s|$)/), pp_validados: contar(/plano de producao|(^|\s)pp(\s|$)/),
+      a1_validadas: contar(/(^|\s)a1(\s|$)/), a2_validadas: contar(/(^|\s)a2(\s|$)/), a3_validadas: contar(/(^|\s)a3(\s|$)/),
+      lato_validadas: contar(/lato/), revisores: revisores.size,
+      total_materiais: new Set(dados.map(x=>x.chave_material || x.monday_item_validacao).filter(Boolean)).size || dados.length,
+      validados: st.filter(x=>x.includes("validado")).length,
+      liberados_validacao: st.filter(x=>x.includes("liberado") && !x.includes("revalidar")).length,
+      revalidacao: st.filter(x=>x.includes("revalidar")).length,
+      ajustes_conteudista_da: st.filter(x=>x.includes("ajust")).length,
+      a_liberar: st.filter(x=>!x || x === "a liberar").length
+    };
+  }
+
+  function configurarAbasNQ() {
+    const botoes = [...document.querySelectorAll("[data-nq-tab]")];
+    const secoes = [...document.querySelectorAll("#viewReuniaoNQ > .meeting-section")];
+    if (!botoes.length || !secoes.length) return;
+    const aplicar = tab => {
+      botoes.forEach(b=>b.classList.toggle("active", b.dataset.nqTab === tab));
+      secoes.forEach((sec,i)=>sec.classList.toggle("nq-tab-hidden", tab === "operacao" ? i >= 5 : i < 5));
+    };
+    botoes.forEach(b=>{ if(b.dataset.ready!=="1"){ b.dataset.ready="1"; b.addEventListener("click",()=>aplicar(b.dataset.nqTab)); }});
+    aplicar(document.querySelector("[data-nq-tab].active")?.dataset.nqTab || "operacao");
+  }
+
   function renderResumo() {
+    const rf = resumoDosFiltros(dadosBIAtuais) || resumo;
     setText("nqPeriodo", `${dataBR(resumo.periodo_inicio)} a ${dataBR(resumo.periodo_fim)}`);
-    setText("nqUa", n(resumo.uas_validadas));
-    setText("nqPp", n(resumo.pp_validados));
-    setText("nqA1", n(resumo.a1_validadas));
-    setText("nqA2", n(resumo.a2_validadas));
-    setText("nqA3", n(resumo.a3_validadas));
-    setText("nqLato", n(resumo.lato_validadas));
-    setText("nqRevisores", n(revisoresDistintos));
-    setText("nqTotal", n(resumo.total_materiais));
-    setText("nqValidados", n(resumo.validados));
-    setText("nqLiberados", n(resumo.liberados_validacao));
-    setText("nqRevalidacao", n(resumo.revalidacao));
-    setText("nqAjustes", n(resumo.ajustes_conteudista_da));
-    setText("nqALiberar", n(resumo.a_liberar));
+    setText("nqUa", n(rf.uas_validadas));
+    setText("nqPp", n(rf.pp_validados));
+    setText("nqA1", n(rf.a1_validadas));
+    setText("nqA2", n(rf.a2_validadas));
+    setText("nqA3", n(rf.a3_validadas));
+    setText("nqLato", n(rf.lato_validadas));
+    setText("nqRevisores", n(rf.revisores ?? revisoresDistintos));
+    setText("nqTotal", n(rf.total_materiais));
+    setText("nqValidados", n(rf.validados));
+    setText("nqLiberados", n(rf.liberados_validacao));
+    setText("nqRevalidacao", n(rf.revalidacao));
+    setText("nqAjustes", n(rf.ajustes_conteudista_da));
+    setText("nqALiberar", n(rf.a_liberar));
     setText("nqCriterios", n(resumo.criterios_avaliados));
     setText("nqConformes", n(resumo.conformes));
     setText("nqNaoConformes", n(resumo.nao_conformes));
@@ -94,7 +137,11 @@
   function renderTabela() {
     const tbody = document.getElementById("tbodyNQConformidades");
     if (!tbody) return;
-    tbody.innerHTML = naoConformidades.map(x => `<tr><td>${escapeHtml(x.criterio)}</td><td>${n(x.nao_conformidades)}</td><td>${n(x.criterios_avaliados)}</td><td>${pct(x.percentual_nao_conformidade)}</td></tr>`).join("") || '<tr><td colspan="4">Nenhuma não conformidade encontrada.</td></tr>';
+    const rows = [...naoConformidades].sort((a,b)=>String(a.matriz_oferta||a.matriz||"").localeCompare(String(b.matriz_oferta||b.matriz||""),"pt-BR") || Number(b.nao_conformidades||0)-Number(a.nao_conformidades||0));
+    tbody.innerHTML = rows.map(x => {
+      const nao = Number(x.nao_conformidades || 0), avaliados = Number(x.criterios_avaliados || 0), conf = Math.max(0, Number(x.conformidades ?? (avaliados - nao)));
+      return `<tr><td>${escapeHtml(x.matriz_oferta || x.matriz || "Não informada")}</td><td>${escapeHtml(x.uas ?? x.total_uas ?? "--")}</td><td>${escapeHtml(x.criterio)}</td><td>${n(nao)}</td><td>${n(conf)}</td><td>${pct(x.percentual_nao_conformidade)}</td></tr>`;
+    }).join("") || '<tr><td colspan="6">Nenhuma não conformidade encontrada.</td></tr>';
   }
 
   function renderGrafico() {
@@ -103,6 +150,7 @@
     if (!el) return;
     grafico ||= echarts.init(el);
     const dados = [...naoConformidades].reverse();
+    el.style.minHeight = `${Math.max(320, dados.length * 28)}px`;
     grafico.setOption({
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       grid: { left: 12, right: 24, top: 10, bottom: 10, containLabel: true },
@@ -112,10 +160,12 @@
     });
   }
 
-  async function atualizarReuniaoNQ() {
+  async function atualizarReuniaoNQ(dadosFiltrados) {
+    if (Array.isArray(dadosFiltrados)) dadosBIAtuais = dadosFiltrados;
     const status = document.getElementById("nqStatus");
     try {
       await carregar();
+      configurarAbasNQ();
       renderResumo();
       renderTabela();
       renderGrafico();
@@ -140,7 +190,7 @@
   async function carregarFormacaoCoberturaNQ() {
     const [f, e, p] = await Promise.all([
       window.biSupabase.from("vw_nq_especialistas_formacoes")
-        .select("especialista_id,professor,marca_area_contratante,marca_origem,titulacao_maxima,situacao_contratacao,formacao,area_formacao,area_cine,subarea_cine")
+        .select("*")
         .order("professor", { ascending: true }),
       window.biSupabase.from("nq_especialistas_experiencias")
         .select("especialista_id,area_experiencia"),
@@ -164,9 +214,28 @@
     return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
   }
 
+  function classeTitulacaoFiltro(row) {
+    const t = normalizar(`${row.titulacao_maxima || ""} ${row.formacao || ""}`);
+    if (t.includes("dout")) return "doutor";
+    if (t.includes("mestr") || /\bmsc\b|\bme\b|\bma\b/.test(t)) return "mestre";
+    if (t.includes("especial") || t.includes("mba")) return "especialista";
+    if (t.includes("bacharel") || t.includes("licencia") || t.includes("tecnolog") || t.includes("gradu")) return "graduado";
+    return "";
+  }
+  function situacaoFormacaoFiltro(row) {
+    const t=normalizar(`${row.situacao_formacao || ""} ${row.status_formacao || ""} ${row.formacao || ""}`);
+    return /andamento|cursando|em curso|incomplet/.test(t) ? "andamento" : "concluido";
+  }
+  function formacoesFiltradasNQ() {
+    const tit=document.getElementById("nqFiltroTitulacao")?.value || "";
+    const sit=document.getElementById("nqFiltroSituacaoFormacao")?.value || "";
+    return formacoesNQ.filter(r=>(!tit || classeTitulacaoFiltro(r)===tit) && (!sit || situacaoFormacaoFiltro(r)===sit));
+  }
+
   function renderKPIsCoberturaNQ() {
-    const professores = uniq(formacoesNQ.map(r => r.professor));
-    const formacoes = formacoesNQ.filter(r => r.formacao);
+    const baseFiltrada = formacoesFiltradasNQ();
+    const professores = uniq(baseFiltrada.map(r => r.professor));
+    const formacoes = baseFiltrada.filter(r => r.formacao);
     const formacoesUnicas = uniq(formacoes.map(r => normalizar(r.formacao)));
     const areasCine = uniq(formacoes.map(r => r.area_cine));
 
@@ -176,8 +245,7 @@
       porProfessor.get(r.professor).add(normalizar(r.formacao));
     });
 
-    const filtro = Number(document.getElementById("nqFiltroMaisAreas")?.value || 2);
-    const acima = [...porProfessor.values()].filter(s => s.size > filtro).length;
+    const acima = professores.length;
 
     setText("nqProfessoresTotal", n(professores.length));
     setText("nqFormacoesUnicas", n(formacoesUnicas.length));
@@ -185,14 +253,14 @@
     setText("nqMediaFormacoes", professores.length ? (formacoes.length / professores.length).toLocaleString("pt-BR", {minimumFractionDigits:1, maximumFractionDigits:1}) : "0,0");
     setText("nqMaisAreas", n(acima));
     setText("nqAreasCineTotal", n(areasCine.length));
-    setText("nqMaisAreasLegenda", `mais de ${filtro} área${filtro === 1 ? "" : "s"}`);
+    setText("nqMaisAreasLegenda", "professores selecionados");
   }
 
   function renderGraficoCineNQ() {
     const el = document.getElementById("graficoNQCine");
     if (!el || !window.echarts) return;
     const mapa = new Map();
-    formacoesNQ.filter(r => r.area_cine && r.professor).forEach(r => {
+    formacoesFiltradasNQ().filter(r => r.area_cine && r.professor).forEach(r => {
       if (!mapa.has(r.area_cine)) mapa.set(r.area_cine, new Set());
       mapa.get(r.area_cine).add(r.professor);
     });
@@ -212,27 +280,31 @@
     const el = document.getElementById("graficoNQFormacoesProfessor");
     if (!el || !window.echarts) return;
     const mapa = new Map();
-    formacoesNQ.filter(r=>r.professor && r.formacao).forEach(r=>{
-      if(!mapa.has(r.professor)) mapa.set(r.professor,new Set());
-      mapa.get(r.professor).add(normalizar(r.formacao));
+    formacoesFiltradasNQ().filter(r=>r.professor).forEach(r=>{
+      const marca=String(r.marca_origem || r.marca_area_contratante || "Não informada").trim();
+      if(!mapa.has(marca)) mapa.set(marca,new Set());
+      mapa.get(marca).add(r.professor);
     });
-    const dados=[...mapa.entries()].map(([professor,s])=>({professor,total:s.size})).sort((a,b)=>b.total-a.total||a.professor.localeCompare(b.professor,"pt-BR"));
-    graficoFormacoesNQ?.dispose();
-    graficoFormacoesNQ=echarts.init(el);
-    graficoFormacoesNQ.setOption({
-      grid:{left:170,right:24,top:18,bottom:28},
-      tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},
-      xAxis:{type:"value",minInterval:1,name:"Formações"},
-      yAxis:{type:"category",inverse:true,data:dados.map(d=>d.professor),axisLabel:{fontSize:9,width:155,overflow:"truncate"}},
-      series:[{type:"bar",data:dados.map(d=>d.total),barMaxWidth:18,label:{show:true,position:"right"},itemStyle:{borderRadius:[0,4,4,0]}}]
-    });
+    const dados=[...mapa.entries()].map(([marca,s])=>({marca,total:s.size})).sort((a,b)=>b.total-a.total);
+    graficoFormacoesNQ?.dispose(); graficoFormacoesNQ=echarts.init(el);
+    graficoFormacoesNQ.setOption({grid:{left:42,right:18,top:24,bottom:80},tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},xAxis:{type:"category",data:dados.map(d=>d.marca),axisLabel:{rotate:25,interval:0}},yAxis:{type:"value",minInterval:1,name:"Professores"},series:[{type:"bar",data:dados.map(d=>d.total),barMaxWidth:42,label:{show:true,position:"top"},itemStyle:{borderRadius:[5,5,0,0]}}]});
+  }
+
+  function renderGraficoContratacaoNQ() {
+    const el=document.getElementById("graficoNQContratacao"); if(!el||!window.echarts) return;
+    const porProfessor=new Map();
+    formacoesFiltradasNQ().forEach(r=>{ if(!r.professor) return; const atual=porProfessor.get(r.professor)||r; const d=r.data_contratacao||r.data_admissao||r.contratacao||r.data_inicio_contratacao; if(d) porProfessor.set(r.professor,{...r,__data:d}); else if(!porProfessor.has(r.professor)) porProfessor.set(r.professor,atual); });
+    const dados=[...porProfessor.values()].map(r=>{const raw=r.__data||r.data_contratacao||r.data_admissao||r.contratacao||r.data_inicio_contratacao; const d=raw?new Date(raw):null; if(!d||Number.isNaN(d.getTime())) return null; const sem=r.semestre||r.semestre_contratacao||`${d.getFullYear()}.${d.getMonth()<6?1:2}`; return {professor:r.professor,data:d.getTime(),semestre:String(sem)};}).filter(Boolean).sort((a,b)=>a.data-b.data);
+    graficoContratacaoNQ?.dispose(); graficoContratacaoNQ=echarts.init(el);
+    if(!dados.length){el.innerHTML='<div class="nq-profile-empty" style="padding:30px">A base atual não possui data de contratação disponível.</div>';return;}
+    graficoContratacaoNQ.setOption({tooltip:{trigger:"item",formatter:p=>`${escapeHtml(p.data[2])}<br>${escapeHtml(p.data[1])}<br>${new Date(p.data[0]).toLocaleDateString("pt-BR")}`},grid:{left:70,right:25,top:25,bottom:80},xAxis:{type:"time",name:"Data de contratação"},yAxis:{type:"category",data:uniq(dados.map(d=>d.semestre)),name:"Semestre"},series:[{type:"scatter",symbolSize:12,data:dados.map(d=>[d.data,d.semestre,d.professor])}]});
   }
 
 
   function consolidarProfessoresNQ() {
     const mapa = new Map();
 
-    formacoesNQ.forEach(r => {
+    formacoesFiltradasNQ().forEach(r => {
       const professor = String(r.professor || "").trim();
       if (!professor) return;
 
@@ -430,6 +502,7 @@
     renderKPIsCoberturaNQ();
     renderGraficoCineNQ();
     renderGraficoFormacoesProfessorNQ();
+    renderGraficoContratacaoNQ();
     renderMatrizFormacaoNQ();
     renderListaFormacoesNQ();
     renderExperienciasNQ();
@@ -439,11 +512,12 @@
   }
 
   function configurarFiltroCoberturaNQ() {
-    const sel=document.getElementById("nqFiltroMaisAreas");
-    if(!sel||sel.dataset.ready==="1") return;
-    sel.dataset.ready="1";
-    sel.addEventListener("change",renderKPIsCoberturaNQ);
+    ["nqFiltroTitulacao","nqFiltroSituacaoFormacao"].forEach(id=>{
+      const el=document.getElementById(id); if(!el||el.dataset.ready==="1") return;
+      el.dataset.ready="1"; el.addEventListener("change",renderCoberturaNQ);
+    });
   }
+
 
   function formatarDataHoraBR(valor) {
     if (!valor) return "--";

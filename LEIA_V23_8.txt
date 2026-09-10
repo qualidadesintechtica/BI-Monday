@@ -1,0 +1,30 @@
+V23.8 — PROJETO QUALIDADE | BASE COMPLETAMENTE ISOLADA
+
+Esta versão elimina dependência de estrutura antiga também no histórico.
+
+Tabelas usadas pela nova importação:
+- pq_projetos_atual
+- pq_tarefas_atual
+- pq_importacoes_atual
+
+O legado não é apagado.
+
+INSTALAÇÃO
+1. Supabase > SQL Editor
+Execute INTEIRO:
+docs/V23_8_CRIAR_BASE_ISOLADA_PROJETO_QUALIDADE.sql
+
+2. Supabase > Edge Functions > import-projeto-qualidade > Code
+Substitua TODO o código por:
+supabase/functions/import-projeto-qualidade/index.ts
+Clique Deploy.
+
+3. GitHub
+Substitua pelos arquivos da V23.8.
+Aguarde Pages e Ctrl+F5.
+
+4. Faça nova importação da planilha.
+
+IMPORTANTE
+A V23.8 também corrige a mensagem [object Object].
+Se houver erro, o BI passará a mostrar message/details/hint/code reais do Supabase.

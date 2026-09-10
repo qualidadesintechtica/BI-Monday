@@ -1,0 +1,6 @@
+V24.22 — Exportar visível na Operação
+
+- Botão Exportar CSV movido para uma barra própria logo abaixo do título.
+- Visibilidade forçada no CSS.
+- Exporta somente os registros da visão selecionada e respeita os filtros atuais do BI.
+- Nenhuma alteração na fonte de dados ou na lógica de carregamento da Operação.
