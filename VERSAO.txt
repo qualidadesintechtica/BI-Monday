@@ -1,16 +1,3 @@
-V25.3
+V25.4
 2026-09-10
-
-Reunião NQ
-- Subabas Operação e Qualidade / Professores e Especialistas.
-- Produtividade e Operação atual passam a respeitar os filtros do BI.
-- Principais não conformidades sem limite fixo de 10 itens.
-- Detalhamento crítico com Matriz, UAs, Critério, Não conformidade, Conformidade e % não conformidade.
-- Filtros de professores por titulação e situação da formação.
-- Gráfico por marca.
-- Gráfico Data de contratação x semestre x professor quando a fonte possui data.
-
-Operação
-- Removido Nível 3 Global.
-- Liberado e Revalidar separados.
-- Sequência visual: cinza A liberar, amarelo Liberado, laranja Revalidar, azul Em ajuste, verde Validado.
+Reunião NQ integrada às novas views de critérios, matrizes e filtros globais.

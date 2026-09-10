@@ -3,6 +3,8 @@
 
   let resumo = null;
   let naoConformidades = null;
+  let criteriosDetalhe = null;
+  let criteriosFiltrados = [];
   let carregando = null;
   let grafico = null;
   let revisoresDistintos = null;
@@ -34,39 +36,36 @@
   }
 
   async function carregar() {
-    if (resumo && naoConformidades) return;
+    if (resumo && naoConformidades && criteriosDetalhe) return;
     if (carregando) return carregando;
     carregando = (async () => {
       const resumoView = window.BI_CONFIG?.REUNIAO_RESUMO_VIEW_NAME || "vw_nq_reuniao_resumo";
-      const ncView = window.BI_CONFIG?.REUNIAO_NC_VIEW_NAME || "vw_nq_reuniao_nao_conformidades";
+      const ncView = window.BI_CONFIG?.REUNIAO_NC_VIEW_NAME || "vw_nq_reuniao_criterios_resumo";
+      const detalheView = window.BI_CONFIG?.REUNIAO_DETALHE_VIEW_NAME || "vw_nq_reuniao_criterios_detalhe";
       const [r1, r2] = await Promise.all([
         window.biSupabase.from(resumoView).select("*").limit(1),
-        window.biSupabase.from(ncView).select("*").order("nao_conformidades", { ascending: false })
+        window.biSupabase.from(ncView).select("*").order("percentual_nao_conformidade", { ascending: false })
       ]);
       if (r1.error) throw r1.error;
       if (r2.error) throw r2.error;
-      resumo = r1.data?.[0] || null;
+      resumo = r1.data?.[0] || {};
       naoConformidades = r2.data || [];
-      if (!resumo) throw new Error("A view de resumo da reunião não retornou dados.");
 
-      // Revisores distintos: calculados diretamente da view consolidada no mesmo período.
-      const nomes = new Set();
-      let inicio = 0;
-      const lote = 1000;
+      // A view detalhada é paginada para não ficar limitada às primeiras 1.000 linhas do Supabase.
+      criteriosDetalhe = [];
+      let inicioDetalhe = 0;
+      const loteDetalhe = 1000;
       while (true) {
         const { data, error } = await window.biSupabase
-          .from(window.BI_CONFIG.VIEW_NAME)
-          .select("revisor_validador,data_validacao")
-          .gte("data_validacao", resumo.periodo_inicio)
-          .lte("data_validacao", resumo.periodo_fim)
-          .range(inicio, inicio + lote - 1);
+          .from(detalheView)
+          .select("parent_item_id,matriz_oferta,id_ua,titulo_ua,criterio,classificacao_especialista,esteira_producao,bloco,status_validacao,categoria_material,gestor_validacao_nq,revisor_validador")
+          .range(inicioDetalhe, inicioDetalhe + loteDetalhe - 1);
         if (error) throw error;
         const parte = data || [];
-        parte.forEach(item => String(item.revisor_validador || "").split(",").map(v => v.trim()).filter(Boolean).forEach(v => nomes.add(v)));
-        if (parte.length < lote) break;
-        inicio += lote;
+        criteriosDetalhe.push(...parte);
+        if (parte.length < loteDetalhe) break;
+        inicioDetalhe += loteDetalhe;
       }
-      revisoresDistintos = nomes.size;
     })();
     try { await carregando; } finally { carregando = null; }
   }
@@ -74,22 +73,23 @@
   function statusNQ(v) { return normalizar(v); }
 
   function resumoDosFiltros(dados) {
-    if (!Array.isArray(dados) || !dados.length) return null;
-    const ini = resumo?.periodo_inicio ? new Date(`${resumo.periodo_inicio}T00:00:00`) : null;
-    const fim = resumo?.periodo_fim ? new Date(`${resumo.periodo_fim}T23:59:59`) : null;
-    const noPeriodo = dados.filter(x => {
-      const d = x.data_validacao ? new Date(x.data_validacao) : null;
-      return d && !Number.isNaN(d.getTime()) && (!ini || d >= ini) && (!fim || d <= fim) && statusNQ(x.status_validacao).includes("validado");
-    });
-    const nome = x => normalizar(`${x.item_name || ""} ${x.categoria_material || ""} ${x.formato || ""}`);
+    if (!Array.isArray(dados)) return null;
+    // "dados" já é a base resultante dos filtros globais do BI. Não reaplicamos
+    // o período fixo da view executiva, pois isso fazia Esteiras atuais zerarem.
+    const noPeriodo = dados.filter(x => statusNQ(x.status_validacao).includes("validado"));
+    const nome = x => normalizar(`${x.item_name || ""} ${x.titulo || ""} ${x.categoria_material || ""} ${x.formato || ""}`);
     const contar = rx => noPeriodo.filter(x => rx.test(nome(x))).length;
     const revisores = new Set();
     noPeriodo.forEach(x => String(x.revisor_validador || "").split(",").map(v=>v.trim()).filter(Boolean).forEach(v=>revisores.add(v)));
     const st = dados.map(x => statusNQ(x.status_validacao));
     return {
-      uas_validadas: contar(/unidade de aprendizagem|(^|\s)ua(\s|$)/), pp_validados: contar(/plano de producao|(^|\s)pp(\s|$)/),
-      a1_validadas: contar(/(^|\s)a1(\s|$)/), a2_validadas: contar(/(^|\s)a2(\s|$)/), a3_validadas: contar(/(^|\s)a3(\s|$)/),
-      lato_validadas: contar(/lato/), revisores: revisores.size,
+      uas_validadas: contar(/unidade de aprendizagem|(^|\s)ua(\s|$)/),
+      pp_validados: contar(/plano de producao|(^|\s)pp(\s|$)/),
+      a1_validadas: contar(/(^|\s)a1(\s|$)/),
+      a2_validadas: contar(/(^|\s)a2(\s|$)/),
+      a3_validadas: contar(/(^|\s)a3(\s|$)/),
+      lato_validadas: noPeriodo.filter(x => normalizar(x.matriz_oferta).includes("lato")).length,
+      revisores: revisores.size,
       total_materiais: new Set(dados.map(x=>x.chave_material || x.monday_item_validacao).filter(Boolean)).size || dados.length,
       validados: st.filter(x=>x.includes("validado")).length,
       liberados_validacao: st.filter(x=>x.includes("liberado") && !x.includes("revalidar")).length,
@@ -97,6 +97,51 @@
       ajustes_conteudista_da: st.filter(x=>x.includes("ajust")).length,
       a_liberar: st.filter(x=>!x || x === "a liberar").length
     };
+  }
+
+  function selecionadosFiltro(id) {
+    return typeof window.obterSelecionados === "function" ? window.obterSelecionados(id) : [];
+  }
+
+  function correspondeFiltro(valor, selecionados, multiplo=false) {
+    if (!selecionados.length) return true;
+    const vazio = valor === null || valor === undefined || String(valor).trim() === "";
+    if (vazio) return selecionados.includes("__EM_BRANCO__");
+    const valores = multiplo ? String(valor).split(",").map(v=>normalizar(v)) : [normalizar(valor)];
+    return selecionados.some(sel => sel !== "__EM_BRANCO__" && valores.some(v => v === normalizar(sel)));
+  }
+
+  function filtrarCriteriosGlobais() {
+    const filtros = {
+      esteira: selecionadosFiltro("filtroEsteira"), matriz: selecionadosFiltro("filtroMatriz"),
+      bloco: selecionadosFiltro("filtroBloco"), status: selecionadosFiltro("filtroStatus"),
+      categoria: selecionadosFiltro("filtroCategoria"), gestor: selecionadosFiltro("filtroGestor"),
+      revisor: selecionadosFiltro("filtroRevisor")
+    };
+    return (criteriosDetalhe || []).filter(x =>
+      correspondeFiltro(x.esteira_producao, filtros.esteira) &&
+      correspondeFiltro(x.matriz_oferta, filtros.matriz) &&
+      correspondeFiltro(x.bloco, filtros.bloco) &&
+      correspondeFiltro(x.status_validacao, filtros.status) &&
+      correspondeFiltro(x.categoria_material, filtros.categoria) &&
+      correspondeFiltro(x.gestor_validacao_nq, filtros.gestor) &&
+      correspondeFiltro(x.revisor_validador, filtros.revisor, true)
+    );
+  }
+
+  function agregarCriterios(rows) {
+    const mapa = new Map();
+    rows.filter(x => ["sim","nao"].includes(normalizar(x.classificacao_especialista))).forEach(x => {
+      const matriz = x.matriz_oferta || "Matriz não identificada";
+      const criterio = x.criterio || "Critério não informado";
+      const chave = `${matriz}|||${criterio}`;
+      if (!mapa.has(chave)) mapa.set(chave, { matriz_oferta: matriz, criterio, nao_conformidades:0, conformidades:0, criterios_avaliados:0, _uas:new Set() });
+      const r = mapa.get(chave);
+      r.criterios_avaliados++;
+      if (normalizar(x.classificacao_especialista) === "nao") r.nao_conformidades++; else r.conformidades++;
+      if (x.id_ua) r._uas.add(x.id_ua);
+    });
+    return [...mapa.values()].map(r => ({...r, uas:r._uas.size, percentual_nao_conformidade:r.criterios_avaliados ? (r.nao_conformidades*100/r.criterios_avaliados) : 0}));
   }
 
   function configurarAbasNQ() {
@@ -112,8 +157,8 @@
   }
 
   function renderResumo() {
-    const rf = resumoDosFiltros(dadosBIAtuais) || resumo;
-    setText("nqPeriodo", `${dataBR(resumo.periodo_inicio)} a ${dataBR(resumo.periodo_fim)}`);
+    const rf = resumoDosFiltros(dadosBIAtuais) || resumo || {};
+    setText("nqPeriodo", "Conforme filtros atuais");
     setText("nqUa", n(rf.uas_validadas));
     setText("nqPp", n(rf.pp_validados));
     setText("nqA1", n(rf.a1_validadas));
@@ -127,11 +172,15 @@
     setText("nqRevalidacao", n(rf.revalidacao));
     setText("nqAjustes", n(rf.ajustes_conteudista_da));
     setText("nqALiberar", n(rf.a_liberar));
-    setText("nqCriterios", n(resumo.criterios_avaliados));
-    setText("nqConformes", n(resumo.conformes));
-    setText("nqNaoConformes", n(resumo.nao_conformes));
-    setText("nqTaxaConformidade", pct(resumo.taxa_conformidade));
-    setText("nqTaxaNaoConformidade", pct(resumo.taxa_nao_conformidade));
+
+    const validos = criteriosFiltrados.filter(x => ["sim","nao"].includes(normalizar(x.classificacao_especialista)));
+    const conformes = validos.filter(x => normalizar(x.classificacao_especialista) === "sim").length;
+    const nao = validos.length - conformes;
+    setText("nqCriterios", n(validos.length));
+    setText("nqConformes", n(conformes));
+    setText("nqNaoConformes", n(nao));
+    setText("nqTaxaConformidade", pct(validos.length ? conformes * 100 / validos.length : 0));
+    setText("nqTaxaNaoConformidade", pct(validos.length ? nao * 100 / validos.length : 0));
   }
 
   function renderTabela() {
@@ -139,7 +188,7 @@
     if (!tbody) return;
     const rows = [...naoConformidades].sort((a,b)=>String(a.matriz_oferta||a.matriz||"").localeCompare(String(b.matriz_oferta||b.matriz||""),"pt-BR") || Number(b.nao_conformidades||0)-Number(a.nao_conformidades||0));
     tbody.innerHTML = rows.map(x => {
-      const nao = Number(x.nao_conformidades || 0), avaliados = Number(x.criterios_avaliados || 0), conf = Math.max(0, Number(x.conformidades ?? (avaliados - nao)));
+      const nao = Number(x.nao_conformidades ?? x.nao_conformidade ?? 0), avaliados = Number(x.criterios_avaliados || 0), conf = Math.max(0, Number(x.conformidades ?? x.conformidade ?? (avaliados - nao)));
       return `<tr><td>${escapeHtml(x.matriz_oferta || x.matriz || "Não informada")}</td><td>${escapeHtml(x.uas ?? x.total_uas ?? "--")}</td><td>${escapeHtml(x.criterio)}</td><td>${n(nao)}</td><td>${n(conf)}</td><td>${pct(x.percentual_nao_conformidade)}</td></tr>`;
     }).join("") || '<tr><td colspan="6">Nenhuma não conformidade encontrada.</td></tr>';
   }
@@ -149,14 +198,14 @@
     const el = document.getElementById("graficoNQConformidades");
     if (!el) return;
     grafico ||= echarts.init(el);
-    const dados = [...naoConformidades].reverse();
+    const dados = [...naoConformidades].filter(x => Number(x.nao_conformidades ?? x.nao_conformidade ?? 0) > 0).sort((a,b)=>Number(b.nao_conformidades ?? b.nao_conformidade ?? 0)-Number(a.nao_conformidades ?? a.nao_conformidade ?? 0)).slice(0,15).reverse();
     el.style.minHeight = `${Math.max(320, dados.length * 28)}px`;
     grafico.setOption({
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
       grid: { left: 12, right: 24, top: 10, bottom: 10, containLabel: true },
       xAxis: { type: "value", minInterval: 1, splitLine: { lineStyle: { color: "#eee8f3" } } },
       yAxis: { type: "category", data: dados.map(x => x.criterio), axisLabel: { width: 180, overflow: "truncate", fontSize: 11 } },
-      series: [{ type: "bar", data: dados.map(x => x.nao_conformidades), barMaxWidth: 18, itemStyle: { borderRadius: [0, 7, 7, 0] }, label: { show: true, position: "right" } }]
+      series: [{ type: "bar", data: dados.map(x => Number(x.nao_conformidades ?? x.nao_conformidade ?? 0)), barMaxWidth: 18, itemStyle: { borderRadius: [0, 7, 7, 0] }, label: { show: true, position: "right" } }]
     });
   }
 
@@ -166,6 +215,8 @@
     try {
       await carregar();
       configurarAbasNQ();
+      criteriosFiltrados = filtrarCriteriosGlobais();
+      naoConformidades = agregarCriterios(criteriosFiltrados);
       renderResumo();
       renderTabela();
       renderGrafico();
@@ -174,7 +225,7 @@
       configurarFiltroCoberturaNQ();
       await carregarFormacaoCoberturaNQ();
       renderCoberturaNQ();
-      if (status) status.textContent = "Dados carregados diretamente das views executivas do Supabase.";
+      if (status) status.textContent = "Dados carregados da nova view NQ e atualizados conforme os filtros globais do BI.";
     } catch (e) {
       console.error("Erro ao carregar Reunião NQ:", e);
       if (status) status.textContent = "Erro ao carregar a página da reunião: " + (e?.message || "erro desconhecido");
@@ -701,7 +752,7 @@
         nome.textContent = "Nenhum arquivo selecionado";
 
         await carregarHistoricoImportacoesNQ();
-        resumo = null; naoConformidades = null;
+        resumo = null; naoConformidades = null; criteriosDetalhe = null;
         await carregarFormacaoCoberturaNQ();
         renderCoberturaNQ();
       } catch (e) {
