@@ -1,17 +1,39 @@
-LIMPEZA DO PACOTE BI MONDAY
-===========================
+LIMPEZA REALIZADA — BI MONDAY V25.3
+===================================
 
-Removido por não ser necessário para execução/publicação do BI:
-- Diretório .git completo (histórico local do Git; o histórico continua no GitHub).
-- Arquivos LEIA_* de versões antigas.
-- Arquivos de versão duplicados/corrompidos: VERSÃO.txt e VERS├âO.txt.
+Arquivos removidos por serem históricos ou duplicados:
+- LEIA_ANTES_DE_SUBIR.txt
+- LEIA_V23_2.txt
+- LEIA_V23_3.txt
+- LEIA_V23_4.txt
+- LEIA_V23_5.txt
+- LEIA_V23_6.txt
+- LEIA_V23_7.txt
+- LEIA_V23_8.txt
+- LEIA_V23_9.txt
+- LEIA_V23_9_1.txt
+- LEIA_V23_9_2.txt
+- LEIA_V23_IMPORTACAO_NQ.txt
+- LEIA_V24_10.txt
+- LEIA_V24_11.txt
+- LEIA_V24_12.txt
+- LEIA_V24_13.txt
+- LEIA_V24_14.txt
+- LEIA_V24_15.txt
+- LEIA_V24_16.txt
+- LEIA_V24_18.txt
+- LEIA_V24_19.txt
+- LEIA_V24_20.txt
+- LEIA_V24_21.txt
+- LEIA_V24_22.txt
+- LEIA_V24_5.txt
+- LEIA_V24_6.txt
+- LEIA_V24_7.txt
+- LEIA_V24_8.txt
+- LEIA_V24_9.txt
+- VERS#U00c3O.txt
+- VERS#U251c#U00e2O.txt
 
-Mantido:
-- HTML, CSS e JavaScript do BI.
-- Reunião NQ e Indicadores UC.
-- Projeto Qualidade.
-- Funções Supabase.
-- Scripts SQL da pasta docs para manutenção/reconstrução.
-- SPONSORS_IDENTIFICADOS.txt e inventário técnico.
+Mantidos todos os arquivos funcionais e técnicos necessários.
 
-Total de arquivos removidos: 796
+Total removido: 31 arquivos.

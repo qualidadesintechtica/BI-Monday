@@ -1,5 +1,0 @@
-V24.20 — Operação usando a base consolidada do BI
-
-A leitura direta de monday_validacao_materiais foi retirada do fluxo da página Operação.
-O navegador pode receber zero linhas dessa tabela por RLS sem gerar erro.
-Agora a Operação recebe exatamente dadosFiltrados, a mesma coleção usada pelos KPIs e demais páginas do BI.

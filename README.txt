@@ -1,21 +1,17 @@
-BI Monday — V19
+BI MONDAY — V25.3 LIMPO
 
-Versão limpa baseada na V17 estável, com a tela Gestores e Materiais integrada sem marcadores de conflito.
+Estrutura mantida:
+- index.html, login.html, importar.html e projetos.html
+- css/: estilos do sistema
+- js/: dashboard, filtros, Reunião NQ, indicadores e Projeto Qualidade
+- supabase/: funções necessárias à integração
+- docs/: SQLs e documentação técnica para manutenção
+- SPONSORS_IDENTIFICADOS.txt
+- VERSAO.txt
+- LEIA_V25_3.txt
 
-Nova tela: Gestores e Materiais
-- UAs por gestor
-- UCs por gestor
-- nomes das UCs e materiais
-- gráfico UAs x UCs por gestor
-- clique no gestor para filtrar a tabela
-- respeita os filtros globais existentes do BI
-- busca por gestor, UC ou material
+Removido:
+- Arquivos LEIA_* de versões anteriores
+- Arquivos de versão duplicados/corrompidos
 
-Mantém:
-- Indicadores da UC com nomes reais
-- cores: Excelente verde, Ótimo amarelo, Suficiente marrom claro
-- demais páginas e recursos da V17
-
-Build: 20260901-v20-ordenacao-colunas
-
-V20: tabela Gestores e Materiais com ordenação crescente/decrescente em cada coluna pelo cabeçalho.
+Nenhum arquivo funcional do BI foi removido.
