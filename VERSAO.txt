@@ -1,12 +1,12 @@
-V24.16
+V24.22
 2026-09-09
 
-Operação: correção das visões do board Validação de Materiais.
-- NÍVEL 1 - PLANOS usa categoria Plano de Produção.
-- NÍVEL 2 - UA usa categoria Unidade de Aprendizagem / eh_ua.
-- NÍVEL 2 - AVALIAÇÕES usa categorias de Avaliação (incluindo Avaliação Lato e A1-A5).
-- NÍVEL 3 - GLOBAL usa campos estruturados contendo Global / Nível 3.
-- Quadro principal mostra toda a base filtrada.
-- Mantido o filtro global original do BI.
-- Grupos iniciam recolhidos, como no Monday.
-- Removidos símbolos extras das abas.
+Versão limpa do BI Monday.
+- Removido o diretório .git do pacote.
+- Removidos arquivos LEIA_* históricos.
+- Removidos arquivos duplicados/corrompidos de versão.
+- Mantidos todos os arquivos operacionais do BI, scripts JS/CSS, páginas HTML,
+  funções Supabase e documentos SQL necessários para manutenção.
+
+Última alteração funcional registrada:
+- Operação: botão Exportar CSV em barra própria, respeitando filtros e visão selecionada.

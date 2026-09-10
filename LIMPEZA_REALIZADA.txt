@@ -1,0 +1,17 @@
+LIMPEZA DO PACOTE BI MONDAY
+===========================
+
+Removido por não ser necessário para execução/publicação do BI:
+- Diretório .git completo (histórico local do Git; o histórico continua no GitHub).
+- Arquivos LEIA_* de versões antigas.
+- Arquivos de versão duplicados/corrompidos: VERSÃO.txt e VERS├âO.txt.
+
+Mantido:
+- HTML, CSS e JavaScript do BI.
+- Reunião NQ e Indicadores UC.
+- Projeto Qualidade.
+- Funções Supabase.
+- Scripts SQL da pasta docs para manutenção/reconstrução.
+- SPONSORS_IDENTIFICADOS.txt e inventário técnico.
+
+Total de arquivos removidos: 796
