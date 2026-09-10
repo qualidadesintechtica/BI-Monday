@@ -1,0 +1,7 @@
+V25.5 - Reunião NQ
+
+- Corrige tela presa em Carregando indicadores.
+- Carrega vw_nq_reuniao_criterios_detalhe em lotes paralelos com progresso visível.
+- Mantém vw_nq_reuniao_criterios_resumo.
+- Atualiza cache de config, reuniao-nq e dashboard.
+- Atualiza badge visual para V25.5.

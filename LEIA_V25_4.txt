@@ -1,9 +1,0 @@
-V25.4 - REUNIÃO NQ
-
-- Usa vw_nq_reuniao_criterios_resumo e vw_nq_reuniao_criterios_detalhe.
-- Remove dependência da antiga vw_nq_reuniao_nao_conformidades.
-- Critérios separados por Matriz.
-- Detalhamento: Matriz, UAs, Critério, Não conformidade, Conformidade e % não conformidade.
-- Qualidade e não conformidades respeitam os filtros globais.
-- Produtividade não reaplica o período fixo antigo; usa a base já filtrada do BI.
-- Gráfico exibe os 15 principais critérios não conformes, sem limitar a tabela.

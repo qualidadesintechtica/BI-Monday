@@ -51,20 +51,45 @@
       resumo = r1.data?.[0] || {};
       naoConformidades = r2.data || [];
 
-      // A view detalhada é paginada para não ficar limitada às primeiras 1.000 linhas do Supabase.
-      criteriosDetalhe = [];
-      let inicioDetalhe = 0;
+      // V25.5: conta primeiro e carrega a view detalhada em lotes paralelos.
+      // A versão anterior fazia uma sequência de dezenas de requisições e podia
+      // deixar a tela indefinidamente em "Carregando indicadores...".
+      const camposDetalhe = "parent_item_id,matriz_oferta,id_ua,titulo_ua,criterio,classificacao_especialista,esteira_producao,bloco,status_validacao,categoria_material,gestor_validacao_nq,revisor_validador";
+      const statusCarga = document.getElementById("nqStatus");
+      if (statusCarga) statusCarga.textContent = "Carregando critérios da reunião...";
+
+      const contagem = await window.biSupabase
+        .from(detalheView)
+        .select("parent_item_id", { count: "exact", head: true });
+      if (contagem.error) throw contagem.error;
+
+      const totalDetalhe = Number(contagem.count || 0);
       const loteDetalhe = 1000;
-      while (true) {
-        const { data, error } = await window.biSupabase
-          .from(detalheView)
-          .select("parent_item_id,matriz_oferta,id_ua,titulo_ua,criterio,classificacao_especialista,esteira_producao,bloco,status_validacao,categoria_material,gestor_validacao_nq,revisor_validador")
-          .range(inicioDetalhe, inicioDetalhe + loteDetalhe - 1);
-        if (error) throw error;
-        const parte = data || [];
-        criteriosDetalhe.push(...parte);
-        if (parte.length < loteDetalhe) break;
-        inicioDetalhe += loteDetalhe;
+      const paginas = Math.ceil(totalDetalhe / loteDetalhe);
+      criteriosDetalhe = [];
+
+      // Executa no máximo 6 páginas simultaneamente para acelerar sem
+      // sobrecarregar o navegador/Supabase.
+      for (let basePagina = 0; basePagina < paginas; basePagina += 6) {
+        const grupo = [];
+        for (let pagina = basePagina; pagina < Math.min(basePagina + 6, paginas); pagina++) {
+          const inicio = pagina * loteDetalhe;
+          grupo.push(
+            window.biSupabase
+              .from(detalheView)
+              .select(camposDetalhe)
+              .range(inicio, Math.min(inicio + loteDetalhe - 1, totalDetalhe - 1))
+          );
+        }
+        const respostas = await Promise.all(grupo);
+        respostas.forEach(resp => {
+          if (resp.error) throw resp.error;
+          criteriosDetalhe.push(...(resp.data || []));
+        });
+        if (statusCarga) {
+          const carregados = Math.min((basePagina + grupo.length) * loteDetalhe, totalDetalhe);
+          statusCarga.textContent = `Carregando critérios da reunião... ${fmt.format(carregados)} de ${fmt.format(totalDetalhe)}`;
+        }
       }
     })();
     try { await carregando; } finally { carregando = null; }

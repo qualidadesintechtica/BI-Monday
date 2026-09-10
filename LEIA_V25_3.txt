@@ -1,6 +1,0 @@
-V25.3 - ALTERAÇÃO FUNCIONAL
-
-Substitua no GitHub o conteúdo deste pacote mantendo a mesma estrutura de pastas.
-Depois aguarde o GitHub Pages concluir o deploy e pressione Ctrl+F5.
-
-Observação: a separação por Matriz em critérios usa os campos matriz/matriz_oferta quando disponíveis na view vw_nq_reuniao_nao_conformidades. Se a view ainda não expuser esse campo, a interface mostrará 'Não informada' e será necessário ampliar a view SQL.
