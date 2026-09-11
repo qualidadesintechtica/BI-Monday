@@ -2,7 +2,7 @@ window.BI_CONFIG = {
   SUPABASE_URL: "https://nkjmgzyjjbepebzurowy.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: "sb_publishable_6Tuuyz6nYSBa782OGDi1rg_XkBHmO8U",
   VIEW_NAME: "vw_materiais_bi_consolidada",
-  BUILD_ID: "20260910-v25-5-reuniao-nq",
+  BUILD_ID: "20260911-v25-6-pp-validacao",
   REUNIAO_RESUMO_VIEW_NAME: "vw_nq_reuniao_resumo",
   REUNIAO_NC_VIEW_NAME: "vw_nq_reuniao_criterios_resumo",
   REUNIAO_DETALHE_VIEW_NAME: "vw_nq_reuniao_criterios_detalhe",

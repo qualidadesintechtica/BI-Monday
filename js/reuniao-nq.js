@@ -17,6 +17,7 @@
   let graficoFormacoesNQ = null;
   let graficoContratacaoNQ = null;
   let dadosBIAtuais = [];
+  let ppValidacao = null;
   const fmt = new Intl.NumberFormat("pt-BR");
 
   function setText(id, valor) {
@@ -42,14 +43,19 @@
       const resumoView = window.BI_CONFIG?.REUNIAO_RESUMO_VIEW_NAME || "vw_nq_reuniao_resumo";
       const ncView = window.BI_CONFIG?.REUNIAO_NC_VIEW_NAME || "vw_nq_reuniao_criterios_resumo";
       const detalheView = window.BI_CONFIG?.REUNIAO_DETALHE_VIEW_NAME || "vw_nq_reuniao_criterios_detalhe";
-      const [r1, r2] = await Promise.all([
+      const [r1, r2, rPP] = await Promise.all([
         window.biSupabase.from(resumoView).select("*").limit(1),
-        window.biSupabase.from(ncView).select("*").order("percentual_nao_conformidade", { ascending: false })
+        window.biSupabase.from(ncView).select("*").order("percentual_nao_conformidade", { ascending: false }),
+        window.biSupabase.from("monday_pp_validacao")
+          .select("monday_item_id,id_pp,matriz_oferta,esteira_producao,categoria_material,status_validacao")
+          .eq("status_validacao", "Validado")
       ]);
       if (r1.error) throw r1.error;
       if (r2.error) throw r2.error;
+      if (rPP.error) throw rPP.error;
       resumo = r1.data?.[0] || {};
       naoConformidades = r2.data || [];
+      ppValidacao = rPP.data || [];
 
       // V25.5: conta primeiro e carrega a view detalhada em lotes paralelos.
       // A versão anterior fazia uma sequência de dezenas de requisições e podia
@@ -136,6 +142,29 @@
     return selecionados.some(sel => sel !== "__EM_BRANCO__" && valores.some(v => v === normalizar(sel)));
   }
 
+
+  function contarPPsValidadosFiltrados() {
+    const filtros = {
+      esteira: selecionadosFiltro("filtroEsteira"),
+      matriz: selecionadosFiltro("filtroMatriz"),
+      status: selecionadosFiltro("filtroStatus"),
+      categoria: selecionadosFiltro("filtroCategoria")
+    };
+
+    // O card representa exclusivamente Projetos Pedagógicos já validados.
+    // Bloco, Gestor e Revisor não existem em monday_pp_validacao e, portanto,
+    // não devem zerar o indicador.
+    if (filtros.status.length && !filtros.status.some(v => normalizar(v) === "validado")) {
+      return 0;
+    }
+
+    return (ppValidacao || []).filter(x =>
+      correspondeFiltro(x.esteira_producao, filtros.esteira) &&
+      correspondeFiltro(x.matriz_oferta, filtros.matriz) &&
+      correspondeFiltro(x.categoria_material, filtros.categoria)
+    ).length;
+  }
+
   function filtrarCriteriosGlobais() {
     const filtros = {
       esteira: selecionadosFiltro("filtroEsteira"), matriz: selecionadosFiltro("filtroMatriz"),
@@ -185,7 +214,7 @@
     const rf = resumoDosFiltros(dadosBIAtuais) || resumo || {};
     setText("nqPeriodo", "Conforme filtros atuais");
     setText("nqUa", n(rf.uas_validadas));
-    setText("nqPp", n(rf.pp_validados));
+    setText("nqPp", n(contarPPsValidadosFiltrados()));
     setText("nqA1", n(rf.a1_validadas));
     setText("nqA2", n(rf.a2_validadas));
     setText("nqA3", n(rf.a3_validadas));
