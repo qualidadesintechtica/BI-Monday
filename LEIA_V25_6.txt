@@ -1,0 +1,9 @@
+V25.6 - Reunião NQ / Projetos Pedagógicos
+
+- Corrige o card PPs validados.
+- Fonte oficial: public.monday_pp_validacao.
+- Considera somente status_validacao = Validado.
+- Respeita Esteira, Matriz, Status e Categoria.
+- Bloco, Gestor e Revisor não afetam o card porque não existem na tabela de PP.
+- Para Jun a Ago/26 (Regular), sem outros filtros restritivos, o valor esperado é 114.
+- Mantém as correções de desempenho e critérios da V25.5.

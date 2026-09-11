@@ -1,0 +1,8 @@
+V25.7 - Reunião NQ
+
+Correção do card PPs validados:
+- fonte: public.monday_pp_validacao
+- status fixo: Validado
+- respeita filtros de Esteira, Matriz, Categoria e Status
+- ignora Bloco, Gestor e Revisor por não existirem na tabela de PP
+- para Jun a Ago/26 (Regular), sem outros filtros restritivos, o esperado é 114.

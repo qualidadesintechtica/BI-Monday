@@ -17,6 +17,7 @@
   let graficoFormacoesNQ = null;
   let graficoContratacaoNQ = null;
   let dadosBIAtuais = [];
+  let ppsValidadosAtual = 0;
   const fmt = new Intl.NumberFormat("pt-BR");
 
   function setText(id, valor) {
@@ -109,7 +110,7 @@
     const st = dados.map(x => statusNQ(x.status_validacao));
     return {
       uas_validadas: contar(/unidade de aprendizagem|(^|\s)ua(\s|$)/),
-      pp_validados: contar(/plano de producao|(^|\s)pp(\s|$)/),
+      pp_validados: ppsValidadosAtual,
       a1_validadas: contar(/(^|\s)a1(\s|$)/),
       a2_validadas: contar(/(^|\s)a2(\s|$)/),
       a3_validadas: contar(/(^|\s)a3(\s|$)/),
@@ -134,6 +135,34 @@
     if (vazio) return selecionados.includes("__EM_BRANCO__");
     const valores = multiplo ? String(valor).split(",").map(v=>normalizar(v)) : [normalizar(valor)];
     return selecionados.some(sel => sel !== "__EM_BRANCO__" && valores.some(v => v === normalizar(sel)));
+  }
+
+  async function carregarPPsValidadosDosFiltros() {
+    const filtros = {
+      esteira: selecionadosFiltro("filtroEsteira"),
+      matriz: selecionadosFiltro("filtroMatriz"),
+      status: selecionadosFiltro("filtroStatus"),
+      categoria: selecionadosFiltro("filtroCategoria")
+    };
+
+    // O card representa exclusivamente Projetos Pedagógicos já validados.
+    // Se o filtro global de Status estiver ativo e não incluir Validado, o total é zero.
+    if (filtros.status.length && !filtros.status.some(v => normalizar(v) === "validado")) {
+      return 0;
+    }
+
+    const { data, error } = await window.biSupabase
+      .from("monday_pp_validacao")
+      .select("monday_item_id,id_pp,status_validacao,esteira_producao,matriz_oferta,categoria_material")
+      .eq("status_validacao", "Validado");
+
+    if (error) throw error;
+
+    return (data || []).filter(x =>
+      correspondeFiltro(x.esteira_producao, filtros.esteira) &&
+      correspondeFiltro(x.matriz_oferta, filtros.matriz) &&
+      correspondeFiltro(x.categoria_material, filtros.categoria)
+    ).length;
   }
 
   function filtrarCriteriosGlobais() {
@@ -242,6 +271,7 @@
       configurarAbasNQ();
       criteriosFiltrados = filtrarCriteriosGlobais();
       naoConformidades = agregarCriterios(criteriosFiltrados);
+      ppsValidadosAtual = await carregarPPsValidadosDosFiltros();
       renderResumo();
       renderTabela();
       renderGrafico();
