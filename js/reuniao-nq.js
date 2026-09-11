@@ -39,7 +39,11 @@
 
   function dataBR(v) {
     if (!v) return "--";
-    const [a, m, d] = String(v).slice(0, 10).split("-");
+
+    const [a, m, d] = String(v)
+      .slice(0, 10)
+      .split("-");
+
     return `${d}/${m}/${a}`;
   }
 
@@ -61,41 +65,60 @@
   }
 
   async function carregar() {
-    if (resumo && naoConformidades && criteriosDetalhe) return;
-    if (carregando) return carregando;
+    if (
+      resumo &&
+      naoConformidades &&
+      criteriosDetalhe
+    ) {
+      return;
+    }
+
+    if (carregando) {
+      return carregando;
+    }
 
     carregando = (async () => {
       const resumoView =
-        window.BI_CONFIG?.REUNIAO_RESUMO_VIEW_NAME ||
+        window.BI_CONFIG
+          ?.REUNIAO_RESUMO_VIEW_NAME ||
         "vw_nq_reuniao_resumo";
 
       const ncView =
-        window.BI_CONFIG?.REUNIAO_NC_VIEW_NAME ||
+        window.BI_CONFIG
+          ?.REUNIAO_NC_VIEW_NAME ||
         "vw_nq_reuniao_criterios_resumo";
 
       const detalheView =
-        window.BI_CONFIG?.REUNIAO_DETALHE_VIEW_NAME ||
+        window.BI_CONFIG
+          ?.REUNIAO_DETALHE_VIEW_NAME ||
         "vw_nq_reuniao_criterios_detalhe";
 
-      const [r1, r2] = await Promise.all([
-        window.biSupabase
-          .from(resumoView)
-          .select("*")
-          .limit(1),
+      const [r1, r2] =
+        await Promise.all([
+          window.biSupabase
+            .from(resumoView)
+            .select("*")
+            .limit(1),
 
-        window.biSupabase
-          .from(ncView)
-          .select("*")
-          .order("percentual_nao_conformidade", {
-            ascending: false
-          })
-      ]);
+          window.biSupabase
+            .from(ncView)
+            .select("*")
+            .order(
+              "percentual_nao_conformidade",
+              {
+                ascending: false
+              }
+            )
+        ]);
 
       if (r1.error) throw r1.error;
       if (r2.error) throw r2.error;
 
-      resumo = r1.data?.[0] || {};
-      naoConformidades = r2.data || [];
+      resumo =
+        r1.data?.[0] || {};
+
+      naoConformidades =
+        r2.data || [];
 
       const camposDetalhe =
         "parent_item_id,matriz_oferta,id_ua,titulo_ua,criterio," +
@@ -103,25 +126,43 @@
         "status_validacao,categoria_material,gestor_validacao_nq," +
         "revisor_validador";
 
-      const statusCarga = document.getElementById("nqStatus");
+      const statusCarga =
+        document.getElementById(
+          "nqStatus"
+        );
 
       if (statusCarga) {
         statusCarga.textContent =
           "Carregando critérios da reunião...";
       }
 
-      const contagem = await window.biSupabase
-        .from(detalheView)
-        .select("parent_item_id", {
-          count: "exact",
-          head: true
-        });
+      const contagem =
+        await window.biSupabase
+          .from(detalheView)
+          .select(
+            "parent_item_id",
+            {
+              count: "exact",
+              head: true
+            }
+          );
 
-      if (contagem.error) throw contagem.error;
+      if (contagem.error) {
+        throw contagem.error;
+      }
 
-      const totalDetalhe = Number(contagem.count || 0);
+      const totalDetalhe =
+        Number(
+          contagem.count || 0
+        );
+
       const loteDetalhe = 1000;
-      const paginas = Math.ceil(totalDetalhe / loteDetalhe);
+
+      const paginas =
+        Math.ceil(
+          totalDetalhe /
+          loteDetalhe
+        );
 
       criteriosDetalhe = [];
 
@@ -134,38 +175,62 @@
 
         for (
           let pagina = basePagina;
-          pagina < Math.min(basePagina + 6, paginas);
+          pagina <
+          Math.min(
+            basePagina + 6,
+            paginas
+          );
           pagina++
         ) {
-          const inicio = pagina * loteDetalhe;
+          const inicio =
+            pagina *
+            loteDetalhe;
 
           grupo.push(
             window.biSupabase
               .from(detalheView)
-              .select(camposDetalhe)
+              .select(
+                camposDetalhe
+              )
               .range(
                 inicio,
                 Math.min(
-                  inicio + loteDetalhe - 1,
+                  inicio +
+                    loteDetalhe -
+                    1,
                   totalDetalhe - 1
                 )
               )
           );
         }
 
-        const respostas = await Promise.all(grupo);
+        const respostas =
+          await Promise.all(
+            grupo
+          );
 
-        respostas.forEach(resp => {
-          if (resp.error) throw resp.error;
+        respostas.forEach(
+          resp => {
+            if (resp.error) {
+              throw resp.error;
+            }
 
-          criteriosDetalhe.push(...(resp.data || []));
-        });
+            criteriosDetalhe.push(
+              ...(resp.data || [])
+            );
+          }
+        );
 
         if (statusCarga) {
-          const carregados = Math.min(
-            (basePagina + grupo.length) * loteDetalhe,
-            totalDetalhe
-          );
+          const carregados =
+            Math.min(
+              (
+                basePagina +
+                grupo.length
+              ) *
+                loteDetalhe,
+              totalDetalhe
+            );
 
           statusCarga.textContent =
             `Carregando critérios da reunião... ` +
@@ -187,11 +252,16 @@
   }
 
   function resumoDosFiltros(dados) {
-    if (!Array.isArray(dados)) return null;
+    if (!Array.isArray(dados)) {
+      return null;
+    }
 
-    const noPeriodo = dados.filter(x =>
-      statusNQ(x.status_validacao).includes("validado")
-    );
+    const noPeriodo =
+      dados.filter(x =>
+        statusNQ(
+          x.status_validacao
+        ).includes("validado")
+      );
 
     const nome = x =>
       normalizar(
@@ -202,38 +272,66 @@
       );
 
     const contar = rx =>
-      noPeriodo.filter(x => rx.test(nome(x))).length;
+      noPeriodo.filter(
+        x => rx.test(nome(x))
+      ).length;
 
-    const revisores = new Set();
+    const revisores =
+      new Set();
 
     noPeriodo.forEach(x => {
-      String(x.revisor_validador || "")
+      String(
+        x.revisor_validador || ""
+      )
         .split(",")
         .map(v => v.trim())
         .filter(Boolean)
-        .forEach(v => revisores.add(v));
+        .forEach(
+          v => revisores.add(v)
+        );
     });
 
-    const st = dados.map(x =>
-      statusNQ(x.status_validacao)
-    );
+    const st =
+      dados.map(x =>
+        statusNQ(
+          x.status_validacao
+        )
+      );
 
     return {
-      uas_validadas: contar(
-        /unidade de aprendizagem|(^|\s)ua(\s|$)/
-      ),
+      uas_validadas:
+        contar(
+          /unidade de aprendizagem|(^|\s)ua(\s|$)/
+        ),
 
-      pp_validados: ppsValidadosAtual,
+      pp_validados:
+        ppsValidadosAtual,
 
-      a1_validadas: contar(/(^|\s)a1(\s|$)/),
-      a2_validadas: contar(/(^|\s)a2(\s|$)/),
-      a3_validadas: contar(/(^|\s)a3(\s|$)/),
+      a1_validadas:
+        contar(
+          /(^|\s)a1(\s|$)/
+        ),
 
-      lato_validadas: noPeriodo.filter(x =>
-        normalizar(x.matriz_oferta).includes("lato")
-      ).length,
+      a2_validadas:
+        contar(
+          /(^|\s)a2(\s|$)/
+        ),
 
-      revisores: revisores.size,
+      a3_validadas:
+        contar(
+          /(^|\s)a3(\s|$)/
+        ),
+
+      lato_validadas:
+        noPeriodo.filter(
+          x =>
+            normalizar(
+              x.matriz_oferta
+            ).includes("lato")
+        ).length,
+
+      revisores:
+        revisores.size,
 
       total_materiais:
         new Set(
@@ -244,34 +342,57 @@
                 x.monday_item_validacao
             )
             .filter(Boolean)
-        ).size || dados.length,
+        ).size ||
+        dados.length,
 
-      validados: st.filter(x =>
-        x.includes("validado")
-      ).length,
+      validados:
+        st.filter(
+          x =>
+            x.includes(
+              "validado"
+            )
+        ).length,
 
-      liberados_validacao: st.filter(
-        x =>
-          x.includes("liberado") &&
-          !x.includes("revalidar")
-      ).length,
+      liberados_validacao:
+        st.filter(
+          x =>
+            x.includes(
+              "liberado"
+            ) &&
+            !x.includes(
+              "revalidar"
+            )
+        ).length,
 
-      revalidacao: st.filter(x =>
-        x.includes("revalidar")
-      ).length,
+      revalidacao:
+        st.filter(
+          x =>
+            x.includes(
+              "revalidar"
+            )
+        ).length,
 
-      ajustes_conteudista_da: st.filter(x =>
-        x.includes("ajust")
-      ).length,
+      ajustes_conteudista_da:
+        st.filter(
+          x =>
+            x.includes(
+              "ajust"
+            )
+        ).length,
 
-      a_liberar: st.filter(
-        x => !x || x === "a liberar"
-      ).length
+      a_liberar:
+        st.filter(
+          x =>
+            !x ||
+            x === "a liberar"
+        ).length
     };
   }
 
   function selecionadosFiltro(id) {
-    return typeof window.obterSelecionados === "function"
+    return typeof
+      window.obterSelecionados ===
+      "function"
       ? window.obterSelecionados(id)
       : [];
   }
@@ -281,7 +402,9 @@
     selecionados,
     multiplo = false
   ) {
-    if (!selecionados.length) return true;
+    if (!selecionados.length) {
+      return true;
+    }
 
     const vazio =
       valor === null ||
@@ -289,54 +412,84 @@
       String(valor).trim() === "";
 
     if (vazio) {
-      return selecionados.includes("__EM_BRANCO__");
+      return selecionados.includes(
+        "__EM_BRANCO__"
+      );
     }
 
-    const valores = multiplo
-      ? String(valor)
-          .split(",")
-          .map(v => normalizar(v))
-      : [normalizar(valor)];
+    const valores =
+      multiplo
+        ? String(valor)
+            .split(",")
+            .map(
+              v =>
+                normalizar(v)
+            )
+        : [
+            normalizar(valor)
+          ];
 
     return selecionados.some(
       sel =>
-        sel !== "__EM_BRANCO__" &&
+        sel !==
+          "__EM_BRANCO__" &&
         valores.some(
-          v => v === normalizar(sel)
+          v =>
+            v ===
+            normalizar(sel)
         )
     );
   }
 
   async function carregarPPsValidadosDosFiltros() {
     const filtros = {
-      esteira: selecionadosFiltro("filtroEsteira"),
-      matriz: selecionadosFiltro("filtroMatriz"),
-      status: selecionadosFiltro("filtroStatus"),
-      categoria: selecionadosFiltro("filtroCategoria")
+      esteira:
+        selecionadosFiltro(
+          "filtroEsteira"
+        ),
+
+      matriz:
+        selecionadosFiltro(
+          "filtroMatriz"
+        ),
+
+      status:
+        selecionadosFiltro(
+          "filtroStatus"
+        ),
+
+      categoria:
+        selecionadosFiltro(
+          "filtroCategoria"
+        )
     };
 
     /*
      * PP = Projeto Pedagógico.
      *
-     * O card usa a fonte oficial:
+     * Fonte oficial:
      * public.monday_pp_validacao
-     *
-     * Somente registros com status "Validado"
-     * entram no indicador.
      */
 
     if (
       filtros.status.length &&
       !filtros.status.some(
-        v => normalizar(v) === "validado"
+        v =>
+          normalizar(v) ===
+          "validado"
       )
     ) {
       return 0;
     }
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await window.biSupabase
-        .from("monday_pp_validacao")
+        .from(
+          "monday_pp_validacao"
+        )
         .select(
           "monday_item_id," +
           "id_pp," +
@@ -359,76 +512,114 @@
       throw error;
     }
 
-    return (data || []).filter(x =>
-      correspondeFiltro(
-        x.esteira_producao,
-        filtros.esteira
-      ) &&
-      correspondeFiltro(
-        x.matriz_oferta,
-        filtros.matriz
-      ) &&
-      correspondeFiltro(
-        x.categoria_material,
-        filtros.categoria
+    return (data || [])
+      .filter(
+        x =>
+          correspondeFiltro(
+            x.esteira_producao,
+            filtros.esteira
+          ) &&
+          correspondeFiltro(
+            x.matriz_oferta,
+            filtros.matriz
+          ) &&
+          correspondeFiltro(
+            x.categoria_material,
+            filtros.categoria
+          )
       )
-    ).length;
+      .length;
   }
 
   function filtrarCriteriosGlobais() {
     const filtros = {
-      esteira: selecionadosFiltro("filtroEsteira"),
-      matriz: selecionadosFiltro("filtroMatriz"),
-      bloco: selecionadosFiltro("filtroBloco"),
-      status: selecionadosFiltro("filtroStatus"),
-      categoria: selecionadosFiltro("filtroCategoria"),
-      gestor: selecionadosFiltro("filtroGestor"),
-      revisor: selecionadosFiltro("filtroRevisor")
+      esteira:
+        selecionadosFiltro(
+          "filtroEsteira"
+        ),
+
+      matriz:
+        selecionadosFiltro(
+          "filtroMatriz"
+        ),
+
+      bloco:
+        selecionadosFiltro(
+          "filtroBloco"
+        ),
+
+      status:
+        selecionadosFiltro(
+          "filtroStatus"
+        ),
+
+      categoria:
+        selecionadosFiltro(
+          "filtroCategoria"
+        ),
+
+      gestor:
+        selecionadosFiltro(
+          "filtroGestor"
+        ),
+
+      revisor:
+        selecionadosFiltro(
+          "filtroRevisor"
+        )
     };
 
-    return (criteriosDetalhe || []).filter(x =>
-      correspondeFiltro(
-        x.esteira_producao,
-        filtros.esteira
-      ) &&
-      correspondeFiltro(
-        x.matriz_oferta,
-        filtros.matriz
-      ) &&
-      correspondeFiltro(
-        x.bloco,
-        filtros.bloco
-      ) &&
-      correspondeFiltro(
-        x.status_validacao,
-        filtros.status
-      ) &&
-      correspondeFiltro(
-        x.categoria_material,
-        filtros.categoria
-      ) &&
-      correspondeFiltro(
-        x.gestor_validacao_nq,
-        filtros.gestor
-      ) &&
-      correspondeFiltro(
-        x.revisor_validador,
-        filtros.revisor,
-        true
-      )
+    return (
+      criteriosDetalhe || []
+    ).filter(
+      x =>
+        correspondeFiltro(
+          x.esteira_producao,
+          filtros.esteira
+        ) &&
+        correspondeFiltro(
+          x.matriz_oferta,
+          filtros.matriz
+        ) &&
+        correspondeFiltro(
+          x.bloco,
+          filtros.bloco
+        ) &&
+        correspondeFiltro(
+          x.status_validacao,
+          filtros.status
+        ) &&
+        correspondeFiltro(
+          x.categoria_material,
+          filtros.categoria
+        ) &&
+        correspondeFiltro(
+          x.gestor_validacao_nq,
+          filtros.gestor
+        ) &&
+        correspondeFiltro(
+          x.revisor_validador,
+          filtros.revisor,
+          true
+        )
     );
   }
 
   function agregarCriterios(rows) {
-    const mapa = new Map();
+    const mapa =
+      new Map();
 
     rows
-      .filter(x =>
-        ["sim", "nao"].includes(
-          normalizar(
-            x.classificacao_especialista
+      .filter(
+        x =>
+          [
+            "sim",
+            "nao"
+          ].includes(
+            normalizar(
+              x.classificacao_especialista
+            )
           )
-        )
       )
       .forEach(x => {
         const matriz =
@@ -442,18 +633,34 @@
         const chave =
           `${matriz}|||${criterio}`;
 
-        if (!mapa.has(chave)) {
-          mapa.set(chave, {
-            matriz_oferta: matriz,
-            criterio,
-            nao_conformidades: 0,
-            conformidades: 0,
-            criterios_avaliados: 0,
-            _uas: new Set()
-          });
+        if (
+          !mapa.has(chave)
+        ) {
+          mapa.set(
+            chave,
+            {
+              matriz_oferta:
+                matriz,
+
+              criterio,
+
+              nao_conformidades:
+                0,
+
+              conformidades:
+                0,
+
+              criterios_avaliados:
+                0,
+
+              _uas:
+                new Set()
+            }
+          );
         }
 
-        const r = mapa.get(chave);
+        const r =
+          mapa.get(chave);
 
         r.criterios_avaliados++;
 
@@ -468,13 +675,19 @@
         }
 
         if (x.id_ua) {
-          r._uas.add(x.id_ua);
+          r._uas.add(
+            x.id_ua
+          );
         }
       });
 
-    return [...mapa.values()].map(r => ({
+    return [
+      ...mapa.values()
+    ].map(r => ({
       ...r,
-      uas: r._uas.size,
+
+      uas:
+        r._uas.size,
 
       percentual_nao_conformidade:
         r.criterios_avaliados
@@ -500,52 +713,79 @@
       )
     ];
 
-    if (!botoes.length || !secoes.length) {
+    if (
+      !botoes.length ||
+      !secoes.length
+    ) {
       return;
     }
 
     const aplicar = tab => {
-      botoes.forEach(b =>
-        b.classList.toggle(
-          "active",
-          b.dataset.nqTab === tab
-        )
+      botoes.forEach(
+        b =>
+          b.classList.toggle(
+            "active",
+            b.dataset.nqTab ===
+              tab
+          )
       );
 
-      secoes.forEach(sec =>
-        sec.classList.toggle(
-          "nq-tab-hidden",
-          sec.dataset.nqSection !== tab
-        )
+      secoes.forEach(
+        sec =>
+          sec.classList.toggle(
+            "nq-tab-hidden",
+            sec.dataset
+              .nqSection !== tab
+          )
       );
 
       /*
-       * V25.9
-       * Os gráficos da aba Professores são carregados enquanto a aba
-       * ainda pode estar oculta. Nesse cenário o ECharts calcula uma
-       * largura mínima e fica espremido no canto do card. Após revelar
-       * a aba, força um novo cálculo do tamanho de todos os gráficos.
+       * Corrige os gráficos que
+       * foram criados com a aba
+       * Professores oculta.
        */
-      if (tab === "professores") {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            graficoCineNQ?.resize();
-            graficoFormacoesNQ?.resize();
-            graficoContratacaoNQ?.resize();
-            graficoTitulacaoNQ?.resize();
-            graficoExperienciasNQ?.resize();
-          });
-        });
+      if (
+        tab === "professores"
+      ) {
+        requestAnimationFrame(
+          () => {
+            requestAnimationFrame(
+              () => {
+                graficoCineNQ
+                  ?.resize();
+
+                graficoFormacoesNQ
+                  ?.resize();
+
+                graficoContratacaoNQ
+                  ?.resize();
+
+                graficoTitulacaoNQ
+                  ?.resize();
+
+                graficoExperienciasNQ
+                  ?.resize();
+              }
+            );
+          }
+        );
       }
     };
 
     botoes.forEach(b => {
-      if (b.dataset.ready !== "1") {
-        b.dataset.ready = "1";
+      if (
+        b.dataset.ready !==
+        "1"
+      ) {
+        b.dataset.ready =
+          "1";
 
         b.addEventListener(
           "click",
-          () => aplicar(b.dataset.nqTab)
+          () =>
+            aplicar(
+              b.dataset.nqTab
+            )
         );
       }
     });
@@ -560,7 +800,9 @@
 
   function renderResumo() {
     const rf =
-      resumoDosFiltros(dadosBIAtuais) ||
+      resumoDosFiltros(
+        dadosBIAtuais
+      ) ||
       resumo ||
       {};
 
@@ -574,14 +816,6 @@
       n(rf.uas_validadas)
     );
 
-    /*
-     * CORREÇÃO V25.7
-     * Não chamamos mais
-     * contarPPsValidadosFiltrados().
-     *
-     * O valor já foi obtido de
-     * monday_pp_validacao.
-     */
     setText(
       "nqPp",
       n(rf.pp_validados)
@@ -627,7 +861,9 @@
 
     setText(
       "nqLiberados",
-      n(rf.liberados_validacao)
+      n(
+        rf.liberados_validacao
+      )
     );
 
     setText(
@@ -637,7 +873,9 @@
 
     setText(
       "nqAjustes",
-      n(rf.ajustes_conteudista_da)
+      n(
+        rf.ajustes_conteudista_da
+      )
     );
 
     setText(
@@ -646,12 +884,16 @@
     );
 
     const validos =
-      criteriosFiltrados.filter(x =>
-        ["sim", "nao"].includes(
-          normalizar(
-            x.classificacao_especialista
+      criteriosFiltrados.filter(
+        x =>
+          [
+            "sim",
+            "nao"
+          ].includes(
+            normalizar(
+              x.classificacao_especialista
+            )
           )
-        )
       );
 
     const conformes =
@@ -663,7 +905,8 @@
       ).length;
 
     const nao =
-      validos.length - conformes;
+      validos.length -
+      conformes;
 
     setText(
       "nqCriterios",
@@ -685,8 +928,8 @@
       pct(
         validos.length
           ? conformes *
-            100 /
-            validos.length
+              100 /
+              validos.length
           : 0
       )
     );
@@ -696,14 +939,13 @@
       pct(
         validos.length
           ? nao *
-            100 /
-            validos.length
+              100 /
+              validos.length
           : 0
       )
     );
   }
-
-  function renderTabela() {
+    function renderTabela() {
     const tbody =
       document.getElementById(
         "tbodyNQConformidades"
@@ -757,7 +999,10 @@
             Number(
               x.conformidades ??
               x.conformidade ??
-              (avaliados - nao)
+              (
+                avaliados -
+                nao
+              )
             )
           );
 
@@ -785,8 +1030,13 @@
               )}
             </td>
 
-            <td>${n(nao)}</td>
-            <td>${n(conf)}</td>
+            <td>
+              ${n(nao)}
+            </td>
+
+            <td>
+              ${n(conf)}
+            </td>
 
             <td>
               ${pct(
@@ -805,17 +1055,23 @@
       `;
   }
 
+
   function renderGrafico() {
-    if (!window.echarts) return;
+    if (!window.echarts) {
+      return;
+    }
 
     const el =
       document.getElementById(
         "graficoNQConformidades"
       );
 
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
-    grafico ||= echarts.init(el);
+    grafico ||=
+      echarts.init(el);
 
     const dados =
       [...naoConformidades]
@@ -852,6 +1108,7 @@
     grafico.setOption({
       tooltip: {
         trigger: "axis",
+
         axisPointer: {
           type: "shadow"
         }
@@ -868,6 +1125,7 @@
       xAxis: {
         type: "value",
         minInterval: 1,
+
         splitLine: {
           lineStyle: {
             color: "#eee8f3"
@@ -878,9 +1136,10 @@
       yAxis: {
         type: "category",
 
-        data: dados.map(
-          x => x.criterio
-        ),
+        data:
+          dados.map(
+            x => x.criterio
+          ),
 
         axisLabel: {
           width: 180,
@@ -893,14 +1152,15 @@
         {
           type: "bar",
 
-          data: dados.map(
-            x =>
-              Number(
-                x.nao_conformidades ??
-                x.nao_conformidade ??
-                0
-              )
-          ),
+          data:
+            dados.map(
+              x =>
+                Number(
+                  x.nao_conformidades ??
+                  x.nao_conformidade ??
+                  0
+                )
+            ),
 
           barMaxWidth: 18,
 
@@ -918,11 +1178,14 @@
     });
   }
 
+
   async function atualizarReuniaoNQ(
     dadosFiltrados
   ) {
     if (
-      Array.isArray(dadosFiltrados)
+      Array.isArray(
+        dadosFiltrados
+      )
     ) {
       dadosBIAtuais =
         dadosFiltrados;
@@ -947,16 +1210,18 @@
         );
 
       /*
-       * V25.7
-       * Consulta os Projetos Pedagógicos
-       * validados antes de renderizar
+       * Consulta os Projetos
+       * Pedagógicos validados
+       * antes de renderizar
        * os cards.
        */
       ppsValidadosAtual =
         await carregarPPsValidadosDosFiltros();
 
       renderResumo();
+
       renderTabela();
+
       renderGrafico();
 
       configurarImportacaoNQ();
@@ -990,28 +1255,51 @@
       }
     }
   }
-    // ============================================================
-  // V23 · Importação da base de especialistas NQ
+
+
+  // ============================================================
+  // Importação e cobertura da base de especialistas NQ
   // ============================================================
 
   async function carregarFormacaoCoberturaNQ() {
-    const [f, e, p] = await Promise.all([
-      window.biSupabase
-        .from("vw_nq_especialistas_formacoes")
-        .select("*")
-        .order("professor", { ascending: true }),
+    const [f, e, p] =
+      await Promise.all([
+        window.biSupabase
+          .from(
+            "vw_nq_especialistas_formacoes"
+          )
+          .select("*")
+          .order(
+            "professor",
+            {
+              ascending: true
+            }
+          ),
 
-      window.biSupabase
-        .from("nq_especialistas_experiencias")
-        .select("especialista_id,area_experiencia"),
+        window.biSupabase
+          .from(
+            "nq_especialistas_experiencias"
+          )
+          .select(
+            "especialista_id,area_experiencia"
+          ),
 
-      window.biSupabase
-        .from("vw_nq_perfil_academico")
-        .select("*")
-        .order("professor", { ascending: true })
-    ]);
+        window.biSupabase
+          .from(
+            "vw_nq_perfil_academico"
+          )
+          .select("*")
+          .order(
+            "professor",
+            {
+              ascending: true
+            }
+          )
+      ]);
 
-    if (f.error) throw f.error;
+    if (f.error) {
+      throw f.error;
+    }
 
     if (e.error) {
       console.warn(
@@ -1028,9 +1316,10 @@
     }
 
     formacoesNQ =
-      (f.data || []).filter(
-        r => r.professor
-      );
+      (f.data || [])
+        .filter(
+          r => r.professor
+        );
 
     experienciasNQ =
       e.data || [];
@@ -1038,10 +1327,12 @@
     perfilAcademicoNQ =
       p.error
         ? []
-        : (p.data || []).filter(
-            r => r.professor
-          );
+        : (p.data || [])
+            .filter(
+              r => r.professor
+            );
   }
+
 
   function uniq(arr) {
     return [
@@ -1050,40 +1341,57 @@
           v =>
             v !== null &&
             v !== undefined &&
-            String(v).trim() !== ""
+            String(v).trim() !==
+              ""
         )
       )
     ];
   }
 
-  function classeTitulacaoFiltro(row) {
-    const t = normalizar(
-      `${row.titulacao_maxima || ""} ` +
-      `${row.formacao || ""}`
-    );
 
-    if (t.includes("dout")) {
+  function classeTitulacaoFiltro(
+    row
+  ) {
+    const t =
+      normalizar(
+        `${row.titulacao_maxima || ""} ` +
+        `${row.formacao || ""}`
+      );
+
+    if (
+      t.includes("dout")
+    ) {
       return "doutor";
     }
 
     if (
       t.includes("mestr") ||
-      /\bmsc\b|\bme\b|\bma\b/.test(t)
+      /\bmsc\b|\bme\b|\bma\b/.test(
+        t
+      )
     ) {
       return "mestre";
     }
 
     if (
-      t.includes("especial") ||
+      t.includes(
+        "especial"
+      ) ||
       t.includes("mba")
     ) {
       return "especialista";
     }
 
     if (
-      t.includes("bacharel") ||
-      t.includes("licencia") ||
-      t.includes("tecnolog") ||
+      t.includes(
+        "bacharel"
+      ) ||
+      t.includes(
+        "licencia"
+      ) ||
+      t.includes(
+        "tecnolog"
+      ) ||
       t.includes("gradu")
     ) {
       return "graduado";
@@ -1092,17 +1400,26 @@
     return "";
   }
 
-  function situacaoFormacaoFiltro(row) {
-    const t = normalizar(
-      `${row.situacao_formacao || ""} ` +
-      `${row.status_formacao || ""} ` +
-      `${row.formacao || ""}`
-    );
 
-    return /andamento|cursando|em curso|incomplet/.test(t)
-      ? "andamento"
-      : "concluido";
+  function situacaoFormacaoFiltro(
+    row
+  ) {
+    const t =
+      normalizar(
+        `${row.situacao_formacao || ""} ` +
+        `${row.status_formacao || ""} ` +
+        `${row.formacao || ""}`
+      );
+
+    return (
+      /andamento|cursando|em curso|incomplet/.test(
+        t
+      )
+        ? "andamento"
+        : "concluido"
+    );
   }
+
 
   function formacoesFiltradasNQ() {
     const tit =
@@ -1119,40 +1436,87 @@
       r =>
         (
           !tit ||
-          classeTitulacaoFiltro(r) === tit
+          classeTitulacaoFiltro(
+            r
+          ) === tit
         ) &&
         (
           !sit ||
-          situacaoFormacaoFiltro(r) === sit
+          situacaoFormacaoFiltro(
+            r
+          ) === sit
         )
     );
   }
 
-  // V25.10 · Graduações devem vir do Perfil Acadêmico/Lattes.
-  // A antiga métrica usava `formacao` da Base de Especialistas, que representa
-  // a cobertura/área informada na base e não é uma fonte confiável para contar
-  // títulos de graduação.
-  function separarValoresAcademicos(...valores) {
-    const saida = new Map();
 
-    valores.forEach(valor => {
-      if (!temValor(valor)) return;
+  // ============================================================
+  // V25.10
+  // GRADUAÇÕES
+  //
+  // A fonte oficial para contagem de graduações passa a ser
+  // o Perfil Acadêmico/Lattes.
+  //
+  // NÃO utilizar o campo genérico `formacao` da Base de
+  // Especialistas para calcular o número de graduações.
+  // ============================================================
 
-      String(valor)
-        .split(/\s*\|\s*|\s*;\s*|\r?\n+/)
-        .map(v => v.trim())
-        .filter(temValor)
-        .forEach(v => {
-          const chave = normalizar(v);
-          if (chave && !saida.has(chave)) saida.set(chave, v);
-        });
-    });
+  function separarValoresAcademicos(
+    ...valores
+  ) {
+    const saida =
+      new Map();
 
-    return [...saida.values()];
+    valores.forEach(
+      valor => {
+        if (
+          !temValor(valor)
+        ) {
+          return;
+        }
+
+        String(valor)
+          .split(
+            /\s*\|\s*|\s*;\s*|\r?\n+/
+          )
+          .map(
+            v => v.trim()
+          )
+          .filter(
+            temValor
+          )
+          .forEach(v => {
+            const chave =
+              normalizar(v);
+
+            if (
+              chave &&
+              !saida.has(
+                chave
+              )
+            ) {
+              saida.set(
+                chave,
+                v
+              );
+            }
+          });
+      }
+    );
+
+    return [
+      ...saida.values()
+    ];
   }
 
-  function graduacoesProfessorNQ(perfil) {
-    if (!perfil) return [];
+
+  function graduacoesProfessorNQ(
+    perfil
+  ) {
+    if (!perfil) {
+      return [];
+    }
+
     return separarValoresAcademicos(
       perfil.graduacao_1,
       perfil.graduacao_2,
@@ -1160,48 +1524,272 @@
     );
   }
 
+
   function renderKPIsCoberturaNQ() {
-    const baseFiltrada = formacoesFiltradasNQ();
-    const nomesFiltrados = new Set(
-      baseFiltrada.map(r => normalizar(r.professor)).filter(Boolean)
+    const baseFiltrada =
+      formacoesFiltradasNQ();
+
+    /*
+     * Professores existentes na Base de Especialistas.
+     */
+    const professores =
+      uniq(
+        baseFiltrada
+          .map(
+            r => r.professor
+          )
+          .filter(Boolean)
+      );
+
+    /*
+     * Cria um conjunto normalizado dos professores
+     * que estão sendo considerados pelos filtros.
+     */
+    const nomesFiltrados =
+      new Set(
+        professores
+          .map(
+            normalizar
+          )
+          .filter(Boolean)
+      );
+
+    /*
+     * Cruza os professores da Base de Especialistas
+     * com o Perfil Acadêmico/Lattes.
+     */
+    const perfisConsiderados =
+      perfilAcademicoNQ.filter(
+        r =>
+          r.professor &&
+          (
+            !nomesFiltrados.size ||
+            nomesFiltrados.has(
+              normalizar(
+                r.professor
+              )
+            )
+          )
+      );
+
+    /*
+     * Graduações serão consolidadas professor por professor.
+     *
+     * Isso evita:
+     * - repetição do mesmo curso;
+     * - contagem de área CINE como graduação;
+     * - contagem de especialização como graduação;
+     * - duplicação causada pela Base de Especialistas.
+     */
+    const graduacoesPorProfessor =
+      new Map();
+
+    perfisConsiderados.forEach(
+      perfil => {
+        const professor =
+          normalizar(
+            perfil.professor
+          );
+
+        if (!professor) {
+          return;
+        }
+
+        const graduacoes =
+          graduacoesProfessorNQ(
+            perfil
+          );
+
+        if (
+          !graduacoesPorProfessor.has(
+            professor
+          )
+        ) {
+          graduacoesPorProfessor.set(
+            professor,
+            new Map()
+          );
+        }
+
+        const mapaProfessor =
+          graduacoesPorProfessor.get(
+            professor
+          );
+
+        graduacoes.forEach(
+          graduacao => {
+            const chave =
+              normalizar(
+                graduacao
+              );
+
+            if (
+              chave &&
+              !mapaProfessor.has(
+                chave
+              )
+            ) {
+              mapaProfessor.set(
+                chave,
+                graduacao
+              );
+            }
+          }
+        );
+      }
     );
 
-    const perfisConsiderados = perfilAcademicoNQ.filter(r =>
-      r.professor && (!nomesFiltrados.size || nomesFiltrados.has(normalizar(r.professor)))
+    /*
+     * Total real de graduações:
+     *
+     * Soma a quantidade de graduações diferentes
+     * de cada professor.
+     *
+     * Exemplo:
+     *
+     * Professor A = 2
+     * Professor B = 1
+     * Professor C = 3
+     *
+     * Total = 6
+     */
+    let totalGraduacoes = 0;
+
+    graduacoesPorProfessor.forEach(
+      mapaProfessor => {
+        totalGraduacoes +=
+          mapaProfessor.size;
+      }
     );
 
-    // Mantém todos os professores da base no total, mesmo quando algum perfil
-    // Lattes ainda não estiver preenchido.
-    const professores = uniq(baseFiltrada.map(r => r.professor));
-    const graduacoesPorProfessor = new Map();
-    const graduacoesTotal = [];
+    /*
+     * Graduações únicas na equipe.
+     *
+     * Aqui o mesmo curso realizado por professores
+     * diferentes é contado apenas uma vez.
+     */
+    const cursosUnicos =
+      new Map();
 
-    perfisConsiderados.forEach(r => {
-      const grads = graduacoesProfessorNQ(r);
-      graduacoesPorProfessor.set(normalizar(r.professor), grads);
-      graduacoesTotal.push(...grads);
-    });
+    graduacoesPorProfessor.forEach(
+      mapaProfessor => {
+        mapaProfessor.forEach(
+          (
+            graduacao,
+            chave
+          ) => {
+            if (
+              !cursosUnicos.has(
+                chave
+              )
+            ) {
+              cursosUnicos.set(
+                chave,
+                graduacao
+              );
+            }
+          }
+        );
+      }
+    );
 
-    const graduacoesUnicas = uniq(graduacoesTotal.map(normalizar));
-    const areasCine = uniq(baseFiltrada.map(r => r.area_cine));
+    /*
+     * Área CINE continua vindo da Base de Especialistas,
+     * pois ela representa a classificação da área e não
+     * a titulação acadêmica.
+     */
+    const areasCine =
+      uniq(
+        baseFiltrada
+          .map(
+            r => r.area_cine
+          )
+          .filter(
+            temValor
+          )
+          .map(
+            normalizar
+          )
+      );
 
-    setText("nqProfessoresTotal", n(professores.length));
-    setText("nqFormacoesUnicas", n(graduacoesUnicas.length));
-    setText("nqFormacoesTotal", n(graduacoesTotal.length));
+    /*
+     * PROFESSORES
+     */
+    setText(
+      "nqProfessoresTotal",
+      n(
+        professores.length
+      )
+    );
+
+    /*
+     * GRADUAÇÕES ÚNICAS
+     *
+     * Quantidade de cursos diferentes existentes
+     * entre todos os professores.
+     */
+    setText(
+      "nqFormacoesUnicas",
+      n(
+        cursosUnicos.size
+      )
+    );
+
+    /*
+     * TOTAL DE GRADUAÇÕES
+     *
+     * Soma das graduações individuais dos professores.
+     */
+    setText(
+      "nqFormacoesTotal",
+      n(
+        totalGraduacoes
+      )
+    );
+
+    /*
+     * MÉDIA DE GRADUAÇÕES POR PROFESSOR
+     */
     setText(
       "nqMediaFormacoes",
       professores.length
-        ? (graduacoesTotal.length / professores.length).toLocaleString("pt-BR", {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-          })
+        ? (
+            totalGraduacoes /
+            professores.length
+          ).toLocaleString(
+            "pt-BR",
+            {
+              minimumFractionDigits:
+                1,
+
+              maximumFractionDigits:
+                1
+            }
+          )
         : "0,0"
     );
-    setText("nqMaisAreas", n(professores.length));
-    setText("nqAreasCineTotal", n(areasCine.length));
-  }
 
-  function renderGraficoCineNQ() {
+    /*
+     * Professores no filtro atual.
+     */
+    setText(
+      "nqMaisAreas",
+      n(
+        professores.length
+      )
+    );
+
+    /*
+     * Áreas CINE abrangidas.
+     */
+    setText(
+      "nqAreasCineTotal",
+      n(
+        areasCine.length
+      )
+    );
+  }
+    function renderGraficoCineNQ() {
     const el =
       document.getElementById(
         "graficoNQCine"
@@ -1236,7 +1824,9 @@
         }
 
         mapa
-          .get(r.area_cine)
+          .get(
+            r.area_cine
+          )
           .add(
             r.professor
           );
@@ -1247,12 +1837,14 @@
         .map(
           ([area, profs]) => ({
             area,
-            total: profs.size
+            total:
+              profs.size
           })
         )
         .sort(
           (a, b) =>
-            b.total - a.total
+            b.total -
+            a.total
         );
 
     graficoCineNQ?.dispose();
@@ -1270,6 +1862,7 @@
 
       tooltip: {
         trigger: "axis",
+
         axisPointer: {
           type: "shadow"
         }
@@ -1278,13 +1871,14 @@
       xAxis: {
         type: "category",
 
-        data: dados.map(
-          d =>
-            d.area.replace(
-              /^\d+\s*[·-]\s*/,
-              ""
-            )
-        ),
+        data:
+          dados.map(
+            d =>
+              d.area.replace(
+                /^\d+\s*[·-]\s*/,
+                ""
+              )
+          ),
 
         axisLabel: {
           rotate: 30,
@@ -1303,9 +1897,10 @@
         {
           type: "bar",
 
-          data: dados.map(
-            d => d.total
-          ),
+          data:
+            dados.map(
+              d => d.total
+            ),
 
           barMaxWidth: 42,
 
@@ -1322,6 +1917,7 @@
       ]
     });
   }
+
 
   function renderGraficoFormacoesProfessorNQ() {
     const el =
@@ -1352,7 +1948,9 @@
           ).trim();
 
         if (
-          !mapa.has(marca)
+          !mapa.has(
+            marca
+          )
         ) {
           mapa.set(
             marca,
@@ -1372,12 +1970,14 @@
         .map(
           ([marca, s]) => ({
             marca,
-            total: s.size
+            total:
+              s.size
           })
         )
         .sort(
           (a, b) =>
-            b.total - a.total
+            b.total -
+            a.total
         );
 
     graficoFormacoesNQ?.dispose();
@@ -1395,6 +1995,7 @@
 
       tooltip: {
         trigger: "axis",
+
         axisPointer: {
           type: "shadow"
         }
@@ -1403,9 +2004,10 @@
       xAxis: {
         type: "category",
 
-        data: dados.map(
-          d => d.marca
-        ),
+        data:
+          dados.map(
+            d => d.marca
+          ),
 
         axisLabel: {
           rotate: 25,
@@ -1423,9 +2025,10 @@
         {
           type: "bar",
 
-          data: dados.map(
-            d => d.total
-          ),
+          data:
+            dados.map(
+              d => d.total
+            ),
 
           barMaxWidth: 42,
 
@@ -1442,6 +2045,7 @@
       ]
     });
   }
+
 
   function renderGraficoContratacaoNQ() {
     const el =
@@ -1484,6 +2088,7 @@
               __data: d
             }
           );
+
         } else if (
           !porProfessor.has(
             r.professor
@@ -1543,7 +2148,8 @@
         .filter(Boolean)
         .sort(
           (a, b) =>
-            a.data - b.data
+            a.data -
+            b.data
         );
 
     graficoContratacaoNQ?.dispose();
@@ -1593,11 +2199,13 @@
       yAxis: {
         type: "category",
 
-        data: uniq(
-          dados.map(
-            d => d.semestre
-          )
-        ),
+        data:
+          uniq(
+            dados.map(
+              d =>
+                d.semestre
+            )
+          ),
 
         name: "Semestre"
       },
@@ -1607,175 +2215,399 @@
           type: "scatter",
           symbolSize: 12,
 
-          data: dados.map(
-            d => [
-              d.data,
-              d.semestre,
-              d.professor
-            ]
-          )
+          data:
+            dados.map(
+              d => [
+                d.data,
+                d.semestre,
+                d.professor
+              ]
+            )
         }
       ]
     });
   }
 
+
   function consolidarProfessoresNQ() {
-    const mapa = new Map();
+    const mapa =
+      new Map();
 
-    const garantirProfessor = professor => {
-      const nome = String(professor || "").trim();
+    const garantirProfessor =
+      professor => {
+        const nome =
+          String(
+            professor || ""
+          ).trim();
 
-      if (!nome) {
-        return null;
-      }
+        if (!nome) {
+          return null;
+        }
 
-      const chave = normalizar(nome);
+        const chave =
+          normalizar(nome);
 
-      if (!mapa.has(chave)) {
-        mapa.set(chave, {
-          professor: nome,
-          formacoes: new Map(),
-          areasCine: new Map(),
-          titulacoes: new Map(),
-          marcas: new Map(),
-          situacoes: new Map()
-        });
-      }
+        if (
+          !mapa.has(chave)
+        ) {
+          mapa.set(
+            chave,
+            {
+              professor:
+                nome,
 
-      return mapa.get(chave);
-    };
+              formacoes:
+                new Map(),
 
-    const adicionar = (map, valor) => {
-      const texto = String(valor || "").trim();
+              areasCine:
+                new Map(),
 
-      if (!temValor(texto)) {
-        return;
-      }
+              titulacoes:
+                new Map(),
 
-      const chave = normalizar(texto);
+              marcas:
+                new Map(),
 
-      if (!map.has(chave)) {
-        map.set(chave, texto);
-      }
-    };
+              situacoes:
+                new Map()
+            }
+          );
+        }
 
-    /* Base principal de formações / especialistas. */
-    formacoesFiltradasNQ().forEach(r => {
-      const item = garantirProfessor(r.professor);
+        return mapa.get(
+          chave
+        );
+      };
 
-      if (!item) {
-        return;
-      }
 
-      adicionar(item.formacoes, r.formacao);
-      adicionar(item.areasCine, r.area_cine);
-      adicionar(item.titulacoes, r.titulacao_maxima);
-      adicionar(
-        item.marcas,
-        r.marca_origem || r.marca_area_contratante
-      );
-      adicionar(item.situacoes, r.situacao_contratacao);
-    });
+    const adicionar =
+      (
+        map,
+        valor
+      ) => {
+        const texto =
+          String(
+            valor || ""
+          ).trim();
+
+        if (
+          !temValor(texto)
+        ) {
+          return;
+        }
+
+        const chave =
+          normalizar(
+            texto
+          );
+
+        if (
+          !map.has(chave)
+        ) {
+          map.set(
+            chave,
+            texto
+          );
+        }
+      };
+
 
     /*
-     * V25.9 · Complementa a mesma linha do professor com o Perfil
-     * Acadêmico/Lattes. Antes a matriz enxergava somente titulacao_maxima
-     * da view de formações, por isso vários professores apareciam com "--"
-     * ou perdiam titulações em andamento.
+     * Base de Especialistas.
+     *
+     * Mantém:
+     * - Área CINE
+     * - Marca
+     * - Situação
+     * - Titulação disponível na base
+     *
+     * A coluna de formações será corrigida depois
+     * pelo Perfil Acadêmico/Lattes.
      */
-    perfilAcademicoNQ.forEach(r => {
-      const item = garantirProfessor(r.professor);
+    formacoesFiltradasNQ()
+      .forEach(r => {
+        const item =
+          garantirProfessor(
+            r.professor
+          );
 
-      if (!item) {
-        return;
-      }
+        if (!item) {
+          return;
+        }
 
-      // O Perfil Acadêmico/Lattes é a fonte oficial das graduações.
-      // Quando existe perfil, substitui as formações da base pelas graduações
-      // estruturadas para impedir contagens infladas ou áreas tratadas como curso.
-      const graduacoesLattes = graduacoesProfessorNQ(r);
-      if (graduacoesLattes.length) {
-        item.formacoes.clear();
-        graduacoesLattes.forEach(g => adicionar(item.formacoes, g));
-      }
+        adicionar(
+          item.formacoes,
+          r.formacao
+        );
 
-      const maxConcluida =
-        r.titulacao_maxima_concluida ||
-        r.titulacao_maxima;
+        adicionar(
+          item.areasCine,
+          r.area_cine
+        );
 
-      if (temValor(maxConcluida)) {
         adicionar(
           item.titulacoes,
-          `${classificarTitulacao(maxConcluida)} (concluída)`
+          r.titulacao_maxima
         );
-      }
 
-      if (temValor(r.titulacao_em_andamento)) {
         adicionar(
-          item.titulacoes,
-          `${classificarTitulacao(r.titulacao_em_andamento)} (em andamento)`
+          item.marcas,
+          r.marca_origem ||
+          r.marca_area_contratante
         );
-      }
 
-      /* Fallbacks estruturados quando a titulação máxima não veio preenchida. */
-      if (temValor(r.pos_doutorado)) {
-        adicionar(item.titulacoes, "Pós-doutorado");
-      }
+        adicionar(
+          item.situacoes,
+          r.situacao_contratacao
+        );
+      });
 
-      if (temValor(r.doutorado)) {
-        adicionar(item.titulacoes, "Doutorado");
-      }
 
-      if (temValor(r.mestrado)) {
-        adicionar(item.titulacoes, "Mestrado");
-      }
+    /*
+     * V25.10
+     *
+     * O Perfil Acadêmico/Lattes passa a ser
+     * a fonte oficial das graduações.
+     */
+    perfilAcademicoNQ
+      .forEach(r => {
+        const item =
+          garantirProfessor(
+            r.professor
+          );
 
-      if (
-        temValor(r.especializacao_1) ||
-        temValor(r.especializacao_2) ||
-        temValor(r.especializacao_3_mais)
-      ) {
-        adicionar(item.titulacoes, "Especialização");
-      }
+        if (!item) {
+          return;
+        }
 
-      if (
-        temValor(r.graduacao_1) ||
-        temValor(r.graduacao_2) ||
-        temValor(r.graduacao_3_mais)
-      ) {
-        adicionar(item.titulacoes, "Graduação");
-      }
+        /*
+         * GRADUAÇÕES
+         *
+         * Se existir Perfil Acadêmico para o professor,
+         * substituímos o conteúdo genérico de "formacao"
+         * pelas graduações estruturadas do Lattes.
+         */
+        const graduacoesLattes =
+          graduacoesProfessorNQ(
+            r
+          );
 
-      adicionar(
-        item.marcas,
-        r.marca_origem || r.marca_area_contratante
-      );
-      adicionar(item.situacoes, r.situacao_contratacao);
-    });
+        if (
+          graduacoesLattes.length
+        ) {
+          item.formacoes.clear();
 
-    return [...mapa.values()]
-      .map(item => ({
-        professor: item.professor,
-        formacoes: [...item.formacoes.values()].sort(
-          (a, b) => a.localeCompare(b, "pt-BR")
-        ),
-        areasCine: [...item.areasCine.values()].sort(
-          (a, b) => a.localeCompare(b, "pt-BR")
-        ),
-        titulacoes: [...item.titulacoes.values()].sort(
-          (a, b) => a.localeCompare(b, "pt-BR")
-        ),
-        marcas: [...item.marcas.values()].sort(
-          (a, b) => a.localeCompare(b, "pt-BR")
-        ),
-        situacoes: [...item.situacoes.values()].sort(
-          (a, b) => a.localeCompare(b, "pt-BR")
-        )
-      }))
+          graduacoesLattes
+            .forEach(
+              graduacao =>
+                adicionar(
+                  item.formacoes,
+                  graduacao
+                )
+            );
+        }
+
+
+        /*
+         * TITULAÇÃO MÁXIMA CONCLUÍDA
+         */
+        const maxConcluida =
+          r.titulacao_maxima_concluida ||
+          r.titulacao_maxima;
+
+        if (
+          temValor(
+            maxConcluida
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            `${classificarTitulacao(
+              maxConcluida
+            )} (concluída)`
+          );
+        }
+
+
+        /*
+         * TITULAÇÃO EM ANDAMENTO
+         */
+        if (
+          temValor(
+            r.titulacao_em_andamento
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            `${classificarTitulacao(
+              r.titulacao_em_andamento
+            )} (em andamento)`
+          );
+        }
+
+
+        /*
+         * FALLBACKS
+         *
+         * Servem para garantir que nenhuma titulação
+         * desapareça quando titulacao_maxima_concluida
+         * estiver vazia.
+         */
+
+        if (
+          temValor(
+            r.pos_doutorado
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            "Pós-doutorado"
+          );
+        }
+
+        if (
+          temValor(
+            r.doutorado
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            "Doutorado"
+          );
+        }
+
+        if (
+          temValor(
+            r.mestrado
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            "Mestrado"
+          );
+        }
+
+        if (
+          temValor(
+            r.especializacao_1
+          ) ||
+          temValor(
+            r.especializacao_2
+          ) ||
+          temValor(
+            r.especializacao_3_mais
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            "Especialização"
+          );
+        }
+
+        if (
+          temValor(
+            r.graduacao_1
+          ) ||
+          temValor(
+            r.graduacao_2
+          ) ||
+          temValor(
+            r.graduacao_3_mais
+          )
+        ) {
+          adicionar(
+            item.titulacoes,
+            "Graduação"
+          );
+        }
+
+
+        adicionar(
+          item.marcas,
+          r.marca_origem ||
+          r.marca_area_contratante
+        );
+
+        adicionar(
+          item.situacoes,
+          r.situacao_contratacao
+        );
+      });
+
+
+    return [
+      ...mapa.values()
+    ]
+      .map(
+        item => ({
+          professor:
+            item.professor,
+
+          formacoes:
+            [
+              ...item.formacoes.values()
+            ].sort(
+              (a, b) =>
+                a.localeCompare(
+                  b,
+                  "pt-BR"
+                )
+            ),
+
+          areasCine:
+            [
+              ...item.areasCine.values()
+            ].sort(
+              (a, b) =>
+                a.localeCompare(
+                  b,
+                  "pt-BR"
+                )
+            ),
+
+          titulacoes:
+            [
+              ...item.titulacoes.values()
+            ].sort(
+              (a, b) =>
+                a.localeCompare(
+                  b,
+                  "pt-BR"
+                )
+            ),
+
+          marcas:
+            [
+              ...item.marcas.values()
+            ].sort(
+              (a, b) =>
+                a.localeCompare(
+                  b,
+                  "pt-BR"
+                )
+            ),
+
+          situacoes:
+            [
+              ...item.situacoes.values()
+            ].sort(
+              (a, b) =>
+                a.localeCompare(
+                  b,
+                  "pt-BR"
+                )
+            )
+        })
+      )
       .sort(
-        (a, b) => a.professor.localeCompare(b.professor, "pt-BR")
+        (a, b) =>
+          a.professor.localeCompare(
+            b.professor,
+            "pt-BR"
+          )
       );
   }
+
 
   function renderMatrizFormacaoNQ() {
     const tbody =
@@ -1792,71 +2624,89 @@
 
     tbody.innerHTML =
       professores.length
-        ? professores.map(
-            p => `
-              <tr>
-                <td>
-                  <strong>
+        ? professores
+            .map(
+              p => `
+                <tr>
+
+                  <td>
+                    <strong>
+                      ${escapeHtml(
+                        p.professor
+                      )}
+                    </strong>
+                  </td>
+
+                  <td class="nq-multivalue-cell">
+
+                    ${
+                      p.formacoes.length
+
+                        ? p.formacoes
+                            .map(
+                              f =>
+                                `<span class="nq-chip">${escapeHtml(
+                                  f
+                                )}</span>`
+                            )
+                            .join("")
+
+                        : "--"
+                    }
+
+                  </td>
+
+                  <td class="nq-center">
+
+                    ${
+                      p.formacoes.length
+                    }
+
+                  </td>
+
+                  <td class="nq-multivalue-cell">
+
+                    ${
+                      p.areasCine.length
+
+                        ? p.areasCine
+                            .map(
+                              a =>
+                                `<span class="nq-chip nq-chip-cine">${escapeHtml(
+                                  a
+                                )}</span>`
+                            )
+                            .join("")
+
+                        : '<span class="nq-chip nq-chip-empty">Não classificada</span>'
+                    }
+
+                  </td>
+
+                  <td>
+
                     ${escapeHtml(
-                      p.professor
+                      p.titulacoes.join(
+                        " · "
+                      ) || "--"
                     )}
-                  </strong>
-                </td>
 
-                <td class="nq-multivalue-cell">
-                  ${
-                    p.formacoes.length
-                      ? p.formacoes
-                          .map(
-                            f =>
-                              `<span class="nq-chip">${escapeHtml(
-                                f
-                              )}</span>`
-                          )
-                          .join("")
-                      : "--"
-                  }
-                </td>
+                  </td>
 
-                <td class="nq-center">
-                  ${
-                    p.formacoes.length
-                  }
-                </td>
+                </tr>
+              `
+            )
+            .join("")
 
-                <td class="nq-multivalue-cell">
-                  ${
-                    p.areasCine.length
-                      ? p.areasCine
-                          .map(
-                            a =>
-                              `<span class="nq-chip nq-chip-cine">${escapeHtml(
-                                a
-                              )}</span>`
-                          )
-                          .join("")
-                      : '<span class="nq-chip nq-chip-empty">Não classificada</span>'
-                  }
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    p.titulacoes.join(
-                      " · "
-                    ) || "--"
-                  )}
-                </td>
-              </tr>
-            `
-          ).join("")
         : `
-          <tr>
-            <td colspan="5">
-              Nenhum professor encontrado.
-            </td>
-          </tr>
-        `;
+            <tr>
+              <td colspan="5">
+                Nenhum professor encontrado.
+              </td>
+            </tr>
+          `;
   }
+
 
   function renderListaFormacoesNQ() {
     const tbody =
@@ -1873,81 +2723,101 @@
 
     tbody.innerHTML =
       professores.length
-        ? professores.map(
-            p => `
-              <tr>
-                <td>
-                  <strong>
+        ? professores
+            .map(
+              p => `
+                <tr>
+
+                  <td>
+                    <strong>
+                      ${escapeHtml(
+                        p.professor
+                      )}
+                    </strong>
+                  </td>
+
+                  <td class="nq-multivalue-cell">
+
+                    ${
+                      p.formacoes.length
+
+                        ? p.formacoes
+                            .map(
+                              f =>
+                                `<span class="nq-chip">${escapeHtml(
+                                  f
+                                )}</span>`
+                            )
+                            .join("")
+
+                        : "--"
+                    }
+
+                  </td>
+
+                  <td>
+
                     ${escapeHtml(
-                      p.professor
+                      p.titulacoes.join(
+                        " · "
+                      ) || "--"
                     )}
-                  </strong>
-                </td>
 
-                <td class="nq-multivalue-cell">
-                  ${
-                    p.formacoes.length
-                      ? p.formacoes
-                          .map(
-                            f =>
-                              `<span class="nq-chip">${escapeHtml(
-                                f
-                              )}</span>`
-                          )
-                          .join("")
-                      : "--"
-                  }
-                </td>
+                  </td>
 
-                <td>
-                  ${escapeHtml(
-                    p.titulacoes.join(
-                      " · "
-                    ) || "--"
-                  )}
-                </td>
+                  <td class="nq-multivalue-cell">
 
-                <td class="nq-multivalue-cell">
-                  ${
-                    p.areasCine.length
-                      ? p.areasCine
-                          .map(
-                            a =>
-                              `<span class="nq-chip nq-chip-cine">${escapeHtml(
-                                a
-                              )}</span>`
-                          )
-                          .join("")
-                      : '<span class="nq-chip nq-chip-empty">Não classificada</span>'
-                  }
-                </td>
+                    ${
+                      p.areasCine.length
 
-                <td>
-                  ${escapeHtml(
-                    p.marcas.join(
-                      " · "
-                    ) || "--"
-                  )}
-                </td>
+                        ? p.areasCine
+                            .map(
+                              a =>
+                                `<span class="nq-chip nq-chip-cine">${escapeHtml(
+                                  a
+                                )}</span>`
+                            )
+                            .join("")
 
-                <td>
-                  ${escapeHtml(
-                    p.situacoes.join(
-                      " · "
-                    ) || "--"
-                  )}
-                </td>
-              </tr>
-            `
-          ).join("")
+                        : '<span class="nq-chip nq-chip-empty">Não classificada</span>'
+                    }
+
+                  </td>
+
+                  <td>
+
+                    ${escapeHtml(
+                      p.marcas.join(
+                        " · "
+                      ) || "--"
+                    )}
+
+                  </td>
+
+                  <td>
+
+                    ${escapeHtml(
+                      p.situacoes.join(
+                        " · "
+                      ) || "--"
+                    )}
+
+                  </td>
+
+                </tr>
+              `
+            )
+            .join("")
+
         : `
-          <tr>
-            <td colspan="6">
-              Nenhum professor encontrado.
-            </td>
-          </tr>
-        `;
+            <tr>
+              <td colspan="6">
+                Nenhum professor encontrado.
+              </td>
+            </tr>
+          `;
   }
+
 
   function renderExperienciasNQ() {
     const el =
@@ -1962,15 +2832,19 @@
     const areas =
       uniq(
         experienciasNQ.map(
-          r => r.area_experiencia
+          r =>
+            r.area_experiencia
         )
       );
 
     el.textContent =
       areas.length
+
         ? `${areas.length} área(s) de experiência cadastrada(s): ${areas.join(", ")}.`
+
         : "Nenhuma área de experiência foi cadastrada na fonte atual. A estrutura já está pronta para receber essa informação.";
   }
+
 
   function temValor(v) {
     const t =
@@ -1990,39 +2864,56 @@
     );
   }
 
+
   function classificarTitulacao(v) {
     const t =
       normalizar(v);
 
     if (
-      t.includes("pos-dout") ||
-      t.includes("pós-dout")
+      t.includes(
+        "pos-dout"
+      ) ||
+      t.includes(
+        "pós-dout"
+      )
     ) {
       return "Pós-doutorado";
     }
 
     if (
-      t.includes("dout")
+      t.includes(
+        "dout"
+      )
     ) {
       return "Doutorado";
     }
 
     if (
-      t.includes("mestr")
+      t.includes(
+        "mestr"
+      )
     ) {
       return "Mestrado";
     }
 
     if (
-      t.includes("especial")
+      t.includes(
+        "especial"
+      )
     ) {
       return "Especialização";
     }
 
     if (
-      t.includes("gradu") ||
-      t.includes("bacharel") ||
-      t.includes("licencia")
+      t.includes(
+        "gradu"
+      ) ||
+      t.includes(
+        "bacharel"
+      ) ||
+      t.includes(
+        "licencia"
+      )
     ) {
       return "Graduação";
     }
@@ -2031,6 +2922,7 @@
       ? String(v)
       : "Não informado";
   }
+
 
   function juntarCampos(
     row,
@@ -2046,6 +2938,7 @@
         )
     ).join(" · ");
   }
+
 
   function renderKPIsPerfilAcademicoNQ() {
     const total =
@@ -2063,20 +2956,24 @@
     const doutores =
       classes.filter(
         x =>
-          x === "Doutorado" ||
-          x === "Pós-doutorado"
+          x ===
+            "Doutorado" ||
+          x ===
+            "Pós-doutorado"
       ).length;
 
     const mestres =
       classes.filter(
         x =>
-          x === "Mestrado"
+          x ===
+          "Mestrado"
       ).length;
 
     const especialistas =
       classes.filter(
         x =>
-          x === "Especialização"
+          x ===
+          "Especialização"
       ).length;
 
     const comDocencia =
@@ -2097,17 +2994,23 @@
 
     setText(
       "nqDoutores",
-      n(doutores)
+      n(
+        doutores
+      )
     );
 
     setText(
       "nqMestres",
-      n(mestres)
+      n(
+        mestres
+      )
     );
 
     setText(
       "nqEspecialistas",
-      n(especialistas)
+      n(
+        especialistas
+      )
     );
 
     setText(
@@ -2128,154 +3031,19 @@
 
     setText(
       "nqComDocencia",
-      n(comDocencia)
+      n(
+        comDocencia
+      )
     );
 
     setText(
       "nqComPesquisa",
-      n(comPesquisa)
+      n(
+        comPesquisa
+      )
     );
   }
-    function temValor(v) {
-    const t = normalizar(v);
-
-    return !!t &&
-      ![
-        "--",
-        "nao informado",
-        "não informado",
-        "n/a",
-        "na",
-        "null",
-        "undefined"
-      ].includes(t);
-  }
-
-  function classificarTitulacao(v) {
-    const t = normalizar(v);
-
-    if (
-      t.includes("pos-dout") ||
-      t.includes("pós-dout")
-    ) {
-      return "Pós-doutorado";
-    }
-
-    if (t.includes("dout")) {
-      return "Doutorado";
-    }
-
-    if (t.includes("mestr")) {
-      return "Mestrado";
-    }
-
-    if (t.includes("especial")) {
-      return "Especialização";
-    }
-
-    if (
-      t.includes("gradu") ||
-      t.includes("bacharel") ||
-      t.includes("licencia")
-    ) {
-      return "Graduação";
-    }
-
-    return v
-      ? String(v)
-      : "Não informado";
-  }
-
-  function juntarCampos(row, campos) {
-    return uniq(
-      campos
-        .map(c => row[c])
-        .filter(temValor)
-    ).join(" · ");
-  }
-
-  function renderKPIsPerfilAcademicoNQ() {
-    const total =
-      perfilAcademicoNQ.length;
-
-    const classes =
-      perfilAcademicoNQ.map(r =>
-        classificarTitulacao(
-          r.titulacao_maxima_concluida ||
-          r.titulacao_maxima
-        )
-      );
-
-    const doutores =
-      classes.filter(
-        x =>
-          x === "Doutorado" ||
-          x === "Pós-doutorado"
-      ).length;
-
-    const mestres =
-      classes.filter(
-        x => x === "Mestrado"
-      ).length;
-
-    const especialistas =
-      classes.filter(
-        x => x === "Especialização"
-      ).length;
-
-    const comDocencia =
-      perfilAcademicoNQ.filter(
-        r => temValor(
-          r.experiencia_docente
-        )
-      ).length;
-
-    const comPesquisa =
-      perfilAcademicoNQ.filter(
-        r => temValor(
-          r.pesquisa_grupos
-        )
-      ).length;
-
-    setText(
-      "nqDoutores",
-      n(doutores)
-    );
-
-    setText(
-      "nqMestres",
-      n(mestres)
-    );
-
-    setText(
-      "nqEspecialistas",
-      n(especialistas)
-    );
-
-    setText(
-      "nqPctStricto",
-      total
-        ? pct(
-            (
-              (doutores + mestres) /
-              total
-            ) * 100
-          )
-        : "0,0%"
-    );
-
-    setText(
-      "nqComDocencia",
-      n(comDocencia)
-    );
-
-    setText(
-      "nqComPesquisa",
-      n(comPesquisa)
-    );
-  }
-
-  function renderGraficoTitulacaoNQ() {
+    function renderGraficoTitulacaoNQ() {
     const el =
       document.getElementById(
         "graficoNQTitulacao"
@@ -2288,20 +3056,26 @@
       return;
     }
 
-    const mapa = new Map();
+    const mapa =
+      new Map();
 
-    perfilAcademicoNQ.forEach(r => {
-      const k =
-        classificarTitulacao(
-          r.titulacao_maxima_concluida ||
-          r.titulacao_maxima
+    perfilAcademicoNQ.forEach(
+      r => {
+        const k =
+          classificarTitulacao(
+            r.titulacao_maxima_concluida ||
+            r.titulacao_maxima
+          );
+
+        mapa.set(
+          k,
+          (
+            mapa.get(k) ||
+            0
+          ) + 1
         );
-
-      mapa.set(
-        k,
-        (mapa.get(k) || 0) + 1
-      );
-    });
+      }
+    );
 
     const dados =
       [...mapa.entries()]
@@ -2313,7 +3087,8 @@
         )
         .sort(
           (a, b) =>
-            b.value - a.value
+            b.value -
+            a.value
         );
 
     graficoTitulacaoNQ?.dispose();
@@ -2345,15 +3120,18 @@
             "43%"
           ],
 
-          data: dados,
+          data:
+            dados,
 
           label: {
-            formatter: "{b}: {c}"
+            formatter:
+              "{b}: {c}"
           }
         }
       ]
     });
   }
+
 
   function renderGraficoExperienciasNQ() {
     const el =
@@ -2394,7 +3172,10 @@
 
         total:
           perfilAcademicoNQ.filter(
-            r => temValor(r[campo])
+            r =>
+              temValor(
+                r[campo]
+              )
           ).length
       })
     );
@@ -2463,6 +3244,7 @@
     });
   }
 
+
   function renderTabelaPerfilAcademicoNQ(
     filtro = ""
   ) {
@@ -2471,156 +3253,190 @@
         "tbodyNQPerfilAcademico"
       );
 
-    if (!tbody) return;
+    if (!tbody) {
+      return;
+    }
 
     const q =
-      normalizar(filtro);
+      normalizar(
+        filtro
+      );
 
     const rows =
       perfilAcademicoNQ.filter(
         r =>
           !q ||
           normalizar(
-            Object.values(r).join(" ")
+            Object.values(r)
+              .join(" ")
           ).includes(q)
       );
 
-    if (!perfilAcademicoNQ.length) {
+    if (
+      !perfilAcademicoNQ.length
+    ) {
       tbody.innerHTML =
-        '<tr>' +
-        '<td colspan="13">' +
-        'Perfil acadêmico ainda não disponível. ' +
-        'Execute o SQL V24.13 e publique novamente ' +
-        'a função import-nq-especialistas.' +
-        '</td>' +
-        '</tr>';
+        `
+          <tr>
+            <td colspan="13">
+              Perfil acadêmico ainda não disponível.
+              Execute o SQL V24.13 e publique novamente
+              a função import-nq-especialistas.
+            </td>
+          </tr>
+        `;
 
       return;
     }
 
-    const cell = v =>
-      temValor(v)
-        ? `<div class="nq-profile-text">${escapeHtml(v)}</div>`
-        : '<span class="nq-profile-empty">--</span>';
+    const cell =
+      v =>
+        temValor(v)
+          ? `
+              <div class="nq-profile-text">
+                ${escapeHtml(v)}
+              </div>
+            `
+          : `
+              <span class="nq-profile-empty">
+                --
+              </span>
+            `;
 
     tbody.innerHTML =
       rows.length
-        ? rows.map(r => {
-            const graduacoes =
-              juntarCampos(
-                r,
-                [
-                  "graduacao_1",
-                  "graduacao_2",
-                  "graduacao_3_mais"
-                ]
-              );
+        ? rows
+            .map(
+              r => {
+                const graduacoes =
+                  juntarCampos(
+                    r,
+                    [
+                      "graduacao_1",
+                      "graduacao_2",
+                      "graduacao_3_mais"
+                    ]
+                  );
 
-            const especializacoes =
-              juntarCampos(
-                r,
-                [
-                  "especializacao_1",
-                  "especializacao_2",
-                  "especializacao_3_mais"
-                ]
-              );
+                const especializacoes =
+                  juntarCampos(
+                    r,
+                    [
+                      "especializacao_1",
+                      "especializacao_2",
+                      "especializacao_3_mais"
+                    ]
+                  );
 
-            return `
-              <tr>
+                return `
+                  <tr>
 
-                <td>
-                  <strong>
-                    ${escapeHtml(
-                      r.professor
-                    )}
-                  </strong>
+                    <td>
+                      <strong>
+                        ${escapeHtml(
+                          r.professor
+                        )}
+                      </strong>
 
-                  ${
-                    r.lattes
-                      ? `
-                        <div class="nq-academic-source">
-                          Lattes cadastrado
-                        </div>
-                      `
-                      : ""
-                  }
-                </td>
+                      ${
+                        r.lattes
+                          ? `
+                              <div class="nq-academic-source">
+                                Lattes cadastrado
+                              </div>
+                            `
+                          : ""
+                      }
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.titulacao_maxima_concluida ||
-                    r.titulacao_maxima
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.titulacao_maxima_concluida ||
+                        r.titulacao_maxima
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(graduacoes)}
-                </td>
+                    <td>
+                      ${cell(
+                        graduacoes
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(especializacoes)}
-                </td>
+                    <td>
+                      ${cell(
+                        especializacoes
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(r.mestrado)}
-                </td>
+                    <td>
+                      ${cell(
+                        r.mestrado
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(r.doutorado)}
-                </td>
+                    <td>
+                      ${cell(
+                        r.doutorado
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(r.pos_doutorado)}
-                </td>
+                    <td>
+                      ${cell(
+                        r.pos_doutorado
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.experiencia_docente
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.experiencia_docente
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.experiencia_profissional
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.experiencia_profissional
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.gestao_coordenacao
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.gestao_coordenacao
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.pesquisa_grupos
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.pesquisa_grupos
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.areas_atuacao
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.areas_atuacao
+                      )}
+                    </td>
 
-                <td>
-                  ${cell(
-                    r.status_verificacao
-                  )}
-                </td>
+                    <td>
+                      ${cell(
+                        r.status_verificacao
+                      )}
+                    </td>
 
-              </tr>
-            `;
-          }).join("")
+                  </tr>
+                `;
+              }
+            )
+            .join("")
+
         : `
-          <tr>
-            <td colspan="13">
-              Nenhum professor corresponde à busca.
-            </td>
-          </tr>
-        `;
+            <tr>
+              <td colspan="13">
+                Nenhum professor corresponde à busca.
+              </td>
+            </tr>
+          `;
   }
+
 
   function configurarBuscaPerfilNQ() {
     const input =
@@ -2630,12 +3446,14 @@
 
     if (
       !input ||
-      input.dataset.ready === "1"
+      input.dataset.ready ===
+        "1"
     ) {
       return;
     }
 
-    input.dataset.ready = "1";
+    input.dataset.ready =
+      "1";
 
     input.addEventListener(
       "input",
@@ -2645,6 +3463,7 @@
         )
     );
   }
+
 
   function renderPerfilAcademicoNQ() {
     renderKPIsPerfilAcademicoNQ();
@@ -2661,6 +3480,7 @@
 
     configurarBuscaPerfilNQ();
   }
+
 
   function renderCoberturaNQ() {
     renderKPIsCoberturaNQ();
@@ -2696,32 +3516,44 @@
     }
   }
 
+
   function configurarFiltroCoberturaNQ() {
     [
       "nqFiltroTitulacao",
       "nqFiltroSituacaoFormacao"
-    ].forEach(id => {
-      const el =
-        document.getElementById(id);
+    ].forEach(
+      id => {
+        const el =
+          document.getElementById(
+            id
+          );
 
-      if (
-        !el ||
-        el.dataset.ready === "1"
-      ) {
-        return;
+        if (
+          !el ||
+          el.dataset.ready ===
+            "1"
+        ) {
+          return;
+        }
+
+        el.dataset.ready =
+          "1";
+
+        el.addEventListener(
+          "change",
+          renderCoberturaNQ
+        );
       }
-
-      el.dataset.ready = "1";
-
-      el.addEventListener(
-        "change",
-        renderCoberturaNQ
-      );
-    });
+    );
   }
 
-  function formatarDataHoraBR(valor) {
-    if (!valor) return "--";
+
+  function formatarDataHoraBR(
+    valor
+  ) {
+    if (!valor) {
+      return "--";
+    }
 
     const d =
       new Date(valor);
@@ -2731,7 +3563,9 @@
         d.getTime()
       )
     ) {
-      return String(valor);
+      return String(
+        valor
+      );
     }
 
     return d.toLocaleString(
@@ -2740,15 +3574,24 @@
         timeZone:
           "America/Sao_Paulo",
 
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
+        day:
+          "2-digit",
 
-        hour: "2-digit",
-        minute: "2-digit"
+        month:
+          "2-digit",
+
+        year:
+          "numeric",
+
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit"
       }
     );
   }
+
 
   async function carregarHistoricoImportacoesNQ() {
     const tbody =
@@ -2756,14 +3599,18 @@
         "tbodyNQImportacoes"
       );
 
-    if (!tbody) return;
+    if (!tbody) {
+      return;
+    }
 
     const {
       data,
       error
     } =
       await window.biSupabase
-        .from("nq_importacoes")
+        .from(
+          "nq_importacoes"
+        )
         .select(
           "id," +
           "arquivo_nome," +
@@ -2791,17 +3638,18 @@
         error
       );
 
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8">
-            Não foi possível carregar o histórico:
-            ${escapeHtml(
-              error.message ||
-              "erro"
-            )}
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML =
+        `
+          <tr>
+            <td colspan="8">
+              Não foi possível carregar o histórico:
+              ${escapeHtml(
+                error.message ||
+                "erro"
+              )}
+            </td>
+          </tr>
+        `;
 
       return;
     }
@@ -2823,74 +3671,79 @@
     }
 
     tbody.innerHTML =
-      linhas.map(r => `
-        <tr>
+      linhas
+        .map(
+          r => `
+            <tr>
 
-          <td>
-            ${escapeHtml(
-              formatarDataHoraBR(
-                r.finished_at ||
-                r.created_at
-              )
-            )}
-          </td>
+              <td>
+                ${escapeHtml(
+                  formatarDataHoraBR(
+                    r.finished_at ||
+                    r.created_at
+                  )
+                )}
+              </td>
 
-          <td>
-            ${escapeHtml(
-              r.arquivo_nome ||
-              "--"
-            )}
-          </td>
+              <td>
+                ${escapeHtml(
+                  r.arquivo_nome ||
+                  "--"
+                )}
+              </td>
 
-          <td>
-            <span
-              class="nq-status-pill nq-status-${escapeHtml(
-                String(
-                  r.status || ""
-                ).toLowerCase()
-              )}"
-            >
-              ${escapeHtml(
-                r.status ||
-                "--"
-              )}
-            </span>
-          </td>
+              <td>
+                <span
+                  class="nq-status-pill nq-status-${escapeHtml(
+                    String(
+                      r.status || ""
+                    ).toLowerCase()
+                  )}"
+                >
+                  ${escapeHtml(
+                    r.status ||
+                    "--"
+                  )}
+                </span>
+              </td>
 
-          <td>
-            ${n(
-              r.total_linhas
-            )}
-          </td>
+              <td>
+                ${n(
+                  r.total_linhas
+                )}
+              </td>
 
-          <td>
-            ${n(
-              r.especialistas_gravados
-            )}
-          </td>
+              <td>
+                ${n(
+                  r.especialistas_gravados
+                )}
+              </td>
 
-          <td>
-            ${n(
-              r.formacoes_gravadas
-            )}
-          </td>
+              <td>
+                ${n(
+                  r.formacoes_gravadas
+                )}
+              </td>
 
-          <td>
-            ${n(
-              r.perfis_lattes_gravados ||
-              0
-            )}
-          </td>
+              <td>
+                ${n(
+                  r.perfis_lattes_gravados ||
+                  0
+                )}
+              </td>
 
-          <td>
-            ${n(
-              r.linhas_com_erro
-            )}
-          </td>
+              <td>
+                ${n(
+                  r.linhas_com_erro
+                )}
+              </td>
 
-        </tr>
-      `).join("");
+            </tr>
+          `
+        )
+        .join("");
   }
+
 
   function configurarImportacaoNQ() {
     const input =
@@ -2921,12 +3774,14 @@
     if (
       !input ||
       !btn ||
-      input.dataset.v23Ready === "1"
+      input.dataset.v23Ready ===
+        "1"
     ) {
       return;
     }
 
-    input.dataset.v23Ready = "1";
+    input.dataset.v23Ready =
+      "1";
 
     input.addEventListener(
       "change",
@@ -2935,13 +3790,18 @@
           input.files?.[0];
 
         if (!file) {
-          nome.textContent =
-            "Nenhum arquivo selecionado";
+          if (nome) {
+            nome.textContent =
+              "Nenhum arquivo selecionado";
+          }
 
-          btn.disabled = true;
+          btn.disabled =
+            true;
 
-          status.textContent =
-            "Aguardando planilha.";
+          if (status) {
+            status.textContent =
+              "Aguardando planilha.";
+          }
 
           return;
         }
@@ -2952,44 +3812,64 @@
           ).toLowerCase();
 
         if (
-          !ext.endsWith(".xlsx") &&
-          !ext.endsWith(".xls")
+          !ext.endsWith(
+            ".xlsx"
+          ) &&
+          !ext.endsWith(
+            ".xls"
+          )
         ) {
-          nome.textContent =
-            file.name;
+          if (nome) {
+            nome.textContent =
+              file.name;
+          }
 
-          btn.disabled = true;
+          btn.disabled =
+            true;
 
-          status.textContent =
-            "Selecione um arquivo Excel (.xlsx ou .xls).";
+          if (status) {
+            status.textContent =
+              "Selecione um arquivo Excel (.xlsx ou .xls).";
+          }
 
           return;
         }
 
-        nome.textContent =
-          `${file.name} · ${
-            (
-              file.size /
-              1024 /
-              1024
-            ).toLocaleString(
-              "pt-BR",
-              {
-                maximumFractionDigits: 1
-              }
-            )
-          } MB`;
+        if (nome) {
+          nome.textContent =
+            `${file.name} · ${
+              (
+                file.size /
+                1024 /
+                1024
+              ).toLocaleString(
+                "pt-BR",
+                {
+                  maximumFractionDigits:
+                    1
+                }
+              )
+            } MB`;
+        }
 
-        btn.disabled = false;
+        btn.disabled =
+          false;
 
-        status.textContent =
-          "Planilha pronta para envio.";
+        if (status) {
+          status.textContent =
+            "Planilha pronta para envio.";
+        }
 
-        resultado.hidden = true;
+        if (resultado) {
+          resultado.hidden =
+            true;
 
-        resultado.innerHTML = "";
+          resultado.innerHTML =
+            "";
+        }
       }
     );
+
 
     btn.addEventListener(
       "click",
@@ -2997,17 +3877,25 @@
         const file =
           input.files?.[0];
 
-        if (!file) return;
+        if (!file) {
+          return;
+        }
 
-        btn.disabled = true;
+        btn.disabled =
+          true;
 
         btn.textContent =
           "Processando...";
 
-        status.textContent =
-          "Lendo as abas Export e Currículo Lattes Estruturado...";
+        if (status) {
+          status.textContent =
+            "Lendo as abas Export e Currículo Lattes Estruturado...";
+        }
 
-        resultado.hidden = true;
+        if (resultado) {
+          resultado.hidden =
+            true;
+        }
 
         try {
           if (!window.XLSX) {
@@ -3017,19 +3905,24 @@
           }
 
           const {
-            data: sessionData,
-            error: sessionError
+            data:
+              sessionData,
+
+            error:
+              sessionError
           } =
             await window.biSupabase
               .auth
               .getSession();
 
           const session =
-            sessionData?.session;
+            sessionData
+              ?.session;
 
           if (
             sessionError ||
-            !session?.access_token
+            !session
+              ?.access_token
           ) {
             throw new Error(
               "Sessão expirada. Entre novamente no BI."
@@ -3043,9 +3936,14 @@
             window.XLSX.read(
               buffer,
               {
-                type: "array",
-                cellDates: true,
-                cellText: false
+                type:
+                  "array",
+
+                cellDates:
+                  true,
+
+                cellText:
+                  false
               }
             );
 
@@ -3073,23 +3971,31 @@
           }
 
           const rows =
-            window.XLSX.utils
+            window.XLSX
+              .utils
               .sheet_to_json(
                 worksheet,
                 {
-                  defval: null,
-                  raw: true
+                  defval:
+                    null,
+
+                  raw:
+                    true
                 }
               );
 
           const rowsLattes =
             lattesWorksheet
-              ? window.XLSX.utils
+              ? window.XLSX
+                  .utils
                   .sheet_to_json(
                     lattesWorksheet,
                     {
-                      defval: null,
-                      raw: true
+                      defval:
+                        null,
+
+                      raw:
+                        true
                     }
                   )
               : [];
@@ -3100,10 +4006,12 @@
             );
           }
 
-          status.textContent =
-            `${rows.length} especialista(s) e ` +
-            `${rowsLattes.length} perfil(is) Lattes localizados. ` +
-            `Enviando dados...`;
+          if (status) {
+            status.textContent =
+              `${rows.length} especialista(s) e ` +
+              `${rowsLattes.length} perfil(is) Lattes localizados. ` +
+              `Enviando dados...`;
+          }
 
           btn.textContent =
             "Enviando...";
@@ -3112,7 +4020,8 @@
             await fetch(
               `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/import-nq-especialistas`,
               {
-                method: "POST",
+                method:
+                  "POST",
 
                 headers: {
                   "Content-Type":
@@ -3122,7 +4031,8 @@
                     `Bearer ${session.access_token}`,
 
                   apikey:
-                    window.BI_CONFIG
+                    window
+                      .BI_CONFIG
                       .SUPABASE_PUBLISHABLE_KEY
                 },
 
@@ -3159,7 +4069,8 @@
 
           if (
             !response.ok ||
-            payload?.success === false
+            payload?.success ===
+              false
           ) {
             throw new Error(
               payload?.error ||
@@ -3171,79 +4082,87 @@
           const r =
             payload;
 
-          resultado.hidden =
-            false;
+          if (resultado) {
+            resultado.hidden =
+              false;
 
-          resultado.innerHTML = `
-            <strong>
-              Importação concluída.
-            </strong>
+            resultado.innerHTML =
+              `
+                <strong>
+                  Importação concluída.
+                </strong>
 
-            <div class="nq-import-summary">
+                <div class="nq-import-summary">
 
-              <span>
-                <b>
-                  ${n(
-                    r.total_linhas
+                  <span>
+                    <b>
+                      ${n(
+                        r.total_linhas
+                      )}
+                    </b>
+                    linhas
+                  </span>
+
+                  <span>
+                    <b>
+                      ${n(
+                        r.especialistas_gravados
+                      )}
+                    </b>
+                    especialistas
+                  </span>
+
+                  <span>
+                    <b>
+                      ${n(
+                        r.formacoes_gravadas
+                      )}
+                    </b>
+                    formações
+                  </span>
+
+                  <span>
+                    <b>
+                      ${n(
+                        r.perfis_lattes_gravados ||
+                        0
+                      )}
+                    </b>
+                    perfis Lattes
+                  </span>
+
+                  <span>
+                    <b>
+                      ${n(
+                        r.linhas_com_erro
+                      )}
+                    </b>
+                    erros
+                  </span>
+
+                </div>
+
+                <small>
+                  ${escapeHtml(
+                    r.mensagem ||
+                    "Base atualizada com sucesso."
                   )}
-                </b>
-                linhas
-              </span>
+                </small>
+              `;
+          }
 
-              <span>
-                <b>
-                  ${n(
-                    r.especialistas_gravados
-                  )}
-                </b>
-                especialistas
-              </span>
+          if (status) {
+            status.textContent =
+              "Base NQ atualizada com sucesso.";
+          }
 
-              <span>
-                <b>
-                  ${n(
-                    r.formacoes_gravadas
-                  )}
-                </b>
-                formações
-              </span>
+          input.value =
+            "";
 
-              <span>
-                <b>
-                  ${n(
-                    r.perfis_lattes_gravados ||
-                    0
-                  )}
-                </b>
-                perfis Lattes
-              </span>
-
-              <span>
-                <b>
-                  ${n(
-                    r.linhas_com_erro
-                  )}
-                </b>
-                erros
-              </span>
-
-            </div>
-
-            <small>
-              ${escapeHtml(
-                r.mensagem ||
-                "Base atualizada com sucesso."
-              )}
-            </small>
-          `;
-
-          status.textContent =
-            "Base NQ atualizada com sucesso.";
-
-          input.value = "";
-
-          nome.textContent =
-            "Nenhum arquivo selecionado";
+          if (nome) {
+            nome.textContent =
+              "Nenhum arquivo selecionado";
+          }
 
           await carregarHistoricoImportacoesNQ();
 
@@ -3252,11 +4171,14 @@
            * para que uma nova leitura seja
            * realizada após a importação.
            */
-          resumo = null;
+          resumo =
+            null;
 
-          naoConformidades = null;
+          naoConformidades =
+            null;
 
-          criteriosDetalhe = null;
+          criteriosDetalhe =
+            null;
 
           await carregarFormacaoCoberturaNQ();
 
@@ -3268,24 +4190,29 @@
             e
           );
 
-          resultado.hidden =
-            false;
+          if (resultado) {
+            resultado.hidden =
+              false;
 
-          resultado.innerHTML = `
-            <strong>
-              Não foi possível importar.
-            </strong>
+            resultado.innerHTML =
+              `
+                <strong>
+                  Não foi possível importar.
+                </strong>
 
-            <small>
-              ${escapeHtml(
-                e?.message ||
-                "Erro desconhecido"
-              )}
-            </small>
-          `;
+                <small>
+                  ${escapeHtml(
+                    e?.message ||
+                    "Erro desconhecido"
+                  )}
+                </small>
+              `;
+          }
 
-          status.textContent =
-            "A importação não foi concluída.";
+          if (status) {
+            status.textContent =
+              "A importação não foi concluída.";
+          }
 
         } finally {
           btn.textContent =
@@ -3298,25 +4225,34 @@
     );
   }
 
+
   window.addEventListener(
     "resize",
     () => {
-      grafico?.resize();
+      grafico
+        ?.resize();
 
-      graficoCineNQ?.resize();
+      graficoCineNQ
+        ?.resize();
 
-      graficoFormacoesNQ?.resize();
+      graficoFormacoesNQ
+        ?.resize();
 
-      graficoContratacaoNQ?.resize();
+      graficoContratacaoNQ
+        ?.resize();
 
-      graficoTitulacaoNQ?.resize();
+      graficoTitulacaoNQ
+        ?.resize();
 
-      graficoExperienciasNQ?.resize();
+      graficoExperienciasNQ
+        ?.resize();
     }
   );
 
+
   /*
-   * Disponibiliza a função para dashboard.js.
+   * Disponibiliza a função
+   * para dashboard.js.
    */
   window.atualizarReuniaoNQ =
     atualizarReuniaoNQ;
