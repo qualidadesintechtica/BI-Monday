@@ -1,3 +1,3 @@
-V25.7
+V25.8
 2026-09-11
-Correção definitiva do card PPs validados usando a tabela monday_pp_validacao e os filtros globais compatíveis.
+Aba Professores e Especialistas vinculada explicitamente à Base de Especialistas e demais seções acadêmicas, sem depender da posição das seções.

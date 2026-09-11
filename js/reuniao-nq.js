@@ -496,7 +496,7 @@
 
     const secoes = [
       ...document.querySelectorAll(
-        "#viewReuniaoNQ > .meeting-section"
+        "#viewReuniaoNQ > .meeting-section[data-nq-section]"
       )
     ];
 
@@ -512,12 +512,10 @@
         )
       );
 
-      secoes.forEach((sec, i) =>
+      secoes.forEach(sec =>
         sec.classList.toggle(
           "nq-tab-hidden",
-          tab === "operacao"
-            ? i >= 5
-            : i < 5
+          sec.dataset.nqSection !== tab
         )
       );
     };
