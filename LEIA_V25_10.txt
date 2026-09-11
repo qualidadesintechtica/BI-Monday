@@ -1,0 +1,10 @@
+BI Monday — V25.10
+2026-09-11
+
+Correção da contagem de graduações da aba Professores e Especialistas.
+
+- Graduações agora são lidas exclusivamente dos campos estruturados GRADUAÇÃO 1, GRADUAÇÃO 2 e GRADUAÇÃO 3+ do Perfil Acadêmico/Lattes.
+- Cursos são deduplicados por professor.
+- Graduações únicas, total de graduações e média por professor foram recalculados com essa fonte.
+- A matriz passa a exibir as graduações do Lattes quando o perfil acadêmico estiver disponível.
+- A Base de Especialistas continua sendo usada para áreas CINE, marca e demais informações operacionais.

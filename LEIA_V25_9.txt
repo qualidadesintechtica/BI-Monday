@@ -1,0 +1,13 @@
+V25.9 - Professores e Especialistas
+
+1. Corrige gráficos espremidos ao abrir a aba Professores e Especialistas.
+   O ECharts agora recalcula o tamanho depois que a aba fica visível.
+
+2. Corrige a coluna Titulação da Área de formação por especialista.
+   A consolidação agora combina:
+   - titulacao_maxima da Base de Especialistas;
+   - titulacao_maxima_concluida do Perfil Acadêmico/Lattes;
+   - titulacao_em_andamento;
+   - campos estruturados de graduação, especialização, mestrado, doutorado e pós-doutorado como fallback.
+
+3. Mantém filtros, layout e demais indicadores existentes.

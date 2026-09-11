@@ -1,0 +1,8 @@
+V25.8 - Reunião NQ
+
+Ajuste da aba Professores e Especialistas:
+- Base de especialistas agora pertence explicitamente à aba Professores e Especialistas;
+- Formação e cobertura dos especialistas permanece na mesma aba;
+- Perfil acadêmico dos especialistas permanece na mesma aba;
+- Operação e Qualidade fica isolada na aba Operação e Qualidade;
+- a troca de abas não depende mais da ordem numérica das seções, evitando regressões ao inserir novos blocos.

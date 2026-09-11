@@ -496,7 +496,7 @@
 
     const secoes = [
       ...document.querySelectorAll(
-        "#viewReuniaoNQ > .meeting-section"
+        "#viewReuniaoNQ > .meeting-section[data-nq-section]"
       )
     ];
 
@@ -512,14 +512,31 @@
         )
       );
 
-      secoes.forEach((sec, i) =>
+      secoes.forEach(sec =>
         sec.classList.toggle(
           "nq-tab-hidden",
-          tab === "operacao"
-            ? i >= 5
-            : i < 5
+          sec.dataset.nqSection !== tab
         )
       );
+
+      /*
+       * V25.9
+       * Os gráficos da aba Professores são carregados enquanto a aba
+       * ainda pode estar oculta. Nesse cenário o ECharts calcula uma
+       * largura mínima e fica espremido no canto do card. Após revelar
+       * a aba, força um novo cálculo do tamanho de todos os gráficos.
+       */
+      if (tab === "professores") {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            graficoCineNQ?.resize();
+            graficoFormacoesNQ?.resize();
+            graficoContratacaoNQ?.resize();
+            graficoTitulacaoNQ?.resize();
+            graficoExperienciasNQ?.resize();
+          });
+        });
+      }
     };
 
     botoes.forEach(b => {
@@ -1111,111 +1128,77 @@
     );
   }
 
-  function renderKPIsCoberturaNQ() {
-    const baseFiltrada =
-      formacoesFiltradasNQ();
+  // V25.10 · Graduações devem vir do Perfil Acadêmico/Lattes.
+  // A antiga métrica usava `formacao` da Base de Especialistas, que representa
+  // a cobertura/área informada na base e não é uma fonte confiável para contar
+  // títulos de graduação.
+  function separarValoresAcademicos(...valores) {
+    const saida = new Map();
 
-    const professores =
-      uniq(
-        baseFiltrada.map(
-          r => r.professor
-        )
-      );
+    valores.forEach(valor => {
+      if (!temValor(valor)) return;
 
-    const formacoes =
-      baseFiltrada.filter(
-        r => r.formacao
-      );
-
-    const formacoesUnicas =
-      uniq(
-        formacoes.map(
-          r =>
-            normalizar(
-              r.formacao
-            )
-        )
-      );
-
-    const areasCine =
-      uniq(
-        formacoes.map(
-          r => r.area_cine
-        )
-      );
-
-    const porProfessor =
-      new Map();
-
-    formacoes.forEach(r => {
-      if (
-        !porProfessor.has(
-          r.professor
-        )
-      ) {
-        porProfessor.set(
-          r.professor,
-          new Set()
-        );
-      }
-
-      porProfessor
-        .get(r.professor)
-        .add(
-          normalizar(
-            r.formacao
-          )
-        );
+      String(valor)
+        .split(/\s*\|\s*|\s*;\s*|\r?\n+/)
+        .map(v => v.trim())
+        .filter(temValor)
+        .forEach(v => {
+          const chave = normalizar(v);
+          if (chave && !saida.has(chave)) saida.set(chave, v);
+        });
     });
 
-    const acima =
-      professores.length;
+    return [...saida.values()];
+  }
 
-    setText(
-      "nqProfessoresTotal",
-      n(professores.length)
+  function graduacoesProfessorNQ(perfil) {
+    if (!perfil) return [];
+    return separarValoresAcademicos(
+      perfil.graduacao_1,
+      perfil.graduacao_2,
+      perfil.graduacao_3_mais
+    );
+  }
+
+  function renderKPIsCoberturaNQ() {
+    const baseFiltrada = formacoesFiltradasNQ();
+    const nomesFiltrados = new Set(
+      baseFiltrada.map(r => normalizar(r.professor)).filter(Boolean)
     );
 
-    setText(
-      "nqFormacoesUnicas",
-      n(formacoesUnicas.length)
+    const perfisConsiderados = perfilAcademicoNQ.filter(r =>
+      r.professor && (!nomesFiltrados.size || nomesFiltrados.has(normalizar(r.professor)))
     );
 
-    setText(
-      "nqFormacoesTotal",
-      n(formacoes.length)
-    );
+    // Mantém todos os professores da base no total, mesmo quando algum perfil
+    // Lattes ainda não estiver preenchido.
+    const professores = uniq(baseFiltrada.map(r => r.professor));
+    const graduacoesPorProfessor = new Map();
+    const graduacoesTotal = [];
 
+    perfisConsiderados.forEach(r => {
+      const grads = graduacoesProfessorNQ(r);
+      graduacoesPorProfessor.set(normalizar(r.professor), grads);
+      graduacoesTotal.push(...grads);
+    });
+
+    const graduacoesUnicas = uniq(graduacoesTotal.map(normalizar));
+    const areasCine = uniq(baseFiltrada.map(r => r.area_cine));
+
+    setText("nqProfessoresTotal", n(professores.length));
+    setText("nqFormacoesUnicas", n(graduacoesUnicas.length));
+    setText("nqFormacoesTotal", n(graduacoesTotal.length));
     setText(
       "nqMediaFormacoes",
       professores.length
-        ? (
-            formacoes.length /
-            professores.length
-          ).toLocaleString(
-            "pt-BR",
-            {
-              minimumFractionDigits: 1,
-              maximumFractionDigits: 1
-            }
-          )
+        ? (graduacoesTotal.length / professores.length).toLocaleString("pt-BR", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+          })
         : "0,0"
     );
-
-    setText(
-      "nqMaisAreas",
-      n(acima)
-    );
-
-    setText(
-      "nqAreasCineTotal",
-      n(areasCine.length)
-    );
-
-    setText(
-      "nqMaisAreasLegenda",
-      "professores selecionados"
-    );
+    setText("nqMaisAreas", n(professores.length));
+    setText("nqAreasCineTotal", n(areasCine.length));
   }
 
   function renderGraficoCineNQ() {
@@ -1637,168 +1620,160 @@
   }
 
   function consolidarProfessoresNQ() {
-    const mapa =
-      new Map();
+    const mapa = new Map();
 
-    formacoesFiltradasNQ()
-      .forEach(r => {
-        const professor =
-          String(
-            r.professor || ""
-          ).trim();
+    const garantirProfessor = professor => {
+      const nome = String(professor || "").trim();
 
-        if (!professor) {
-          return;
-        }
+      if (!nome) {
+        return null;
+      }
 
-        if (
-          !mapa.has(
-            professor
-          )
-        ) {
-          mapa.set(
-            professor,
-            {
-              professor,
-              formacoes:
-                new Map(),
-              areasCine:
-                new Map(),
-              titulacoes:
-                new Map(),
-              marcas:
-                new Map(),
-              situacoes:
-                new Map()
-            }
-          );
-        }
+      const chave = normalizar(nome);
 
-        const item =
-          mapa.get(
-            professor
-          );
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          professor: nome,
+          formacoes: new Map(),
+          areasCine: new Map(),
+          titulacoes: new Map(),
+          marcas: new Map(),
+          situacoes: new Map()
+        });
+      }
 
-        const adicionar =
-          (map, valor) => {
-            const texto =
-              String(
-                valor || ""
-              ).trim();
+      return mapa.get(chave);
+    };
 
-            if (!texto) {
-              return;
-            }
+    const adicionar = (map, valor) => {
+      const texto = String(valor || "").trim();
 
-            const chave =
-              normalizar(
-                texto
-              );
+      if (!temValor(texto)) {
+        return;
+      }
 
-            if (
-              !map.has(chave)
-            ) {
-              map.set(
-                chave,
-                texto
-              );
-            }
-          };
+      const chave = normalizar(texto);
 
-        adicionar(
-          item.formacoes,
-          r.formacao
-        );
+      if (!map.has(chave)) {
+        map.set(chave, texto);
+      }
+    };
 
-        adicionar(
-          item.areasCine,
-          r.area_cine
-        );
+    /* Base principal de formações / especialistas. */
+    formacoesFiltradasNQ().forEach(r => {
+      const item = garantirProfessor(r.professor);
 
+      if (!item) {
+        return;
+      }
+
+      adicionar(item.formacoes, r.formacao);
+      adicionar(item.areasCine, r.area_cine);
+      adicionar(item.titulacoes, r.titulacao_maxima);
+      adicionar(
+        item.marcas,
+        r.marca_origem || r.marca_area_contratante
+      );
+      adicionar(item.situacoes, r.situacao_contratacao);
+    });
+
+    /*
+     * V25.9 · Complementa a mesma linha do professor com o Perfil
+     * Acadêmico/Lattes. Antes a matriz enxergava somente titulacao_maxima
+     * da view de formações, por isso vários professores apareciam com "--"
+     * ou perdiam titulações em andamento.
+     */
+    perfilAcademicoNQ.forEach(r => {
+      const item = garantirProfessor(r.professor);
+
+      if (!item) {
+        return;
+      }
+
+      // O Perfil Acadêmico/Lattes é a fonte oficial das graduações.
+      // Quando existe perfil, substitui as formações da base pelas graduações
+      // estruturadas para impedir contagens infladas ou áreas tratadas como curso.
+      const graduacoesLattes = graduacoesProfessorNQ(r);
+      if (graduacoesLattes.length) {
+        item.formacoes.clear();
+        graduacoesLattes.forEach(g => adicionar(item.formacoes, g));
+      }
+
+      const maxConcluida =
+        r.titulacao_maxima_concluida ||
+        r.titulacao_maxima;
+
+      if (temValor(maxConcluida)) {
         adicionar(
           item.titulacoes,
-          r.titulacao_maxima
+          `${classificarTitulacao(maxConcluida)} (concluída)`
         );
+      }
 
+      if (temValor(r.titulacao_em_andamento)) {
         adicionar(
-          item.marcas,
-          r.marca_origem
+          item.titulacoes,
+          `${classificarTitulacao(r.titulacao_em_andamento)} (em andamento)`
         );
+      }
 
-        adicionar(
-          item.situacoes,
-          r.situacao_contratacao
-        );
-      });
+      /* Fallbacks estruturados quando a titulação máxima não veio preenchida. */
+      if (temValor(r.pos_doutorado)) {
+        adicionar(item.titulacoes, "Pós-doutorado");
+      }
 
-    return [
-      ...mapa.values()
-    ]
+      if (temValor(r.doutorado)) {
+        adicionar(item.titulacoes, "Doutorado");
+      }
+
+      if (temValor(r.mestrado)) {
+        adicionar(item.titulacoes, "Mestrado");
+      }
+
+      if (
+        temValor(r.especializacao_1) ||
+        temValor(r.especializacao_2) ||
+        temValor(r.especializacao_3_mais)
+      ) {
+        adicionar(item.titulacoes, "Especialização");
+      }
+
+      if (
+        temValor(r.graduacao_1) ||
+        temValor(r.graduacao_2) ||
+        temValor(r.graduacao_3_mais)
+      ) {
+        adicionar(item.titulacoes, "Graduação");
+      }
+
+      adicionar(
+        item.marcas,
+        r.marca_origem || r.marca_area_contratante
+      );
+      adicionar(item.situacoes, r.situacao_contratacao);
+    });
+
+    return [...mapa.values()]
       .map(item => ({
-        professor:
-          item.professor,
-
-        formacoes:
-          [
-            ...item.formacoes.values()
-          ].sort(
-            (a, b) =>
-              a.localeCompare(
-                b,
-                "pt-BR"
-              )
-          ),
-
-        areasCine:
-          [
-            ...item.areasCine.values()
-          ].sort(
-            (a, b) =>
-              a.localeCompare(
-                b,
-                "pt-BR"
-              )
-          ),
-
-        titulacoes:
-          [
-            ...item.titulacoes.values()
-          ].sort(
-            (a, b) =>
-              a.localeCompare(
-                b,
-                "pt-BR"
-              )
-          ),
-
-        marcas:
-          [
-            ...item.marcas.values()
-          ].sort(
-            (a, b) =>
-              a.localeCompare(
-                b,
-                "pt-BR"
-              )
-          ),
-
-        situacoes:
-          [
-            ...item.situacoes.values()
-          ].sort(
-            (a, b) =>
-              a.localeCompare(
-                b,
-                "pt-BR"
-              )
-          )
+        professor: item.professor,
+        formacoes: [...item.formacoes.values()].sort(
+          (a, b) => a.localeCompare(b, "pt-BR")
+        ),
+        areasCine: [...item.areasCine.values()].sort(
+          (a, b) => a.localeCompare(b, "pt-BR")
+        ),
+        titulacoes: [...item.titulacoes.values()].sort(
+          (a, b) => a.localeCompare(b, "pt-BR")
+        ),
+        marcas: [...item.marcas.values()].sort(
+          (a, b) => a.localeCompare(b, "pt-BR")
+        ),
+        situacoes: [...item.situacoes.values()].sort(
+          (a, b) => a.localeCompare(b, "pt-BR")
+        )
       }))
       .sort(
-        (a, b) =>
-          a.professor.localeCompare(
-            b.professor,
-            "pt-BR"
-          )
+        (a, b) => a.professor.localeCompare(b.professor, "pt-BR")
       );
   }
 

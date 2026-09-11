@@ -1,3 +1,3 @@
-V25.7
+V25.9
 2026-09-11
-Correção definitiva do card PPs validados usando a tabela monday_pp_validacao e os filtros globais compatíveis.
+Correção dos gráficos da aba Professores e Especialistas e consolidação das titulações da Base de Especialistas + Perfil Acadêmico/Lattes.
