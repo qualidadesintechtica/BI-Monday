@@ -319,7 +319,7 @@
 
     if (!gruposOrdenados.length) {
       const totalFonte = dadosOperacaoAtuais.length;
-      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V24.19.</div>`;
+      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.11.</div>`;
       return;
     }
 

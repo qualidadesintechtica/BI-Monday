@@ -1,0 +1,10 @@
+V25.11 — OPERAÇÃO DIGITAL / MODELO MONDAY
+
+Alterações:
+- Mantidos os filtros globais já habilitados no BI, sem alteração da lógica.
+- Mantido o Quadro principal no modelo Monday.
+- Mantidas as visões NÍVEL 1 - PLANOS, NÍVEL 2 - UA e NÍVEL 2 - AVALIAÇÕES.
+- Adicionada a visão NÍVEL 3 - GLOBAL, já suportada pelo JavaScript.
+- Mantidos os grupos recolhíveis por status do fluxo.
+- Mantida a exportação CSV respeitando filtros e visão selecionada.
+- Nenhuma alteração aplicada à aba Professores e Especialistas nesta etapa.
