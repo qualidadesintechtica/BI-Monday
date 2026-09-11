@@ -160,9 +160,6 @@
       /\bplano de producao\b|\bnivel 1\b|\bn1\b|(^|\W)pp(?:\W|$)/.test(base)
     ) return "nivel1-planos";
 
-    // NÍVEL 3 - GLOBAL: marcações explícitas de global / nível 3.
-    if (/\bglobal\b|\bnivel 3\b|\bn3\b/.test(base)) return "nivel3-global";
-
     return "nao-classificado";
   }
 
@@ -222,10 +219,10 @@
     const classificados = (dados || []).filter(item => classificarNivelOperacao(item) === nivelOperacaoAtual);
     if (classificados.length) return classificados;
 
-    // Os views NÍVEL 1 e NÍVEL 3 do Monday são visões agregadas do mesmo board.
+    // A visão NÍVEL 1 do Monday pode ser agregada a partir do mesmo board.
     // Quando a tabela sincronizada contém apenas subelementos, construímos a visão
     // de materiais a partir dos registros já carregados em vez de devolver tela vazia.
-    if (nivelOperacaoAtual === "nivel1-planos" || nivelOperacaoAtual === "nivel3-global") {
+    if (nivelOperacaoAtual === "nivel1-planos") {
       return agregarMateriaisOperacao(dados, nivelOperacaoAtual);
     }
 
@@ -233,28 +230,45 @@
   }
 
   function nomeGrupoOperacao(item) {
-    const grupo = String(item?.monday_group_title || "").trim();
-    if (grupo) return grupo;
     const status = normalizar(item?.status_validacao);
-    if (!status || status === "em branco") return "A liberar";
-    if (status.includes("paus")) return "Pausado";
-    if (status === "n/a" || status === "na") return "N/A";
-    if (status.includes("validado")) return "Validado";
+    const grupo = String(item?.monday_group_title || "").trim();
+    const grupoNormalizado = normalizar(grupo);
+
+    // V25.12 · O status de validação define as etapas principais do quadro.
+    // Isso mantém "Liberado para Validação" separado de "Revalidar - NQ",
+    // mesmo quando ambos vierem do mesmo grupo físico do Monday.
+    if (!status || status === "em branco" || status.includes("a liberar")) return "A liberar";
     if (status.includes("revalidar")) return "Revalidar - NQ";
+    if (status.includes("validado")) return "Validado";
     if (status.includes("liberado")) return "Liberado para Validação";
-    if (status.includes("modelagem")) return "Em ajustes - Modelagem";
-    if (status.includes("tecnologia")) return "Em ajustes - Gerência de Tecnologia";
-    if (status.includes("conteudista")) return "Em Ajustes - Conteudista e DA";
-    return "Outros";
+
+    // Os ajustes continuam podendo aparecer detalhados pelo grupo de origem,
+    // mas todos usam a mesma etapa/cor azul do Monday.
+    if (status.includes("ajust") || grupoNormalizado.includes("ajust")) {
+      if (grupoNormalizado.includes("modelagem") || status.includes("modelagem")) return "Em ajustes - Modelagem";
+      if (grupoNormalizado.includes("tecnologia") || status.includes("tecnologia")) return "Em ajustes - Gerência de Tecnologia";
+      return "Em Ajustes - Conteudista e DA";
+    }
+
+    if (status.includes("paus") || grupoNormalizado.includes("paus")) return "Pausado";
+    if (status === "n/a" || status === "na" || grupoNormalizado === "n/a" || grupoNormalizado === "na") return "N/A";
+
+    // Para estados auxiliares que não pertencem às cinco etapas principais,
+    // preserva o grupo original do Monday.
+    return grupo || "Outros";
   }
 
   function classeGrupoOperacao(nome) {
     const n = normalizar(nome);
-    if (n.includes("valid")) return "green";
+
+    // Sequência visual oficial do fluxo:
+    // Cinza → Amarelo → Laranja → Azul → Verde
+    // A liberar → Liberado → Revalidar → Em ajuste → Validado
+    if (!n || n.includes("a liberar")) return "gray";
     if (n.includes("revalid")) return "orange";
     if (n.includes("ajust")) return "blue";
-    if (n.includes("liber")) return "yellow";
-    if (n.includes("a liberar")) return "gray";
+    if (n.includes("validado")) return "green";
+    if (n.includes("liberado")) return "yellow";
     if (n.includes("paus")) return "gray";
     if (n === "n/a" || n === "na") return "lightblue";
     return "purple";
@@ -311,7 +325,6 @@
         "nivel1-planos": "NÍVEL 1 - PLANOS · Plano de Produção",
         "nivel2-ua": "NÍVEL 2 - UA · Unidade de Aprendizagem",
         "nivel2-avaliacoes": "NÍVEL 2 - AVALIAÇÕES · Avaliações",
-        "nivel3-global": "NÍVEL 3 - GLOBAL",
         "quadro-principal": "Quadro principal · todos os materiais"
       };
       descricao.textContent = nomes[nivelOperacaoAtual] || "Quadro principal";
@@ -319,7 +332,7 @@
 
     if (!gruposOrdenados.length) {
       const totalFonte = dadosOperacaoAtuais.length;
-      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.11.</div>`;
+      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.12.</div>`;
       return;
     }
 
@@ -556,7 +569,6 @@
         "nivel1-planos": "Nivel_1_Planos",
         "nivel2-ua": "Nivel_2_UA",
         "nivel2-avaliacoes": "Nivel_2_Avaliacoes",
-        "nivel3-global": "Nivel_3_Global",
         "quadro-principal": "Quadro_Principal"
       };
       const hoje = new Date().toISOString().slice(0, 10);

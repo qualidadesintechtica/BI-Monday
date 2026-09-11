@@ -1,0 +1,13 @@
+V25.12 — OPERAÇÃO MODELO MONDAY
+
+Alterações:
+- Mantidos os filtros globais já habilitados.
+- Liberado para Validação separado de Revalidar - NQ pelo status_validacao.
+- Sequência visual: Cinza > Amarelo > Laranja > Azul > Verde.
+- A liberar = cinza.
+- Liberado para Validação = amarelo.
+- Revalidar - NQ = laranja.
+- Em ajustes = azul.
+- Validado = verde.
+- Removida a aba NÍVEL 3 - GLOBAL.
+- Exportação continua respeitando filtros e visão atual.

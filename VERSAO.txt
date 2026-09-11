@@ -1,3 +1,3 @@
-V25.11
+V25.12
 2026-09-11
-Operação Digital no modelo Monday: mantém os filtros globais existentes, preserva o Quadro principal, níveis 1/2, adiciona NÍVEL 3 - GLOBAL e mantém exportação da visão filtrada.
+Operação Monday: separação entre Liberado para Validação e Revalidar - NQ, sequência de cores oficial do Monday e remoção do Nível 3 Global.
