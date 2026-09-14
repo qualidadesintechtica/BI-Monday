@@ -1,3 +1,3 @@
-V25.15
+V25.16
 2026-09-14
-Formações acadêmicas completas pela aba Diplomas: total, concluídas, em andamento, 10 áreas CINE e gráfico por Área CINE. Graduações permanecem separadas do total de formações.
+Correção da carga da aba Diplomas: validação obrigatória, vínculo dos 19 especialistas, gravação consolidada das 127 formações e diagnóstico explícito da importação.

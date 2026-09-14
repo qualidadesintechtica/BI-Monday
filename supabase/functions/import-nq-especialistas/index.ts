@@ -188,10 +188,23 @@ Deno.serve(async (req) => {
     const rowsLattes = Array.isArray(body?.rows_lattes) ? body.rows_lattes : [];
     const rowsDiplomas = Array.isArray(body?.rows_diplomas) ? body.rows_diplomas : [];
 
+    console.log("V25.16 payload recebido", {
+      export_rows: rows.length,
+      lattes_rows: rowsLattes.length,
+      diplomas_rows: rowsDiplomas.length,
+    });
+
     if (!rows.length) {
       return json({
         success: false,
         error: 'Nenhuma linha foi recebida da aba "Export".',
+      }, 400);
+    }
+
+    if (!rowsDiplomas.length) {
+      return json({
+        success: false,
+        error: 'A aba "Diplomas" não foi recebida pela Edge Function. Atualize a página com Ctrl+F5 e tente importar novamente.',
       }, 400);
     }
 
@@ -234,16 +247,6 @@ Deno.serve(async (req) => {
       const professor = txt(r[LATTES_COL.professor]);
       if (professor) lattesPorProfessor.set(nomeKey(professor), r);
     });
-
-    const diplomasPorProfessor = new Map<string, Record<string, unknown>[]>();
-    rowsDiplomas.forEach((r: Record<string, unknown>) => {
-      const professor = txt(r["Professor"] ?? r["PROFESSOR"] ?? r["Professor(a)"]);
-      if (!professor) return;
-      const key = nomeKey(professor);
-      if (!diplomasPorProfessor.has(key)) diplomasPorProfessor.set(key, []);
-      diplomasPorProfessor.get(key)!.push(r);
-    });
-
 
     rows.forEach((r: Record<string, unknown>, i: number) => {
       const professor = txt(r[COL.professor]);
@@ -314,6 +317,7 @@ Deno.serve(async (req) => {
     let perfisLattesGravados = 0;
     let diplomasGravados = 0;
     const idsAtivos: number[] = [];
+    const especialistaIdPorNome = new Map<string, number>();
 
     for (const item of validos) {
       const atual =
@@ -353,6 +357,7 @@ Deno.serve(async (req) => {
       }
 
       idsAtivos.push(especialistaId);
+      especialistaIdPorNome.set(nomeKey(item.professor), especialistaId);
 
       const { error: delError } = await admin
         .from("nq_especialistas_formacoes")
@@ -396,34 +401,6 @@ Deno.serve(async (req) => {
 
         formacoesGravadas += payloadFormacoes.length;
       }
-
-      // V25.15: formações acadêmicas completas da aba Diplomas.
-      const diplomasProfessor = diplomasPorProfessor.get(nomeKey(item.professor)) || [];
-      const { error: delDiplomasError } = await admin
-        .from("nq_especialistas_diplomas")
-        .delete()
-        .eq("especialista_id", especialistaId);
-      if (delDiplomasError) throw delDiplomasError;
-
-      if (diplomasProfessor.length) {
-        const payloadDiplomas = diplomasProfessor.map((d: Record<string, unknown>) => ({
-          especialista_id: especialistaId,
-          nivel: txt(d["Nível"] ?? d["Nivel"] ?? d["NIVEL"]),
-          curso_titulo: txt(d["Curso / Título"] ?? d["Curso / Titulo"] ?? d["CURSO / TÍTULO"] ?? d["Curso"]),
-          situacao: txt(d["Situação"] ?? d["Situacao"] ?? d["SITUAÇÃO"]),
-          area_cine: txt(d["ÁREA CINE"] ?? d["Área CINE"] ?? d["Area CINE"] ?? d["AREAS CINE"]),
-          updated_at: new Date().toISOString(),
-        })).filter(d => d.curso_titulo);
-
-        if (payloadDiplomas.length) {
-          const { error: dipError } = await admin
-            .from("nq_especialistas_diplomas")
-            .insert(payloadDiplomas);
-          if (dipError) throw new Error(`Diplomas de ${item.professor}: ${dipError.message}`);
-          diplomasGravados += payloadDiplomas.length;
-        }
-      }
-
       const perfilLattes = lattesPorProfessor.get(nomeKey(item.professor));
       if (perfilLattes) {
         const perfilPayload = {
@@ -461,6 +438,87 @@ Deno.serve(async (req) => {
       }
     }
 
+    // V25.16: carga consolidada da aba Diplomas.
+    // Falha de forma explícita se a planilha foi recebida mas nenhum professor pôde ser vinculado.
+    const professoresDiplomasNaoEncontrados = new Set<string>();
+    const payloadDiplomas: Record<string, unknown>[] = [];
+
+    for (const d of rowsDiplomas as Record<string, unknown>[]) {
+      const professor = txt(d["Professor"] ?? d["PROFESSOR"] ?? d["Professor(a)"]);
+      const nivel = txt(d["Nível"] ?? d["Nivel"] ?? d["NIVEL"]);
+      const cursoTitulo = txt(
+        d["Curso / Título"] ??
+        d["Curso / Titulo"] ??
+        d["CURSO / TÍTULO"] ??
+        d["CURSO / TITULO"] ??
+        d["Curso"]
+      );
+
+      if (!professor || !nivel || !cursoTitulo) {
+        continue;
+      }
+
+      const especialistaId = especialistaIdPorNome.get(nomeKey(professor));
+
+      if (!especialistaId) {
+        professoresDiplomasNaoEncontrados.add(professor);
+        continue;
+      }
+
+      payloadDiplomas.push({
+        especialista_id: especialistaId,
+        nivel,
+        curso_titulo: cursoTitulo,
+        situacao: txt(d["Situação"] ?? d["Situacao"] ?? d["SITUAÇÃO"] ?? d["SITUACAO"]),
+        area_cine: txt(d["Área CINE"] ?? d["ÁREA CINE"] ?? d["Area CINE"] ?? d["AREA CINE"]),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    if (professoresDiplomasNaoEncontrados.size) {
+      throw new Error(
+        `Diplomas sem vínculo com especialista: ${[...professoresDiplomasNaoEncontrados].join(", ")}`
+      );
+    }
+
+    if (!payloadDiplomas.length) {
+      throw new Error(
+        `A aba Diplomas foi recebida com ${rowsDiplomas.length} linha(s), mas nenhuma formação válida pôde ser preparada para gravação.`
+      );
+    }
+
+    const { error: delDiplomasError } = await admin
+      .from("nq_especialistas_diplomas")
+      .delete()
+      .in("especialista_id", idsAtivos);
+
+    if (delDiplomasError) {
+      throw new Error(`Não foi possível limpar os diplomas anteriores: ${delDiplomasError.message}`);
+    }
+
+    const { error: dipError } = await admin
+      .from("nq_especialistas_diplomas")
+      .insert(payloadDiplomas);
+
+    if (dipError) {
+      throw new Error(`Falha ao gravar a aba Diplomas: ${dipError.message}`);
+    }
+
+    diplomasGravados = payloadDiplomas.length;
+
+    if (diplomasGravados !== rowsDiplomas.length) {
+      console.warn("Nem todas as linhas de Diplomas foram gravadas", {
+        recebidas: rowsDiplomas.length,
+        gravadas: diplomasGravados,
+      });
+    }
+
+    console.log("V25.16 Diplomas gravados", {
+      recebidos: rowsDiplomas.length,
+      gravados: diplomasGravados,
+      professores: new Set(payloadDiplomas.map((d: any) => d.especialista_id)).size,
+    });
+
     const todosIds = (existentes || []).map(x => Number(x.id));
     const ativosSet = new Set(idsAtivos);
     const idsInativar = todosIds.filter(id => !ativosSet.has(id));
@@ -495,6 +553,7 @@ Deno.serve(async (req) => {
       especialistas_atualizados: atualizados,
       especialistas_inativados: idsInativar.length,
       formacoes_gravadas: formacoesGravadas,
+      diplomas_recebidos: rowsDiplomas.length,
       diplomas_gravados: diplomasGravados,
       perfis_lattes_gravados: perfisLattesGravados,
       linhas_com_erro: linhasComErro,
@@ -513,7 +572,6 @@ Deno.serve(async (req) => {
         especialistas_atualizados: atualizados,
         especialistas_inativados: idsInativar.length,
         formacoes_gravadas: formacoesGravadas,
-      diplomas_gravados: diplomasGravados,
         perfis_lattes_gravados: perfisLattesGravados,
         linhas_com_erro: linhasComErro,
         mensagem,

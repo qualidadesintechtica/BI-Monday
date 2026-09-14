@@ -4426,7 +4426,17 @@
                         r.formacoes_gravadas
                       )}
                     </b>
-                    formações
+                    graduações/base
+                  </span>
+
+                  <span>
+                    <b>
+                      ${n(
+                        r.diplomas_gravados ||
+                        0
+                      )}
+                    </b>
+                    formações em Diplomas
                   </span>
 
                   <span>
@@ -4461,7 +4471,7 @@
 
           if (status) {
             status.textContent =
-              "Base NQ atualizada com sucesso.";
+              `Base NQ atualizada com sucesso · ${n(r.diplomas_gravados || 0)} formação(ões) da aba Diplomas gravada(s).`;
           }
 
           input.value =
