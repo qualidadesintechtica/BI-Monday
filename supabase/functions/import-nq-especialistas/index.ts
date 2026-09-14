@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
     const sheetName = txt(body?.aba) || "Export";
     const rows = Array.isArray(body?.rows) ? body.rows : [];
     const rowsLattes = Array.isArray(body?.rows_lattes) ? body.rows_lattes : [];
+    const rowsDiplomas = Array.isArray(body?.rows_diplomas) ? body.rows_diplomas : [];
 
     if (!rows.length) {
       return json({
@@ -232,6 +233,15 @@ Deno.serve(async (req) => {
     rowsLattes.forEach((r: Record<string, unknown>) => {
       const professor = txt(r[LATTES_COL.professor]);
       if (professor) lattesPorProfessor.set(nomeKey(professor), r);
+    });
+
+    const diplomasPorProfessor = new Map<string, Record<string, unknown>[]>();
+    rowsDiplomas.forEach((r: Record<string, unknown>) => {
+      const professor = txt(r["Professor"] ?? r["PROFESSOR"] ?? r["Professor(a)"]);
+      if (!professor) return;
+      const key = nomeKey(professor);
+      if (!diplomasPorProfessor.has(key)) diplomasPorProfessor.set(key, []);
+      diplomasPorProfessor.get(key)!.push(r);
     });
 
 
@@ -302,6 +312,7 @@ Deno.serve(async (req) => {
     let atualizados = 0;
     let formacoesGravadas = 0;
     let perfisLattesGravados = 0;
+    let diplomasGravados = 0;
     const idsAtivos: number[] = [];
 
     for (const item of validos) {
@@ -386,6 +397,33 @@ Deno.serve(async (req) => {
         formacoesGravadas += payloadFormacoes.length;
       }
 
+      // V25.15: formações acadêmicas completas da aba Diplomas.
+      const diplomasProfessor = diplomasPorProfessor.get(nomeKey(item.professor)) || [];
+      const { error: delDiplomasError } = await admin
+        .from("nq_especialistas_diplomas")
+        .delete()
+        .eq("especialista_id", especialistaId);
+      if (delDiplomasError) throw delDiplomasError;
+
+      if (diplomasProfessor.length) {
+        const payloadDiplomas = diplomasProfessor.map((d: Record<string, unknown>) => ({
+          especialista_id: especialistaId,
+          nivel: txt(d["Nível"] ?? d["Nivel"] ?? d["NIVEL"]),
+          curso_titulo: txt(d["Curso / Título"] ?? d["Curso / Titulo"] ?? d["CURSO / TÍTULO"] ?? d["Curso"]),
+          situacao: txt(d["Situação"] ?? d["Situacao"] ?? d["SITUAÇÃO"]),
+          area_cine: txt(d["ÁREA CINE"] ?? d["Área CINE"] ?? d["Area CINE"] ?? d["AREAS CINE"]),
+          updated_at: new Date().toISOString(),
+        })).filter(d => d.curso_titulo);
+
+        if (payloadDiplomas.length) {
+          const { error: dipError } = await admin
+            .from("nq_especialistas_diplomas")
+            .insert(payloadDiplomas);
+          if (dipError) throw new Error(`Diplomas de ${item.professor}: ${dipError.message}`);
+          diplomasGravados += payloadDiplomas.length;
+        }
+      }
+
       const perfilLattes = lattesPorProfessor.get(nomeKey(item.professor));
       if (perfilLattes) {
         const perfilPayload = {
@@ -457,6 +495,7 @@ Deno.serve(async (req) => {
       especialistas_atualizados: atualizados,
       especialistas_inativados: idsInativar.length,
       formacoes_gravadas: formacoesGravadas,
+      diplomas_gravados: diplomasGravados,
       perfis_lattes_gravados: perfisLattesGravados,
       linhas_com_erro: linhasComErro,
       erros: erros.slice(0, 30),
@@ -474,6 +513,7 @@ Deno.serve(async (req) => {
         especialistas_atualizados: atualizados,
         especialistas_inativados: idsInativar.length,
         formacoes_gravadas: formacoesGravadas,
+      diplomas_gravados: diplomasGravados,
         perfis_lattes_gravados: perfisLattesGravados,
         linhas_com_erro: linhasComErro,
         mensagem,

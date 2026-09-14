@@ -11,9 +11,11 @@
   let formacoesNQ = [];
   let experienciasNQ = [];
   let perfilAcademicoNQ = [];
+  let diplomasNQ = [];
   let graficoTitulacaoNQ = null;
   let graficoExperienciasNQ = null;
   let graficoCineNQ = null;
+  let graficoFormacoesCineNQ = null;
   let graficoFormacoesNQ = null;
   let graficoContratacaoNQ = null;
   let dadosBIAtuais = [];
@@ -1262,7 +1264,7 @@
   // ============================================================
 
   async function carregarFormacaoCoberturaNQ() {
-    const [f, e, p] =
+    const [f, e, p, d] =
       await Promise.all([
         window.biSupabase
           .from(
@@ -1294,6 +1296,16 @@
             {
               ascending: true
             }
+          ),
+
+        window.biSupabase
+          .from(
+            "vw_nq_especialistas_diplomas"
+          )
+          .select("*")
+          .order(
+            "professor",
+            { ascending: true }
           )
       ]);
 
@@ -1315,6 +1327,13 @@
       );
     }
 
+    if (d.error) {
+      console.warn(
+        "Diplomas NQ ainda não instalados:",
+        d.error
+      );
+    }
+
     formacoesNQ =
       (f.data || [])
         .filter(
@@ -1331,6 +1350,12 @@
             .filter(
               r => r.professor
             );
+
+    diplomasNQ =
+      d.error
+        ? []
+        : (d.data || [])
+            .filter(r => r.professor);
   }
 
 
@@ -1789,6 +1814,53 @@
       )
     );
   }
+
+  function diplomasFiltradosNQ() {
+    const base = formacoesFiltradasNQ();
+    const nomes = new Set(base.map(r => normalizar(r.professor)).filter(Boolean));
+    return diplomasNQ.filter(r => !nomes.size || nomes.has(normalizar(r.professor)));
+  }
+
+  function renderKPIsFormacoesDiplomasNQ() {
+    const dados = diplomasFiltradosNQ();
+    const concluidas = dados.filter(r => normalizar(r.situacao).includes("conclu")).length;
+    const andamento = dados.filter(r => normalizar(r.situacao).includes("andamento")).length;
+    const areas = uniq(dados.map(r => r.area_cine).filter(temValor).map(normalizar));
+    setText("nqTotalFormacoesAcademicas", n(dados.length));
+    setText("nqFormacoesConcluidas", n(concluidas));
+    setText("nqFormacoesAndamento", n(andamento));
+    // Se a tabela de Diplomas estiver instalada, ela é a fonte oficial da cobertura CINE.
+    if (dados.length) setText("nqAreasCineTotal", n(areas.length));
+  }
+
+  function renderGraficoFormacoesCineNQ() {
+    const el = document.getElementById("graficoNQFormacoesCine");
+    if (!el || !window.echarts) return;
+    const mapa = new Map();
+    diplomasFiltradosNQ().forEach(r => {
+      const area = String(r.area_cine || "Sem classificação CINE").trim();
+      if (!mapa.has(area)) mapa.set(area, { area, concluido: 0, andamento: 0 });
+      const item = mapa.get(area);
+      if (normalizar(r.situacao).includes("andamento")) item.andamento++;
+      else item.concluido++;
+    });
+    const dados = [...mapa.values()].sort((a,b) => (b.concluido+b.andamento)-(a.concluido+a.andamento));
+    graficoFormacoesCineNQ?.dispose();
+    graficoFormacoesCineNQ = echarts.init(el);
+    el.style.minHeight = `${Math.max(360, dados.length * 42)}px`;
+    graficoFormacoesCineNQ.setOption({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, data: ["Concluído", "Em andamento"] },
+      grid: { left: 18, right: 28, top: 42, bottom: 12, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: dados.map(x => x.area), axisLabel: { width: 250, overflow: "truncate" } },
+      series: [
+        { name: "Concluído", type: "bar", stack: "total", data: dados.map(x => x.concluido), label: { show: true, position: "inside" } },
+        { name: "Em andamento", type: "bar", stack: "total", data: dados.map(x => x.andamento), label: { show: true, position: "inside" } }
+      ]
+    });
+  }
+
     function renderGraficoCineNQ() {
     const el =
       document.getElementById(
@@ -3694,7 +3766,11 @@
   function renderCoberturaNQ() {
     renderKPIsCoberturaNQ();
 
+    renderKPIsFormacoesDiplomasNQ();
+
     renderGraficoCineNQ();
+
+    renderGraficoFormacoesCineNQ();
 
     renderGraficoFormacoesProfessorNQ();
 
@@ -4162,6 +4238,9 @@
           const lattesSheetName =
             "Currículo Lattes Estruturado";
 
+          const diplomasSheetName =
+            "Diplomas";
+
           const worksheet =
             workbook.Sheets[
               sheetName
@@ -4170,6 +4249,11 @@
           const lattesWorksheet =
             workbook.Sheets[
               lattesSheetName
+            ];
+
+          const diplomasWorksheet =
+            workbook.Sheets[
+              diplomasSheetName
             ];
 
           if (!worksheet) {
@@ -4209,6 +4293,14 @@
                   )
               : [];
 
+          const rowsDiplomas =
+            diplomasWorksheet
+              ? window.XLSX.utils.sheet_to_json(
+                  diplomasWorksheet,
+                  { defval: null, raw: true }
+                )
+              : [];
+
           if (!rows.length) {
             throw new Error(
               'A aba "Export" está vazia.'
@@ -4217,8 +4309,9 @@
 
           if (status) {
             status.textContent =
-              `${rows.length} especialista(s) e ` +
-              `${rowsLattes.length} perfil(is) Lattes localizados. ` +
+              `${rows.length} especialista(s), ` +
+              `${rowsLattes.length} perfil(is) Lattes e ` +
+              `${rowsDiplomas.length} formação(ões) em Diplomas localizadas. ` +
               `Enviando dados...`;
           }
 
@@ -4264,7 +4357,13 @@
                         : null,
 
                     rows_lattes:
-                      rowsLattes
+                      rowsLattes,
+
+                    aba_diplomas:
+                      rowsDiplomas.length ? diplomasSheetName : null,
+
+                    rows_diplomas:
+                      rowsDiplomas
                   })
               }
             );

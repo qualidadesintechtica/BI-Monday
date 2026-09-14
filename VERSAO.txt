@@ -1,3 +1,3 @@
-V25.14
+V25.15
 2026-09-14
-Perfil completo por especialista: dados acadêmicos e profissionais agrupados por professor; novo indicador Experiências/áreas para distinguir os registros do Lattes das graduações e das áreas CINE.
+Formações acadêmicas completas pela aba Diplomas: total, concluídas, em andamento, 10 áreas CINE e gráfico por Área CINE. Graduações permanecem separadas do total de formações.

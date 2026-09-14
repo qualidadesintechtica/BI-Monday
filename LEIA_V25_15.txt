@@ -1,0 +1,21 @@
+BI-Monday V25.15 — Formações completas e CINE
+
+1. Execute docs/V25_15_DIPLOMAS_FORMACOES_CINE.sql no SQL Editor do Supabase (uma única vez).
+2. Faça deploy da Edge Function supabase/functions/import-nq-especialistas/index.ts.
+3. Publique os arquivos do BI no GitHub.
+4. Na aba Professores e Especialistas, importe novamente a planilha que contém as abas Export, Currículo Lattes Estruturado e Diplomas.
+5. A V25.15 passa a separar:
+   - Graduações: Perfil Acadêmico/Lattes
+   - Total de formações: aba Diplomas
+   - Concluídas / Em andamento: aba Diplomas
+   - Áreas CINE: aba Diplomas
+   - Experiências/áreas: Perfil Acadêmico/Lattes
+6. O novo gráfico “Formações por Área CINE” usa a aba Diplomas e não mistura formação com graduação.
+
+Valores de conferência esperados para a planilha analisada nesta revisão:
+- Total de formações: 127
+- Concluídas: 111
+- Em andamento: 16
+- Áreas CINE: 10
+
+Observação: os valores só aparecerão após executar o SQL, publicar a Edge Function e reimportar a planilha.

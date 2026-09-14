@@ -23,7 +23,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260914-v25-14"
+    href="css/dashboard.css?v=20260914-v25-15"
   >
 
 
@@ -53,7 +53,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.14 · Reunião NQ</small>
+        <small class="build-badge">v25.15 · Reunião NQ</small>
 
       </div>
 
@@ -505,6 +505,14 @@
             <article><span>No filtro atual</span><strong id="nqMaisAreas">--</strong><small id="nqMaisAreasLegenda">professores selecionados</small></article>
             <article><span>Áreas CINE</span><strong id="nqAreasCineTotal">--</strong><small>áreas gerais abrangidas</small></article>
             <article><span>Experiências / áreas</span><strong id="nqExperienciasTotal">--</strong><small>registros distintos do Lattes</small></article>
+            <article><span>Total de formações</span><strong id="nqTotalFormacoesAcademicas">--</strong><small>graduação + pós + mestrado + doutorado</small></article>
+            <article><span>Concluídas</span><strong id="nqFormacoesConcluidas">--</strong><small>formações concluídas</small></article>
+            <article><span>Em andamento</span><strong id="nqFormacoesAndamento">--</strong><small>formações em curso</small></article>
+          </div>
+
+          <div class="nq-viz-card nq-formacoes-cine-card">
+            <div class="nq-viz-head"><div><strong>Formações por Área CINE</strong><small>Total de formações acadêmicas por área, dividido entre concluídas e em andamento.</small></div></div>
+            <div id="graficoNQFormacoesCine" class="nq-viz-chart"></div>
           </div>
 
           <div class="nq-coverage-grid">
@@ -1169,7 +1177,7 @@
 
     <div class="monday-board-meta">
       <span id="contadorOperacao">--</span>
-      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.14</span>
+      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.15</span>
     </div>
 
     <div id="operacaoBoard" class="monday-board"></div>
@@ -1355,7 +1363,7 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260914-v25-14"></script>
+  <script src="js/config.js?v=20260914-v25-15"></script>
 
   <script src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
 
@@ -1376,15 +1384,15 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260914-v25-14"></script>
+    <script src="js/reuniao-nq.js?v=20260914-v25-15"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
-  <script src="js/dashboard.js?v=20260914-v25-14"></script>
+  <script src="js/dashboard.js?v=20260914-v25-15"></script>
 
 
-<div data-build-version="20260914-v25-14" style="display:none"></div>
+<div data-build-version="20260914-v25-15" style="display:none"></div>
 
 
 
