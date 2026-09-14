@@ -2829,7 +2829,6 @@
       return;
     }
 
-<<<<<<< HEAD
     const baseFiltrada =
       formacoesFiltradasNQ();
 
@@ -3054,41 +3053,6 @@
         </details>
       `;
     }).join("");
-=======
-    // V25.13: o Perfil Acadêmico/Lattes passa a ser a fonte principal
-    // desta seção. A tabela nq_especialistas_experiencias permanece como
-    // complemento para cadastros manuais/legados.
-    const areas = new Map();
-
-    const adicionarArea = valor => {
-      separarValoresAcademicos(valor).forEach(area => {
-        const chave = normalizar(area);
-        if (chave && !areas.has(chave)) {
-          areas.set(chave, area);
-        }
-      });
-    };
-
-    perfilAcademicoNQ.forEach(r => {
-      adicionarArea(r.areas_atuacao);
-      adicionarArea(r.experiencia_profissional);
-    });
-
-    experienciasNQ.forEach(r => {
-      adicionarArea(r.area_experiencia);
-    });
-
-    const lista = [...areas.values()].sort((a, b) =>
-      a.localeCompare(b, "pt-BR")
-    );
-
-    el.innerHTML = lista.length
-      ? `<strong>${lista.length} área(s) de experiência identificada(s).</strong>` +
-        `<div class="nq-experience-list">${lista
-          .map(area => `<span class="nq-chip">${escapeHtml(area)}</span>`)
-          .join("")}</div>`
-      : "Nenhuma área de experiência foi localizada no Perfil Acadêmico/Lattes nem na base complementar de experiências.";
->>>>>>> c4df83fea3096b7488ca42f22f5db692b6abd830
   }
 
   function temValor(v) {
