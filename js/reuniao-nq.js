@@ -2829,20 +2829,39 @@
       return;
     }
 
-    const areas =
-      uniq(
-        experienciasNQ.map(
-          r =>
-            r.area_experiencia
-        )
-      );
+    // V25.13: o Perfil Acadêmico/Lattes passa a ser a fonte principal
+    // desta seção. A tabela nq_especialistas_experiencias permanece como
+    // complemento para cadastros manuais/legados.
+    const areas = new Map();
 
-    el.textContent =
-      areas.length
+    const adicionarArea = valor => {
+      separarValoresAcademicos(valor).forEach(area => {
+        const chave = normalizar(area);
+        if (chave && !areas.has(chave)) {
+          areas.set(chave, area);
+        }
+      });
+    };
 
-        ? `${areas.length} área(s) de experiência cadastrada(s): ${areas.join(", ")}.`
+    perfilAcademicoNQ.forEach(r => {
+      adicionarArea(r.areas_atuacao);
+      adicionarArea(r.experiencia_profissional);
+    });
 
-        : "Nenhuma área de experiência foi cadastrada na fonte atual. A estrutura já está pronta para receber essa informação.";
+    experienciasNQ.forEach(r => {
+      adicionarArea(r.area_experiencia);
+    });
+
+    const lista = [...areas.values()].sort((a, b) =>
+      a.localeCompare(b, "pt-BR")
+    );
+
+    el.innerHTML = lista.length
+      ? `<strong>${lista.length} área(s) de experiência identificada(s).</strong>` +
+        `<div class="nq-experience-list">${lista
+          .map(area => `<span class="nq-chip">${escapeHtml(area)}</span>`)
+          .join("")}</div>`
+      : "Nenhuma área de experiência foi localizada no Perfil Acadêmico/Lattes nem na base complementar de experiências.";
   }
 
 
