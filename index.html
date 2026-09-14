@@ -23,7 +23,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260909-v24-22"
+    href="css/dashboard.css?v=20260914-v25-14"
   >
 
 
@@ -504,6 +504,7 @@
             <article><span>Graduações / professor</span><strong id="nqMediaFormacoes">--</strong><small>média da base</small></article>
             <article><span>No filtro atual</span><strong id="nqMaisAreas">--</strong><small id="nqMaisAreasLegenda">professores selecionados</small></article>
             <article><span>Áreas CINE</span><strong id="nqAreasCineTotal">--</strong><small>áreas gerais abrangidas</small></article>
+            <article><span>Experiências / áreas</span><strong id="nqExperienciasTotal">--</strong><small>registros distintos do Lattes</small></article>
           </div>
 
           <div class="nq-coverage-grid">
@@ -563,8 +564,13 @@
           </div>
 
           <div class="nq-viz-card nq-experience-note">
-            <div class="nq-viz-head"><div><strong>Área de experiência do especialista</strong><small>Estrutura pronta para receber a fonte de experiência profissional.</small></div></div>
-            <p id="nqExperienciaStatus">Nenhuma área de experiência foi cadastrada na fonte atual.</p>
+            <div class="nq-viz-head">
+              <div>
+                <strong>Perfil completo por especialista</strong>
+                <small>Informações acadêmicas e profissionais agrupadas por professor, com dados do Currículo Lattes e da Base de Especialistas.</small>
+              </div>
+            </div>
+            <div id="nqExperienciaStatus" class="nq-professor-profiles">Carregando perfis...</div>
           </div>
         </section>
 
@@ -1370,7 +1376,7 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260911-v25-9-nq"></script>
+    <script src="js/reuniao-nq.js?v=20260914-v25-14-perfis"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>

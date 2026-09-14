@@ -2829,22 +2829,231 @@
       return;
     }
 
-    const areas =
-      uniq(
-        experienciasNQ.map(
-          r =>
-            r.area_experiencia
-        )
+    const baseFiltrada =
+      formacoesFiltradasNQ();
+
+    const nomesFiltrados =
+      new Set(
+        baseFiltrada
+          .map(r => normalizar(r.professor))
+          .filter(Boolean)
       );
 
-    el.textContent =
-      areas.length
+    const perfis =
+      perfilAcademicoNQ
+        .filter(r =>
+          r.professor &&
+          (
+            !nomesFiltrados.size ||
+            nomesFiltrados.has(normalizar(r.professor))
+          )
+        )
+        .sort((a, b) =>
+          String(a.professor || "")
+            .localeCompare(String(b.professor || ""), "pt-BR")
+        );
 
-        ? `${areas.length} área(s) de experiência cadastrada(s): ${areas.join(", ")}.`
+    const experienciasPorEspecialista =
+      new Map();
 
-        : "Nenhuma área de experiência foi cadastrada na fonte atual. A estrutura já está pronta para receber essa informação.";
+    experienciasNQ.forEach(r => {
+      const id =
+        String(r.especialista_id || "").trim();
+
+      if (!id) return;
+
+      if (!experienciasPorEspecialista.has(id)) {
+        experienciasPorEspecialista.set(id, []);
+      }
+
+      separarValoresAcademicos(
+        r.area_experiencia
+      ).forEach(valor => {
+        experienciasPorEspecialista
+          .get(id)
+          .push(valor);
+      });
+    });
+
+    const experienciasGlobais =
+      new Map();
+
+    const adicionarGlobal = valor => {
+      separarValoresAcademicos(valor)
+        .forEach(item => {
+          const chave = normalizar(item);
+          if (
+            chave &&
+            !experienciasGlobais.has(chave)
+          ) {
+            experienciasGlobais.set(chave, item);
+          }
+        });
+    };
+
+    perfis.forEach(r => {
+      adicionarGlobal(r.areas_atuacao);
+      adicionarGlobal(r.experiencia_profissional);
+
+      const complementares =
+        experienciasPorEspecialista.get(
+          String(r.especialista_id || "").trim()
+        ) || [];
+
+      complementares.forEach(adicionarGlobal);
+    });
+
+    setText(
+      "nqExperienciasTotal",
+      n(experienciasGlobais.size)
+    );
+
+    const chips = valores => {
+      const lista = separarValoresAcademicos(...valores);
+
+      return lista.length
+        ? `<div class="nq-profile-chip-list">${lista
+            .map(v => `<span class="nq-chip">${escapeHtml(v)}</span>`)
+            .join("")}</div>`
+        : '<span class="nq-profile-empty">--</span>';
+    };
+
+    const campoTexto = valor =>
+      temValor(valor)
+        ? `<div class="nq-professor-profile-text">${escapeHtml(valor)}</div>`
+        : '<span class="nq-profile-empty">--</span>';
+
+    if (!perfis.length) {
+      el.innerHTML =
+        '<div class="nq-profile-empty-card">Nenhum perfil acadêmico encontrado para o filtro atual.</div>';
+      return;
+    }
+
+    el.innerHTML = perfis.map((r, index) => {
+      const complementares =
+        experienciasPorEspecialista.get(
+          String(r.especialista_id || "").trim()
+        ) || [];
+
+      const graduacoes =
+        graduacoesProfessorNQ(r);
+
+      const especializacoes =
+        separarValoresAcademicos(
+          r.especializacao_1,
+          r.especializacao_2,
+          r.especializacao_3_mais
+        );
+
+      const areas =
+        separarValoresAcademicos(
+          r.areas_atuacao,
+          ...complementares
+        );
+
+      const titulacao =
+        r.titulacao_maxima_concluida ||
+        r.titulacao_maxima ||
+        "--";
+
+      return `
+        <details class="nq-professor-profile-card" ${index === 0 ? "open" : ""}>
+          <summary>
+            <div class="nq-professor-profile-name">
+              <strong>${escapeHtml(r.professor)}</strong>
+              <small>${escapeHtml(titulacao)}</small>
+            </div>
+            <div class="nq-professor-profile-summary">
+              <span>${graduacoes.length} graduação(ões)</span>
+              <span>${areas.length} área(s)</span>
+              ${r.marca_origem || r.marca_area_contratante
+                ? `<span>${escapeHtml(r.marca_origem || r.marca_area_contratante)}</span>`
+                : ""}
+            </div>
+          </summary>
+
+          <div class="nq-professor-profile-grid">
+            <section>
+              <h4>Graduação</h4>
+              ${chips(graduacoes)}
+            </section>
+
+            <section>
+              <h4>Especializações</h4>
+              ${chips(especializacoes)}
+            </section>
+
+            <section>
+              <h4>Mestrado</h4>
+              ${campoTexto(r.mestrado)}
+            </section>
+
+            <section>
+              <h4>Doutorado</h4>
+              ${campoTexto(r.doutorado)}
+            </section>
+
+            <section>
+              <h4>Pós-doutorado</h4>
+              ${campoTexto(r.pos_doutorado)}
+            </section>
+
+            <section>
+              <h4>Titulação em andamento</h4>
+              ${campoTexto(r.titulacao_em_andamento)}
+            </section>
+
+            <section class="nq-professor-profile-wide">
+              <h4>Áreas de atuação / experiência</h4>
+              ${chips(areas)}
+            </section>
+
+            <section class="nq-professor-profile-wide">
+              <h4>Experiência profissional</h4>
+              ${campoTexto(r.experiencia_profissional)}
+            </section>
+
+            <section class="nq-professor-profile-wide">
+              <h4>Experiência docente</h4>
+              ${campoTexto(r.experiencia_docente)}
+            </section>
+
+            <section class="nq-professor-profile-wide">
+              <h4>Gestão / coordenação</h4>
+              ${campoTexto(r.gestao_coordenacao)}
+            </section>
+
+            <section class="nq-professor-profile-wide">
+              <h4>Pesquisa / grupos / projetos</h4>
+              ${campoTexto(r.pesquisa_grupos)}
+            </section>
+
+            <section>
+              <h4>Marca</h4>
+              ${campoTexto(r.marca_origem || r.marca_area_contratante)}
+            </section>
+
+            <section>
+              <h4>Situação da contratação</h4>
+              ${campoTexto(r.situacao_contratacao)}
+            </section>
+
+            <section>
+              <h4>Status da verificação</h4>
+              ${campoTexto(r.status_verificacao)}
+            </section>
+
+            <section>
+              <h4>Currículo Lattes</h4>
+              ${temValor(r.lattes)
+                ? `<a class="nq-lattes-link" href="${escapeHtml(r.lattes)}" target="_blank" rel="noopener noreferrer">Abrir Lattes</a>`
+                : '<span class="nq-profile-empty">--</span>'}
+            </section>
+          </div>
+        </details>
+      `;
+    }).join("");
   }
-
 
   function temValor(v) {
     const t =

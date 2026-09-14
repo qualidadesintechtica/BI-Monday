@@ -1799,3 +1799,111 @@
 #viewOperacao .board-status-revalidar{background:#fdab3d;color:#2f2500}
 #viewOperacao .board-status-ajuste{background:#579bfc;color:#fff}
 #viewOperacao .board-status-validado{background:#00c875;color:#fff}
+
+
+/* ============================================================
+   V25.14 · Perfil completo por especialista
+   ============================================================ */
+.nq-professor-profiles{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.nq-professor-profile-card{
+  border:1px solid #e3d8e9;
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+.nq-professor-profile-card > summary{
+  list-style:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:14px 16px;
+  background:#fbf8fd;
+  border-bottom:1px solid transparent;
+}
+.nq-professor-profile-card[open] > summary{
+  border-bottom-color:#eadff0;
+}
+.nq-professor-profile-card > summary::-webkit-details-marker{display:none}
+.nq-professor-profile-card > summary::after{
+  content:"⌄";
+  font-size:20px;
+  color:#6f5484;
+  transition:transform .2s ease;
+}
+.nq-professor-profile-card[open] > summary::after{transform:rotate(180deg)}
+.nq-professor-profile-name{display:flex;flex-direction:column;gap:3px;min-width:240px}
+.nq-professor-profile-name strong{color:#2d1553;font-size:13px}
+.nq-professor-profile-name small{color:#7c7282;font-size:10px}
+.nq-professor-profile-summary{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+.nq-professor-profile-summary span{
+  border:1px solid #e4d8eb;
+  background:#f5eef9;
+  border-radius:999px;
+  padding:5px 9px;
+  color:#4a2863;
+  font-size:10px;
+  white-space:nowrap;
+}
+.nq-professor-profile-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  padding:16px;
+}
+.nq-professor-profile-grid section{
+  min-width:0;
+  border:1px solid #eee5f2;
+  border-radius:11px;
+  padding:11px;
+  background:#fff;
+}
+.nq-professor-profile-grid section h4{
+  margin:0 0 7px;
+  color:#5c3b72;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+.nq-professor-profile-wide{grid-column:span 3}
+.nq-professor-profile-text{
+  color:#4f4654;
+  font-size:11px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.nq-profile-chip-list{display:flex;flex-wrap:wrap;gap:5px}
+.nq-lattes-link{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 9px;
+  border-radius:8px;
+  background:#2d1553;
+  color:#fff;
+  text-decoration:none;
+  font-size:10px;
+  font-weight:700;
+}
+.nq-profile-empty-card{
+  padding:20px;
+  border:1px dashed #d9ccdf;
+  border-radius:12px;
+  color:#817687;
+  text-align:center;
+}
+@media(max-width:1000px){
+  .nq-professor-profile-grid{grid-template-columns:1fr 1fr}
+  .nq-professor-profile-wide{grid-column:span 2}
+}
+@media(max-width:700px){
+  .nq-professor-profile-card > summary{align-items:flex-start;flex-direction:column}
+  .nq-professor-profile-summary{justify-content:flex-start;margin-left:0}
+  .nq-professor-profile-grid{grid-template-columns:1fr}
+  .nq-professor-profile-wide{grid-column:span 1}
+}

@@ -1,3 +1,3 @@
-V25.12
-2026-09-11
-Operação Monday: separação entre Liberado para Validação e Revalidar - NQ, sequência de cores oficial do Monday e remoção do Nível 3 Global.
+V25.14
+2026-09-14
+Perfil completo por especialista: dados acadêmicos e profissionais agrupados por professor; novo indicador Experiências/áreas para distinguir os registros do Lattes das graduações e das áreas CINE.
