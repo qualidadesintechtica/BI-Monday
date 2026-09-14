@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 V25.14
 2026-09-14
 Perfil completo por especialista: dados acadêmicos e profissionais agrupados por professor; novo indicador Experiências/áreas para distinguir os registros do Lattes das graduações e das áreas CINE.
+=======
+V25.13
+2026-09-14
+Correção da seção Área de experiência do especialista: Perfil Acadêmico/Lattes como fonte principal (áreas de atuação e experiência profissional), com nq_especialistas_experiencias como complemento.
+>>>>>>> c4df83fea3096b7488ca42f22f5db692b6abd830
