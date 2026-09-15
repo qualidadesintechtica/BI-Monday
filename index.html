@@ -23,7 +23,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260915-v25-22-professores-datas-filtros"
+    href="css/dashboard.css?v=20260915-v25-23-contratacao-tabela"
   >
 
 
@@ -53,7 +53,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.22 · Reunião NQ</small>
+        <small class="build-badge">v25.23 · Reunião NQ</small>
 
       </div>
 
@@ -555,8 +555,26 @@
 
 
           <div class="nq-viz-card nq-hiring-card">
-            <div class="nq-viz-head"><div><strong>Data de contratação × semestre × professor</strong><small>Linha temporal com DATA INÍCIO e DATA SAÍDA da planilha atual.</small></div></div>
-            <div id="graficoNQContratacao" class="nq-viz-chart"></div>
+            <div class="nq-viz-head">
+              <div>
+                <strong>Professor × entrada × saída</strong>
+                <small>Visão em formato de planilha usando DATA INÍCIO e DATA SAÍDA da base atual.</small>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table nq-hiring-table">
+                <thead>
+                  <tr>
+                    <th>Professor</th>
+                    <th>Entrada</th>
+                    <th>Saída</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyNQContratacao">
+                  <tr><td colspan="3">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div class="nq-viz-card nq-matrix-card">
@@ -1204,7 +1222,7 @@
 
     <div class="monday-board-meta">
       <span id="contadorOperacao">--</span>
-      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.22</span>
+      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.23</span>
     </div>
 
     <div id="operacaoBoard" class="monday-board"></div>
@@ -1390,7 +1408,7 @@
        NOSSO BI
   ================================================ -->
 
-  <script src="js/config.js?v=20260915-v25-22-professores-datas-filtros"></script>
+  <script src="js/config.js?v=20260915-v25-23-contratacao-tabela"></script>
 
   <script src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
 
@@ -1398,7 +1416,7 @@
 
   <script src="js/dados.js?v=20260909-v24-21"></script>
 
-  <script src="js/filtros.js?v=20260915-v25-22-professores-datas-filtros"></script>
+  <script src="js/filtros.js?v=20260915-v25-23-contratacao-tabela"></script>
 
   <script src="js/kpis.js?v=20260901-v20-ordenacao-colunas"></script>
 
@@ -1411,15 +1429,15 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260915-v25-22-professores-datas-filtros"></script>
+    <script src="js/reuniao-nq.js?v=20260915-v25-23-contratacao-tabela"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
-  <script src="js/dashboard.js?v=20260915-v25-22-professores-datas-filtros"></script>
+  <script src="js/dashboard.js?v=20260915-v25-23-contratacao-tabela"></script>
 
 
-<div data-build-version="20260915-v25-22-professores-datas-filtros" style="display:none"></div>
+<div data-build-version="20260915-v25-23-contratacao-tabela" style="display:none"></div>
 
 
 

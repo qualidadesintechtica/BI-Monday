@@ -1,0 +1,11 @@
+V25.23 - 2026-09-15
+
+Alteração solicitada na aba Professores e Especialistas:
+- remove o gráfico temporal de contratação;
+- exibe os dados em formato de planilha;
+- colunas: Professor, Entrada e Saída;
+- uma linha por professor;
+- usa DATA INÍCIO e DATA SAÍDA já importadas na V25.22;
+- respeita os filtros atuais da aba.
+
+Não é necessário novo SQL nem nova Edge Function além dos passos já feitos para a V25.22.

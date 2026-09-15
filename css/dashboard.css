@@ -1913,3 +1913,20 @@
 .nq-chart-filter select{min-width:230px;padding:8px 10px;border:1px solid #d9cfdf;border-radius:7px;background:#fff;color:#2d1553}
 .nq-nivel-formacao-card{margin-top:16px}
 @media(max-width:900px){.nq-chart-filter,.nq-chart-filter select{width:100%;min-width:0}.nq-nivel-formacao-card .nq-viz-head{flex-direction:column}}
+
+
+/* V25.23 · contratação em formato de planilha */
+.nq-hiring-card .table-scroll {
+  max-height: 620px;
+}
+.nq-hiring-table th:nth-child(1),
+.nq-hiring-table td:nth-child(1) {
+  width: 60%;
+}
+.nq-hiring-table th:nth-child(2),
+.nq-hiring-table td:nth-child(2),
+.nq-hiring-table th:nth-child(3),
+.nq-hiring-table td:nth-child(3) {
+  width: 20%;
+  white-space: nowrap;
+}

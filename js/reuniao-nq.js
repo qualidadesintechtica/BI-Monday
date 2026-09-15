@@ -2836,17 +2836,20 @@
 
 
   function renderGraficoContratacaoNQ() {
-    const el =
+    const tbody =
       document.getElementById(
-        "graficoNQContratacao"
+        "tbodyNQContratacao"
       );
 
-    if (
-      !el ||
-      !window.echarts
-    ) {
+    if (!tbody) {
       return;
     }
+
+    // A visualização anterior era um gráfico ECharts.
+    // A partir da V25.23, a informação é exibida em formato de tabela.
+    graficoContratacaoNQ
+      ?.dispose();
+    graficoContratacaoNQ = null;
 
     const porProfessor =
       new Map();
@@ -2892,203 +2895,70 @@
               ? new Date(saidaRaw)
               : null;
 
-          if (
-            !inicio ||
-            Number.isNaN(
-              inicio.getTime()
-            )
-          ) {
-            return null;
-          }
-
-          const semestre =
-            r.semestre_entrada_nq ||
-            r.semestre ||
-            r.semestre_contratacao ||
-            `${inicio.getFullYear()}.${
-              inicio.getMonth() < 6
-                ? 1
-                : 2
-            }`;
-
           return {
             professor:
-              r.professor,
+              String(
+                r.professor || ""
+              ).trim(),
+
             inicio:
-              inicio.getTime(),
+              inicio &&
+              !Number.isNaN(
+                inicio.getTime()
+              )
+                ? inicio
+                : null,
+
             saida:
               saida &&
               !Number.isNaN(
                 saida.getTime()
               )
-                ? saida.getTime()
-                : null,
-            semestre:
-              String(semestre),
-            situacao:
-              r.situacao_contratacao ||
-              "--"
+                ? saida
+                : null
           };
         })
-        .filter(Boolean)
+        .filter(
+          r => r.professor
+        )
         .sort(
           (a, b) =>
-            a.inicio - b.inicio
+            a.professor.localeCompare(
+              b.professor,
+              "pt-BR"
+            )
         );
 
-    const altura =
-      Math.max(
-        460,
-        registros.length * 34 + 115
-      );
-
-    el.style.height =
-      `${altura}px`;
-    el.style.minHeight =
-      `${altura}px`;
-    el.style.width = "100%";
-
-    graficoContratacaoNQ
-      ?.dispose();
-
-    graficoContratacaoNQ =
-      echarts.init(el);
-
     if (!registros.length) {
-      graficoContratacaoNQ.setOption({
-        title: {
-          text: "A base atual não possui DATA INÍCIO disponível.",
-          left: "center",
-          top: "middle",
-          textStyle: {
-            fontSize: 15,
-            fontWeight: "normal"
-          }
-        }
-      });
-
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3">
+            Nenhum professor encontrado para os filtros atuais.
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    const formatarData = valor =>
-      valor
-        ? new Date(valor)
-            .toLocaleDateString(
-              "pt-BR"
-            )
-        : "--";
+    const formatarData = data =>
+      data
+        ? data.toLocaleDateString(
+            "pt-BR"
+          )
+        : "—";
 
-    graficoContratacaoNQ.setOption({
-      animationDuration: 350,
-
-      tooltip: {
-        trigger: "item",
-        formatter: p => {
-          const d = p.data;
-
-          return (
-            `<strong>${escapeHtml(d.professor)}</strong><br>` +
-            `Semestre de entrada: ${escapeHtml(d.semestre)}<br>` +
-            `${escapeHtml(p.seriesName)}: ${formatarData(d.valor)}<br>` +
-            `Situação: ${escapeHtml(d.situacao)}`
-          );
-        }
-      },
-
-      legend: {
-        top: 0,
-        left: 0,
-        data: ["Entrada", "Saída"]
-      },
-
-      grid: {
-        left: 285,
-        right: 45,
-        top: 55,
-        bottom: 65,
-        containLabel: false
-      },
-
-      xAxis: {
-        type: "time",
-        name: "Data",
-        axisLabel: {
-          formatter: value =>
-            new Date(value)
-              .toLocaleDateString(
-                "pt-BR",
-                {
-                  month: "2-digit",
-                  year: "numeric"
-                }
-              )
-        }
-      },
-
-      yAxis: {
-        type: "category",
-        inverse: true,
-        data:
-          registros.map(
-            d => d.professor
-          ),
-        axisLabel: {
-          interval: 0,
-          width: 255,
-          overflow: "truncate",
-          margin: 12
-        }
-      },
-
-      series: [
-        {
-          name: "Entrada",
-          type: "scatter",
-          symbolSize: 13,
-          data:
-            registros.map(
-              d => ({
-                value: [
-                  d.inicio,
-                  d.professor
-                ],
-                valor: d.inicio,
-                professor: d.professor,
-                semestre: d.semestre,
-                situacao: d.situacao
-              })
-            )
-        },
-        {
-          name: "Saída",
-          type: "scatter",
-          symbolSize: 13,
-          data:
-            registros
-              .filter(
-                d => d.saida
-              )
-              .map(
-                d => ({
-                  value: [
-                    d.saida,
-                    d.professor
-                  ],
-                  valor: d.saida,
-                  professor: d.professor,
-                  semestre: d.semestre,
-                  situacao: d.situacao
-                })
-              )
-        }
-      ]
-    });
-
-    requestAnimationFrame(
-      () =>
-        graficoContratacaoNQ
-          ?.resize()
-    );
+    tbody.innerHTML =
+      registros
+        .map(r => `
+          <tr>
+            <td>
+              <strong>${escapeHtml(r.professor)}</strong>
+            </td>
+            <td>${escapeHtml(formatarData(r.inicio))}</td>
+            <td>${escapeHtml(formatarData(r.saida))}</td>
+          </tr>
+        `)
+        .join("");
   }
 
   function consolidarProfessoresNQ() {
