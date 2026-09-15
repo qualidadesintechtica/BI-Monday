@@ -8,6 +8,10 @@
   let carregando = null;
   let grafico = null;
   let revisoresDistintos = null;
+  // V25.19 · Fonte oficial dos revisores: Base de Especialistas NQ ativa.
+  // Evita contar DAs, conteudistas ou outras pessoas que eventualmente
+  // apareçam em colunas operacionais, mas não pertencem ao corpo de revisores NQ.
+  let revisoresNQAtivos = new Map();
   let formacoesNQ = [];
   let experienciasNQ = [];
   let perfilAcademicoNQ = [];
@@ -404,6 +408,48 @@
     return normalizar(v);
   }
 
+  function separarPessoasNQ(valor) {
+    return String(valor || "")
+      .split(/\s*,\s*|\s*;\s*|\s*\|\s*|\r?\n+/)
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+
+  async function carregarRevisoresNQAtivos() {
+    try {
+      const { data, error } = await window.biSupabase
+        .from("nq_especialistas")
+        .select("professor,ativo")
+        .eq("ativo", true);
+
+      if (error) throw error;
+
+      revisoresNQAtivos = new Map();
+
+      (data || []).forEach(r => {
+        const nome = String(r.professor || "").trim();
+        const chave = normalizar(nome);
+
+        if (nome && chave && !revisoresNQAtivos.has(chave)) {
+          revisoresNQAtivos.set(chave, nome);
+        }
+      });
+
+      console.log(
+        "Revisores NQ ativos carregados:",
+        revisoresNQAtivos.size
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao carregar a Base de Especialistas para o card Revisores mobilizados:",
+        error
+      );
+
+      // Não quebra a página. Mantém o mapa vazio e o card usa fallback abaixo.
+      revisoresNQAtivos = new Map();
+    }
+  }
+
   function resumoDosFiltros(dados) {
     if (!Array.isArray(dados)) {
       return null;
@@ -432,17 +478,47 @@
     const revisores =
       new Set();
 
+    const revisoresBrutos =
+      new Set();
+
     noPeriodo.forEach(x => {
-      String(
-        x.revisor_validador || ""
-      )
-        .split(",")
-        .map(v => v.trim())
-        .filter(Boolean)
-        .forEach(
-          v => revisores.add(v)
-        );
+      separarPessoasNQ(
+        x.revisor_validador
+      ).forEach(nome => {
+        const chave = normalizar(nome);
+
+        if (!chave) return;
+
+        revisoresBrutos.add(chave);
+
+        /*
+         * V25.19
+         * O card "Revisores mobilizados" deve representar apenas o corpo
+         * de especialistas/revisores NQ. A coluna operacional do Monday pode
+         * conter pessoas de outros papéis (DA/conteudista).
+         *
+         * A Base de Especialistas ativa funciona como lista oficial de
+         * revisores válidos para este indicador.
+         */
+        if (
+          revisoresNQAtivos.size > 0 &&
+          revisoresNQAtivos.has(chave)
+        ) {
+          revisores.add(chave);
+        }
+      });
     });
+
+    // Fallback somente se a Base de Especialistas não puder ser carregada.
+    // Assim a página continua funcional, mas em operação normal sempre usamos
+    // a lista oficial de revisores NQ.
+    if (
+      revisoresNQAtivos.size === 0
+    ) {
+      revisoresBrutos.forEach(
+        chave => revisores.add(chave)
+      );
+    }
 
     const st =
       dados.map(x =>
@@ -1339,6 +1415,9 @@
        */
       ppsValidadosAtual =
         await carregarPPsValidadosDosFiltros();
+
+      // V25.19 · Carrega a lista oficial de revisores NQ antes do KPI.
+      await carregarRevisoresNQAtivos();
 
       renderResumo();
 
