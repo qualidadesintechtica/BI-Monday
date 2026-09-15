@@ -1,3 +1,3 @@
-V25.20
+V25.21
 2026-09-15
-Cadastro oficial de Gestores e Revisores NQ com aliases/e-mails e filtros limpos.
+Correção de renderização e redimensionamento do gráfico Formações por Área CINE.

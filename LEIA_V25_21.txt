@@ -1,0 +1,8 @@
+V25.21 - 2026-09-15
+
+Correções:
+- Corrigido o gráfico Formações por Área CINE que ficava comprimido ao abrir a aba Professores e Especialistas.
+- A altura/largura agora são definidas antes do echarts.init().
+- O gráfico é redimensionado automaticamente quando a aba Professores fica visível.
+- Rótulos das Áreas CINE receberam espaço fixo para leitura.
+- Mantidas todas as alterações da V25.20 de responsáveis NQ.

@@ -974,6 +974,9 @@
           () => {
             requestAnimationFrame(
               () => {
+                graficoFormacoesCineNQ
+                  ?.resize();
+
                 graficoCineNQ
                   ?.resize();
 
@@ -2065,29 +2068,142 @@
 
   function renderGraficoFormacoesCineNQ() {
     const el = document.getElementById("graficoNQFormacoesCine");
-    if (!el || !window.echarts) return;
+
+    if (!el || !window.echarts) {
+      return;
+    }
+
     const mapa = new Map();
+
     diplomasFiltradosNQ().forEach(r => {
-      const area = String(r.area_cine || "Sem classificação CINE").trim();
-      if (!mapa.has(area)) mapa.set(area, { area, concluido: 0, andamento: 0 });
+      const area = String(
+        r.area_cine || "Sem classificação CINE"
+      ).trim();
+
+      if (!mapa.has(area)) {
+        mapa.set(area, {
+          area,
+          concluido: 0,
+          andamento: 0
+        });
+      }
+
       const item = mapa.get(area);
-      if (normalizar(r.situacao).includes("andamento")) item.andamento++;
-      else item.concluido++;
+
+      if (normalizar(r.situacao).includes("andamento")) {
+        item.andamento++;
+      } else {
+        item.concluido++;
+      }
     });
-    const dados = [...mapa.values()].sort((a,b) => (b.concluido+b.andamento)-(a.concluido+a.andamento));
+
+    const dados = [...mapa.values()].sort(
+      (a, b) =>
+        (b.concluido + b.andamento) -
+        (a.concluido + a.andamento)
+    );
+
+    /*
+     * IMPORTANTE:
+     * o tamanho precisa existir ANTES do echarts.init().
+     * Como a aba Professores nasce oculta, inicializar o ECharts
+     * antes de definir altura/largura fazia o gráfico ficar comprimido.
+     */
+    const altura = Math.max(420, dados.length * 48 + 90);
+    el.style.height = `${altura}px`;
+    el.style.minHeight = `${altura}px`;
+    el.style.width = "100%";
+
     graficoFormacoesCineNQ?.dispose();
     graficoFormacoesCineNQ = echarts.init(el);
-    el.style.minHeight = `${Math.max(360, dados.length * 42)}px`;
+
+    if (!dados.length) {
+      graficoFormacoesCineNQ.setOption({
+        title: {
+          text: "Nenhuma formação CINE encontrada para o filtro atual.",
+          left: "center",
+          top: "middle",
+          textStyle: {
+            fontSize: 15,
+            fontWeight: "normal"
+          }
+        }
+      });
+      return;
+    }
+
     graficoFormacoesCineNQ.setOption({
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      legend: { top: 0, data: ["Concluído", "Em andamento"] },
-      grid: { left: 18, right: 28, top: 42, bottom: 12, containLabel: true },
-      xAxis: { type: "value", minInterval: 1 },
-      yAxis: { type: "category", data: dados.map(x => x.area), axisLabel: { width: 250, overflow: "truncate" } },
+      animationDuration: 350,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" }
+      },
+      legend: {
+        top: 0,
+        left: 0,
+        data: ["Concluído", "Em andamento"]
+      },
+      grid: {
+        left: 330,
+        right: 55,
+        top: 55,
+        bottom: 40,
+        containLabel: false
+      },
+      xAxis: {
+        type: "value",
+        min: 0,
+        minInterval: 1,
+        axisLabel: { formatter: "{value}" },
+        splitLine: { show: true }
+      },
+      yAxis: {
+        type: "category",
+        inverse: true,
+        data: dados.map(x => x.area),
+        axisTick: { show: false },
+        axisLabel: {
+          interval: 0,
+          width: 300,
+          overflow: "truncate",
+          align: "right",
+          margin: 14,
+          formatter: value => value
+        }
+      },
       series: [
-        { name: "Concluído", type: "bar", stack: "total", data: dados.map(x => x.concluido), label: { show: true, position: "inside" } },
-        { name: "Em andamento", type: "bar", stack: "total", data: dados.map(x => x.andamento), label: { show: true, position: "inside" } }
+        {
+          name: "Concluído",
+          type: "bar",
+          stack: "total",
+          barMaxWidth: 30,
+          data: dados.map(x => x.concluido),
+          label: {
+            show: true,
+            position: "insideRight",
+            formatter: p => p.value ? p.value : ""
+          }
+        },
+        {
+          name: "Em andamento",
+          type: "bar",
+          stack: "total",
+          barMaxWidth: 30,
+          data: dados.map(x => x.andamento),
+          label: {
+            show: true,
+            position: "right",
+            formatter: p => p.value ? p.value : ""
+          }
+        }
       ]
+    });
+
+    /*
+     * Garante o cálculo final quando a aba acaba de ficar visível.
+     */
+    requestAnimationFrame(() => {
+      graficoFormacoesCineNQ?.resize();
     });
   }
 
@@ -4778,6 +4894,9 @@
     "resize",
     () => {
       grafico
+        ?.resize();
+
+      graficoFormacoesCineNQ
         ?.resize();
 
       graficoCineNQ
