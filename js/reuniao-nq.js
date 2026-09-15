@@ -20,6 +20,7 @@
   let graficoExperienciasNQ = null;
   let graficoCineNQ = null;
   let graficoFormacoesCineNQ = null;
+  let graficoNivelFormacaoNQ = null;
   let graficoFormacoesNQ = null;
   let graficoContratacaoNQ = null;
   let dadosBIAtuais = [];
@@ -977,6 +978,9 @@
                 graficoFormacoesCineNQ
                   ?.resize();
 
+                graficoNivelFormacaoNQ
+                  ?.resize();
+
                 graficoCineNQ
                   ?.resize();
 
@@ -1610,8 +1614,16 @@
   function classeTitulacaoFiltro(
     row
   ) {
+    const perfil =
+      perfilAcademicoNQ.find(
+        p =>
+          normalizar(p.professor) ===
+          normalizar(row.professor)
+      );
+
     const t =
       normalizar(
+        `${perfil?.titulacao_maxima_concluida || ""} ` +
         `${row.titulacao_maxima || ""} ` +
         `${row.formacao || ""}`
       );
@@ -1679,6 +1691,58 @@
   }
 
 
+  function situacaoEspecialistaFiltro(
+    row
+  ) {
+    const t =
+      normalizar(
+        row.situacao_contratacao ||
+        ""
+      );
+
+    if (
+      t.includes("inativ") ||
+      t.includes("deslig") ||
+      t.includes("encerr")
+    ) {
+      return "inativo";
+    }
+
+    if (
+      t.includes("ativ")
+    ) {
+      return "ativo";
+    }
+
+    return row.ativo === false
+      ? "inativo"
+      : "ativo";
+  }
+
+
+  function titulacaoCorrespondeFiltro(
+    classe,
+    filtro
+  ) {
+    if (!filtro) {
+      return true;
+    }
+
+    if (
+      filtro ===
+      "academico_superior"
+    ) {
+      return [
+        "graduado",
+        "mestre",
+        "doutor"
+      ].includes(classe);
+    }
+
+    return classe === filtro;
+  }
+
+
   function formacoesFiltradasNQ() {
     const tit =
       document.getElementById(
@@ -1690,20 +1754,37 @@
         "nqFiltroSituacaoFormacao"
       )?.value || "";
 
+    const vinculo =
+      document.getElementById(
+        "nqFiltroSituacaoEspecialista"
+      )?.value || "";
+
     return formacoesNQ.filter(
-      r =>
-        (
-          !tit ||
+      r => {
+        const classe =
           classeTitulacaoFiltro(
             r
-          ) === tit
-        ) &&
-        (
-          !sit ||
-          situacaoFormacaoFiltro(
-            r
-          ) === sit
-        )
+          );
+
+        return (
+          titulacaoCorrespondeFiltro(
+            classe,
+            tit
+          ) &&
+          (
+            !sit ||
+            situacaoFormacaoFiltro(
+              r
+            ) === sit
+          ) &&
+          (
+            !vinculo ||
+            situacaoEspecialistaFiltro(
+              r
+            ) === vinculo
+          )
+        );
+      }
     );
   }
 
@@ -1980,6 +2061,20 @@
       )
     );
 
+    const vinculoAtual =
+      document.getElementById(
+        "nqFiltroSituacaoEspecialista"
+      )?.value || "";
+
+    setText(
+      "nqProfessoresLegenda",
+      vinculoAtual === "ativo"
+        ? "especialistas ativos"
+        : vinculoAtual === "inativo"
+          ? "especialistas inativos"
+          : "especialistas na base"
+    );
+
     /*
      * GRADUAÇÕES ÚNICAS
      *
@@ -2049,9 +2144,40 @@
   }
 
   function diplomasFiltradosNQ() {
-    const base = formacoesFiltradasNQ();
-    const nomes = new Set(base.map(r => normalizar(r.professor)).filter(Boolean));
-    return diplomasNQ.filter(r => !nomes.size || nomes.has(normalizar(r.professor)));
+    const base =
+      formacoesFiltradasNQ();
+
+    // Se a Base de Especialistas ainda não carregou, mantém o fallback
+    // para Diplomas. Se um filtro foi aplicado e não encontrou ninguém,
+    // o resultado correto é vazio (e não todos os diplomas).
+    if (!formacoesNQ.length) {
+      return diplomasNQ;
+    }
+
+    if (!base.length) {
+      return [];
+    }
+
+    const nomes =
+      new Set(
+        base
+          .map(
+            r =>
+              normalizar(
+                r.professor
+              )
+          )
+          .filter(Boolean)
+      );
+
+    return diplomasNQ.filter(
+      r =>
+        nomes.has(
+          normalizar(
+            r.professor
+          )
+        )
+    );
   }
 
   function renderKPIsFormacoesDiplomasNQ() {
@@ -2205,6 +2331,250 @@
     requestAnimationFrame(() => {
       graficoFormacoesCineNQ?.resize();
     });
+  }
+
+
+  function nivelDiplomaNQ(valor) {
+    const t = normalizar(valor);
+
+    if (t.includes("dout")) {
+      return "doutorado";
+    }
+
+    if (t.includes("mestr")) {
+      return "mestrado";
+    }
+
+    if (
+      t.includes("especial") ||
+      t.includes("mba")
+    ) {
+      return "especializacao";
+    }
+
+    if (
+      t.includes("gradu") ||
+      t.includes("bacharel") ||
+      t.includes("licencia") ||
+      t.includes("tecnolog")
+    ) {
+      return "graduacao";
+    }
+
+    return "";
+  }
+
+
+  function renderGraficoNivelFormacaoNQ() {
+    const el =
+      document.getElementById(
+        "graficoNQNivelFormacao"
+      );
+
+    if (
+      !el ||
+      !window.echarts
+    ) {
+      return;
+    }
+
+    const nivelSelecionado =
+      document.getElementById(
+        "nqFiltroNivelGraficoFormacao"
+      )?.value || "";
+
+    const niveis = [
+      { chave: "graduacao", nome: "Graduação" },
+      { chave: "especializacao", nome: "Especialização" },
+      { chave: "mestrado", nome: "Mestrado" },
+      { chave: "doutorado", nome: "Doutorado" }
+    ];
+
+    const mapa = new Map();
+
+    diplomasFiltradosNQ()
+      .forEach(r => {
+        const nivel =
+          nivelDiplomaNQ(
+            r.nivel
+          );
+
+        if (
+          !nivel ||
+          (
+            nivelSelecionado &&
+            nivel !== nivelSelecionado
+          )
+        ) {
+          return;
+        }
+
+        const professor =
+          String(
+            r.professor ||
+            "Professor não identificado"
+          ).trim();
+
+        if (!mapa.has(professor)) {
+          mapa.set(professor, {
+            professor,
+            graduacao: 0,
+            especializacao: 0,
+            mestrado: 0,
+            doutorado: 0
+          });
+        }
+
+        mapa.get(professor)[nivel]++;
+      });
+
+    const dados =
+      [...mapa.values()]
+        .sort(
+          (a, b) => {
+            const totalA =
+              a.graduacao +
+              a.especializacao +
+              a.mestrado +
+              a.doutorado;
+
+            const totalB =
+              b.graduacao +
+              b.especializacao +
+              b.mestrado +
+              b.doutorado;
+
+            return (
+              totalB - totalA ||
+              a.professor.localeCompare(
+                b.professor,
+                "pt-BR"
+              )
+            );
+          }
+        );
+
+    const altura =
+      Math.max(
+        420,
+        dados.length * 34 + 100
+      );
+
+    el.style.height =
+      `${altura}px`;
+    el.style.minHeight =
+      `${altura}px`;
+    el.style.width = "100%";
+
+    graficoNivelFormacaoNQ
+      ?.dispose();
+
+    graficoNivelFormacaoNQ =
+      echarts.init(el);
+
+    if (!dados.length) {
+      graficoNivelFormacaoNQ.setOption({
+        title: {
+          text: "Nenhuma formação encontrada para o nível selecionado.",
+          left: "center",
+          top: "middle",
+          textStyle: {
+            fontSize: 15,
+            fontWeight: "normal"
+          }
+        }
+      });
+
+      return;
+    }
+
+    const niveisVisiveis =
+      nivelSelecionado
+        ? niveis.filter(
+            n =>
+              n.chave ===
+              nivelSelecionado
+          )
+        : niveis;
+
+    graficoNivelFormacaoNQ.setOption({
+      animationDuration: 350,
+
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow"
+        }
+      },
+
+      legend: {
+        top: 0,
+        left: 0,
+        data:
+          niveisVisiveis.map(
+            n => n.nome
+          )
+      },
+
+      grid: {
+        left: 285,
+        right: 55,
+        top: 55,
+        bottom: 35,
+        containLabel: false
+      },
+
+      xAxis: {
+        type: "value",
+        min: 0,
+        minInterval: 1,
+        name: "Formações"
+      },
+
+      yAxis: {
+        type: "category",
+        inverse: true,
+        data:
+          dados.map(
+            d => d.professor
+          ),
+        axisLabel: {
+          interval: 0,
+          width: 255,
+          overflow: "truncate",
+          margin: 12
+        }
+      },
+
+      series:
+        niveisVisiveis.map(
+          nivel => ({
+            name: nivel.nome,
+            type: "bar",
+            stack: "formacoes",
+            barMaxWidth: 24,
+            data:
+              dados.map(
+                d =>
+                  d[nivel.chave]
+              ),
+            label: {
+              show: true,
+              position: "insideRight",
+              formatter: p =>
+                p.value
+                  ? p.value
+                  : ""
+            }
+          })
+        )
+    });
+
+    requestAnimationFrame(
+      () =>
+        graficoNivelFormacaoNQ
+          ?.resize()
+    );
   }
 
     function renderGraficoCineNQ() {
@@ -2487,67 +2857,56 @@
           return;
         }
 
-        const atual =
-          porProfessor.get(
+        const chave =
+          normalizar(
             r.professor
-          ) || r;
-
-        const d =
-          r.data_contratacao ||
-          r.data_admissao ||
-          r.contratacao ||
-          r.data_inicio_contratacao;
-
-        if (d) {
-          porProfessor.set(
-            r.professor,
-            {
-              ...r,
-              __data: d
-            }
           );
 
-        } else if (
-          !porProfessor.has(
-            r.professor
-          )
-        ) {
-          porProfessor.set(
-            r.professor,
-            atual
-          );
+        if (!porProfessor.has(chave)) {
+          porProfessor.set(chave, r);
         }
       });
 
-    const dados =
+    const registros =
       [...porProfessor.values()]
         .map(r => {
-          const raw =
-            r.__data ||
+          const inicioRaw =
+            r.data_inicio ||
             r.data_contratacao ||
             r.data_admissao ||
             r.contratacao ||
             r.data_inicio_contratacao;
 
-          const d =
-            raw
-              ? new Date(raw)
+          const saidaRaw =
+            r.data_saida ||
+            r.data_fim ||
+            r.data_desligamento;
+
+          const inicio =
+            inicioRaw
+              ? new Date(inicioRaw)
+              : null;
+
+          const saida =
+            saidaRaw
+              ? new Date(saidaRaw)
               : null;
 
           if (
-            !d ||
+            !inicio ||
             Number.isNaN(
-              d.getTime()
+              inicio.getTime()
             )
           ) {
             return null;
           }
 
-          const sem =
+          const semestre =
+            r.semestre_entrada_nq ||
             r.semestre ||
             r.semestre_contratacao ||
-            `${d.getFullYear()}.${
-              d.getMonth() < 6
+            `${inicio.getFullYear()}.${
+              inicio.getMonth() < 6
                 ? 1
                 : 2
             }`;
@@ -2555,97 +2914,182 @@
           return {
             professor:
               r.professor,
-
-            data:
-              d.getTime(),
-
+            inicio:
+              inicio.getTime(),
+            saida:
+              saida &&
+              !Number.isNaN(
+                saida.getTime()
+              )
+                ? saida.getTime()
+                : null,
             semestre:
-              String(sem)
+              String(semestre),
+            situacao:
+              r.situacao_contratacao ||
+              "--"
           };
         })
         .filter(Boolean)
         .sort(
           (a, b) =>
-            a.data -
-            b.data
+            a.inicio - b.inicio
         );
 
-    graficoContratacaoNQ?.dispose();
+    const altura =
+      Math.max(
+        460,
+        registros.length * 34 + 115
+      );
+
+    el.style.height =
+      `${altura}px`;
+    el.style.minHeight =
+      `${altura}px`;
+    el.style.width = "100%";
+
+    graficoContratacaoNQ
+      ?.dispose();
 
     graficoContratacaoNQ =
       echarts.init(el);
 
-    if (!dados.length) {
-      el.innerHTML =
-        '<div class="nq-profile-empty" style="padding:30px">' +
-        "A base atual não possui data de contratação disponível." +
-        "</div>";
+    if (!registros.length) {
+      graficoContratacaoNQ.setOption({
+        title: {
+          text: "A base atual não possui DATA INÍCIO disponível.",
+          left: "center",
+          top: "middle",
+          textStyle: {
+            fontSize: 15,
+            fontWeight: "normal"
+          }
+        }
+      });
 
       return;
     }
 
+    const formatarData = valor =>
+      valor
+        ? new Date(valor)
+            .toLocaleDateString(
+              "pt-BR"
+            )
+        : "--";
+
     graficoContratacaoNQ.setOption({
+      animationDuration: 350,
+
       tooltip: {
         trigger: "item",
+        formatter: p => {
+          const d = p.data;
 
-        formatter: p =>
-          `${escapeHtml(
-            p.data[2]
-          )}<br>` +
-          `${escapeHtml(
-            p.data[1]
-          )}<br>` +
-          `${new Date(
-            p.data[0]
-          ).toLocaleDateString(
-            "pt-BR"
-          )}`
+          return (
+            `<strong>${escapeHtml(d.professor)}</strong><br>` +
+            `Semestre de entrada: ${escapeHtml(d.semestre)}<br>` +
+            `${escapeHtml(p.seriesName)}: ${formatarData(d.valor)}<br>` +
+            `Situação: ${escapeHtml(d.situacao)}`
+          );
+        }
+      },
+
+      legend: {
+        top: 0,
+        left: 0,
+        data: ["Entrada", "Saída"]
       },
 
       grid: {
-        left: 70,
-        right: 25,
-        top: 25,
-        bottom: 80
+        left: 285,
+        right: 45,
+        top: 55,
+        bottom: 65,
+        containLabel: false
       },
 
       xAxis: {
         type: "time",
-        name: "Data de contratação"
+        name: "Data",
+        axisLabel: {
+          formatter: value =>
+            new Date(value)
+              .toLocaleDateString(
+                "pt-BR",
+                {
+                  month: "2-digit",
+                  year: "numeric"
+                }
+              )
+        }
       },
 
       yAxis: {
         type: "category",
-
+        inverse: true,
         data:
-          uniq(
-            dados.map(
-              d =>
-                d.semestre
-            )
+          registros.map(
+            d => d.professor
           ),
-
-        name: "Semestre"
+        axisLabel: {
+          interval: 0,
+          width: 255,
+          overflow: "truncate",
+          margin: 12
+        }
       },
 
       series: [
         {
+          name: "Entrada",
           type: "scatter",
-          symbolSize: 12,
-
+          symbolSize: 13,
           data:
-            dados.map(
-              d => [
-                d.data,
-                d.semestre,
-                d.professor
-              ]
+            registros.map(
+              d => ({
+                value: [
+                  d.inicio,
+                  d.professor
+                ],
+                valor: d.inicio,
+                professor: d.professor,
+                semestre: d.semestre,
+                situacao: d.situacao
+              })
             )
+        },
+        {
+          name: "Saída",
+          type: "scatter",
+          symbolSize: 13,
+          data:
+            registros
+              .filter(
+                d => d.saida
+              )
+              .map(
+                d => ({
+                  value: [
+                    d.saida,
+                    d.professor
+                  ],
+                  valor: d.saida,
+                  professor: d.professor,
+                  semestre: d.semestre,
+                  situacao: d.situacao
+                })
+              )
         }
       ]
     });
-  }
 
+    requestAnimationFrame(
+      () =>
+        graficoContratacaoNQ
+          ?.resize()
+    );
+  }
 
   function consolidarProfessoresNQ() {
     const mapa =
@@ -4118,6 +4562,8 @@
 
     renderGraficoFormacoesCineNQ();
 
+    renderGraficoNivelFormacaoNQ();
+
     renderGraficoFormacoesProfessorNQ();
 
     renderGraficoContratacaoNQ();
@@ -4151,7 +4597,8 @@
   function configurarFiltroCoberturaNQ() {
     [
       "nqFiltroTitulacao",
-      "nqFiltroSituacaoFormacao"
+      "nqFiltroSituacaoFormacao",
+      "nqFiltroSituacaoEspecialista"
     ].forEach(
       id => {
         const el =
@@ -4176,6 +4623,25 @@
         );
       }
     );
+
+    const filtroNivelGrafico =
+      document.getElementById(
+        "nqFiltroNivelGraficoFormacao"
+      );
+
+    if (
+      filtroNivelGrafico &&
+      filtroNivelGrafico.dataset.ready !==
+        "1"
+    ) {
+      filtroNivelGrafico.dataset.ready =
+        "1";
+
+      filtroNivelGrafico.addEventListener(
+        "change",
+        renderGraficoNivelFormacaoNQ
+      );
+    }
   }
 
 
@@ -4897,6 +5363,9 @@
         ?.resize();
 
       graficoFormacoesCineNQ
+        ?.resize();
+
+      graficoNivelFormacaoNQ
         ?.resize();
 
       graficoCineNQ

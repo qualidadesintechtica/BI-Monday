@@ -27,6 +27,16 @@ function cpfDigits(v: unknown): string | null {
 function isoDate(v: unknown): string | null {
   if (!v) return null;
 
+  // Datas do Excel podem chegar como número serial quando a planilha
+  // não é convertida para Date pelo navegador.
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    const jsDate = new Date(excelEpoch + Math.round(v * 86400000));
+    return Number.isNaN(jsDate.getTime())
+      ? null
+      : jsDate.toISOString().slice(0, 10);
+  }
+
   if (typeof v === "string") {
     const s = v.trim();
 
@@ -131,6 +141,8 @@ const COL = {
   titulacao: "TITULAÇÃO MÁXIMA",
   pit: "PIT",
   semestre: "SEMESTRE_ENTRADA NQ",
+  dataInicio: "DATA INÍCIO",
+  dataSaida: "DATA SAÍDA",
   situacao: "SITUAÇÃO CONTRATAÇÃO",
   dataIndicacao: "DATA INDICAÇÃO APP",
   regime: "REGIME CONTRATAÇÃO",
@@ -188,7 +200,7 @@ Deno.serve(async (req) => {
     const rowsLattes = Array.isArray(body?.rows_lattes) ? body.rows_lattes : [];
     const rowsDiplomas = Array.isArray(body?.rows_diplomas) ? body.rows_diplomas : [];
 
-    console.log("V25.16 payload recebido", {
+    console.log("V25.22 payload recebido", {
       export_rows: rows.length,
       lattes_rows: rowsLattes.length,
       diplomas_rows: rowsDiplomas.length,
@@ -277,6 +289,8 @@ Deno.serve(async (req) => {
           titulacao_maxima: txt(r[COL.titulacao]),
           pit: txt(r[COL.pit]),
           semestre_entrada_nq: txt(r[COL.semestre]),
+          data_inicio: isoDate(r[COL.dataInicio]),
+          data_saida: isoDate(r[COL.dataSaida]),
           situacao_contratacao: txt(r[COL.situacao]),
           data_indicacao_app: isoDate(r[COL.dataIndicacao]),
           regime_contratacao: txt(r[COL.regime]),
