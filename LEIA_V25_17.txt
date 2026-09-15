@@ -1,0 +1,21 @@
+BI-Monday V25.17 — Reunião NQ / Operação e Qualidade
+
+ALTERAÇÃO PRINCIPAL
+- A fonte oficial para os critérios de não conformidade passa a ser a coluna “Apontamos inconformidade?” do Monday.
+- “Sim” = Não conforme.
+- “Não” = Conforme.
+- Em branco/outro valor = não entra no cálculo.
+
+APLICADO EM
+- 03 Qualidade da validação
+- 04 Principais não conformidades
+- 05 Detalhamento dos critérios críticos
+
+OUTROS AJUSTES
+- O texto do critério usa `criterio`; quando estiver vazio, usa `name`, `nome_item` ou `item_name`.
+- A view de detalhe é lida com todos os campos para localizar automaticamente o alias de “Apontamos inconformidade?”.
+- Há fallback para `dados_colunas` quando a view traz o JSON completo das colunas do Monday.
+- Os filtros globais existentes foram preservados.
+
+DIAGNÓSTICO
+Se a tela exibir que “Apontamos inconformidade?” não foi localizada, execute o SQL `docs/V25_17_CONFERIR_APONTAMOS_INCONFORMIDADE.sql` no Supabase para conferir as colunas expostas pela view.

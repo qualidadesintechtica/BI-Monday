@@ -20,6 +20,7 @@
   let graficoContratacaoNQ = null;
   let dadosBIAtuais = [];
   let ppsValidadosAtual = 0;
+  let campoApontamosInconformidade = null;
 
   const fmt = new Intl.NumberFormat("pt-BR");
 
@@ -64,6 +65,109 @@
       .replace(/[\u0300-\u036f]/g, "")
       .trim()
       .toLowerCase();
+  }
+
+  /* =========================================================
+     FONTE OFICIAL DE NÃO CONFORMIDADE · V25.17
+
+     Monday: coluna “Apontamos inconformidade?”
+     Regra:
+       Sim  -> não conforme
+       Não  -> conforme
+       vazio/outro -> não avaliado
+  ========================================================= */
+
+  function normalizarNomeCampo(v) {
+    return normalizar(v)
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function localizarCampoApontamos(row) {
+    if (!row || typeof row !== "object") {
+      return null;
+    }
+
+    const aliases = [
+      "apontamos_inconformidade",
+      "apontamos_inconformidades",
+      "apontamos inconformidade",
+      "apontamos inconformidades",
+      "apontamos inconformidade?"
+    ];
+
+    for (const alias of aliases) {
+      if (Object.prototype.hasOwnProperty.call(row, alias)) {
+        return alias;
+      }
+    }
+
+    return Object.keys(row).find(chave => {
+      const k = normalizarNomeCampo(chave);
+      return k === "apontamosinconformidade" ||
+             k === "apontamosinconformidades";
+    }) || null;
+  }
+
+  function valorApontamosInconformidade(row) {
+    if (!row) return null;
+
+    const campo =
+      campoApontamosInconformidade ||
+      localizarCampoApontamos(row);
+
+    if (campo) {
+      const valor = row[campo];
+      if (valor !== null && valor !== undefined && String(valor).trim() !== "") {
+        return valor;
+      }
+    }
+
+    /*
+     * Fallback para views que trazem o JSON completo das colunas
+     * do Monday em dados_colunas.
+     */
+    const dadosColunas = row.dados_colunas;
+
+    if (dadosColunas && typeof dadosColunas === "object") {
+      for (const [id, coluna] of Object.entries(dadosColunas)) {
+        if (!coluna || typeof coluna !== "object") continue;
+
+        const titulo = normalizarNomeCampo(coluna.title || id);
+
+        if (
+          titulo === "apontamosinconformidade" ||
+          titulo === "apontamosinconformidades"
+        ) {
+          return coluna.text ?? coluna.value ?? null;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function classificacaoInconformidade(row) {
+    const valor = normalizar(
+      valorApontamosInconformidade(row)
+    );
+
+    if (["sim", "s", "yes", "true", "1", "x"].includes(valor)) {
+      return "nao_conforme";
+    }
+
+    if (["nao", "n", "no", "false", "0"].includes(valor)) {
+      return "conforme";
+    }
+
+    return "";
+  }
+
+  function criterioDaLinha(row) {
+    return row?.criterio ||
+      row?.name ||
+      row?.nome_item ||
+      row?.item_name ||
+      "Critério não informado";
   }
 
   async function carregar() {
@@ -122,11 +226,13 @@
       naoConformidades =
         r2.data || [];
 
-      const camposDetalhe =
-        "parent_item_id,matriz_oferta,id_ua,titulo_ua,criterio," +
-        "classificacao_especialista,esteira_producao,bloco," +
-        "status_validacao,categoria_material,gestor_validacao_nq," +
-        "revisor_validador";
+      /*
+       * V25.17
+       * Lemos a view completa para garantir a coluna
+       * “Apontamos inconformidade?” mesmo quando o alias da view
+       * for diferente entre versões do banco.
+       */
+      const camposDetalhe = "*";
 
       const statusCarga =
         document.getElementById(
@@ -238,6 +344,29 @@
             `Carregando critérios da reunião... ` +
             `${fmt.format(carregados)} de ` +
             `${fmt.format(totalDetalhe)}`;
+        }
+      }
+
+      campoApontamosInconformidade =
+        localizarCampoApontamos(
+          criteriosDetalhe?.[0] || null
+        );
+
+      if (campoApontamosInconformidade) {
+        console.log(
+          "Reunião NQ · fonte de inconformidade:",
+          campoApontamosInconformidade
+        );
+      } else {
+        const possuiFallbackJson =
+          (criteriosDetalhe || []).slice(0, 25).some(
+            linha => valorApontamosInconformidade(linha) !== null
+          );
+
+        if (!possuiFallbackJson) {
+          console.warn(
+            "Reunião NQ: a coluna 'Apontamos inconformidade?' não foi localizada na view de detalhe."
+          );
         }
       }
     })();
@@ -608,96 +737,59 @@
   }
 
   function agregarCriterios(rows) {
-    const mapa =
-      new Map();
+    const mapa = new Map();
 
-    rows
-      .filter(
-        x =>
-          [
-            "sim",
-            "nao"
-          ].includes(
-            normalizar(
-              x.classificacao_especialista
-            )
-          )
-      )
-      .forEach(x => {
-        const matriz =
-          x.matriz_oferta ||
-          "Matriz não identificada";
+    rows.forEach(x => {
+      const classificacao =
+        classificacaoInconformidade(x);
 
-        const criterio =
-          x.criterio ||
-          "Critério não informado";
+      // Campo vazio ou valor diferente de Sim/Não não entra no cálculo.
+      if (!classificacao) {
+        return;
+      }
 
-        const chave =
-          `${matriz}|||${criterio}`;
+      const matriz =
+        x.matriz_oferta ||
+        "Matriz não identificada";
 
-        if (
-          !mapa.has(chave)
-        ) {
-          mapa.set(
-            chave,
-            {
-              matriz_oferta:
-                matriz,
+      const criterio =
+        criterioDaLinha(x);
 
-              criterio,
+      const chave =
+        `${matriz}|||${criterio}`;
 
-              nao_conformidades:
-                0,
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          matriz_oferta: matriz,
+          criterio,
+          nao_conformidades: 0,
+          conformidades: 0,
+          criterios_avaliados: 0,
+          _uas: new Set()
+        });
+      }
 
-              conformidades:
-                0,
+      const r = mapa.get(chave);
 
-              criterios_avaliados:
-                0,
+      r.criterios_avaliados++;
 
-              _uas:
-                new Set()
-            }
-          );
-        }
+      if (classificacao === "nao_conforme") {
+        r.nao_conformidades++;
+      } else {
+        r.conformidades++;
+      }
 
-        const r =
-          mapa.get(chave);
+      if (x.id_ua) {
+        r._uas.add(x.id_ua);
+      }
+    });
 
-        r.criterios_avaliados++;
-
-        if (
-          normalizar(
-            x.classificacao_especialista
-          ) === "nao"
-        ) {
-          r.nao_conformidades++;
-        } else {
-          r.conformidades++;
-        }
-
-        if (x.id_ua) {
-          r._uas.add(
-            x.id_ua
-          );
-        }
-      });
-
-    return [
-      ...mapa.values()
-    ].map(r => ({
+    return [...mapa.values()].map(r => ({
       ...r,
-
-      uas:
-        r._uas.size,
-
+      uas: r._uas.size,
       percentual_nao_conformidade:
         r.criterios_avaliados
-          ? (
-              r.nao_conformidades *
-              100 /
-              r.criterios_avaliados
-            )
+          ? (r.nao_conformidades * 100 / r.criterios_avaliados)
           : 0
     }));
   }
@@ -888,27 +980,22 @@
     const validos =
       criteriosFiltrados.filter(
         x =>
-          [
-            "sim",
-            "nao"
-          ].includes(
-            normalizar(
-              x.classificacao_especialista
-            )
-          )
+          !!classificacaoInconformidade(x)
       );
 
     const conformes =
       validos.filter(
         x =>
-          normalizar(
-            x.classificacao_especialista
-          ) === "sim"
+          classificacaoInconformidade(x) ===
+          "conforme"
       ).length;
 
     const nao =
-      validos.length -
-      conformes;
+      validos.filter(
+        x =>
+          classificacaoInconformidade(x) ===
+          "nao_conforme"
+      ).length;
 
     setText(
       "nqCriterios",
@@ -1237,8 +1324,14 @@
       renderCoberturaNQ();
 
       if (status) {
-        status.textContent =
-          "Dados carregados da nova view NQ e atualizados conforme os filtros globais do BI.";
+        const fonteEncontrada =
+          (criteriosDetalhe || []).slice(0, 50).some(
+            linha => valorApontamosInconformidade(linha) !== null
+          );
+
+        status.textContent = fonteEncontrada
+          ? "Dados atualizados conforme os filtros globais. Não conformidades: coluna ‘Apontamos inconformidade?’ do Monday."
+          : "Atenção: a coluna ‘Apontamos inconformidade?’ não foi localizada na view de critérios. Verifique a view vw_nq_reuniao_criterios_detalhe.";
       }
 
     } catch (e) {
