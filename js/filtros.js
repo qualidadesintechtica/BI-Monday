@@ -13,11 +13,69 @@
       .toLowerCase();
   }
 
+
+  function normalizarPessoaNQ(valor) {
+    return String(valor ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function campoPessoaNQ(campo) {
+    return campo === "gestor_validacao_nq" || campo === "revisor_validador";
+  }
+
+  function separarPessoasNQ(valor) {
+    if (valor === null || valor === undefined) return [];
+    return String(valor)
+      .split(/\s*,\s*|\s*;\s*|\s*\|\s*|\r?\n+/)
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+
+  function mapaPessoasNQ(campo) {
+    const cadastro = window.BI_RESPONSAVEIS_NQ;
+    if (!cadastro) return null;
+    return campo === "gestor_validacao_nq"
+      ? cadastro.gestores
+      : cadastro.revisores;
+  }
+
+  function nomesOficiaisDoValor(campo, valor) {
+    const mapa = mapaPessoasNQ(campo);
+    if (!mapa || mapa.size === 0) return [];
+
+    const nomes = separarPessoasNQ(valor)
+      .map(pessoa => mapa.get(normalizarPessoaNQ(pessoa)))
+      .filter(Boolean);
+
+    return [...new Set(nomes)];
+  }
+
   /* ======================================================
      VALORES ÚNICOS
   ====================================================== */
 
   function valoresUnicos(dados, campo) {
+    if (campoPessoaNQ(campo)) {
+      const mapa = mapaPessoasNQ(campo);
+
+      if (mapa && mapa.size > 0) {
+        const oficiais = dados.flatMap(item =>
+          nomesOficiaisDoValor(campo, item[campo])
+        );
+
+        return [...new Set(oficiais)].sort((a, b) =>
+          String(a).localeCompare(String(b), "pt-BR", {
+            numeric: true,
+            sensitivity: "base"
+          })
+        );
+      }
+    }
+
     const valores = dados
       .map(function (item) {
         return item[campo];
@@ -794,6 +852,15 @@
         /*
           Valor normal.
         */
+
+        if (campoPessoaNQ(campo)) {
+          const oficiais = nomesOficiaisDoValor(campo, valorItem);
+          if (oficiais.length > 0) {
+            return oficiais.some(nome =>
+              normalizarPessoaNQ(nome) === normalizarPessoaNQ(valorFiltro)
+            );
+          }
+        }
 
         return (
           normalizarTexto(

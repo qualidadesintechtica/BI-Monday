@@ -417,36 +417,69 @@
 
   async function carregarRevisoresNQAtivos() {
     try {
+      // Preferimos o cadastro oficial V25.20, que contém aliases/e-mails do Monday.
+      const cadastroGlobal = window.BI_RESPONSAVEIS_NQ?.revisores;
+
+      if (cadastroGlobal instanceof Map && cadastroGlobal.size > 0) {
+        revisoresNQAtivos = new Map(cadastroGlobal);
+        return;
+      }
+
       const { data, error } = await window.biSupabase
-        .from("nq_especialistas")
-        .select("professor,ativo")
-        .eq("ativo", true);
+        .from("nq_responsaveis")
+        .select("nome_oficial,aliases,emails,eh_revisor,ativo")
+        .eq("ativo", true)
+        .eq("eh_revisor", true);
 
       if (error) throw error;
 
       revisoresNQAtivos = new Map();
 
       (data || []).forEach(r => {
-        const nome = String(r.professor || "").trim();
-        const chave = normalizar(nome);
+        const nomeOficial = String(r.nome_oficial || "").trim();
+        const chaves = [
+          nomeOficial,
+          ...(Array.isArray(r.aliases) ? r.aliases : []),
+          ...(Array.isArray(r.emails) ? r.emails : [])
+        ];
 
-        if (nome && chave && !revisoresNQAtivos.has(chave)) {
-          revisoresNQAtivos.set(chave, nome);
-        }
+        chaves.forEach(valor => {
+          const chave = normalizar(valor);
+          if (nomeOficial && chave) {
+            revisoresNQAtivos.set(chave, nomeOficial);
+          }
+        });
       });
 
       console.log(
-        "Revisores NQ ativos carregados:",
+        "Aliases de revisores NQ carregados:",
         revisoresNQAtivos.size
       );
     } catch (error) {
       console.error(
-        "Erro ao carregar a Base de Especialistas para o card Revisores mobilizados:",
+        "Erro ao carregar nq_responsaveis para Revisores mobilizados:",
         error
       );
 
-      // Não quebra a página. Mantém o mapa vazio e o card usa fallback abaixo.
-      revisoresNQAtivos = new Map();
+      // Fallback: Base de Especialistas, para não quebrar o card se o SQL V25.20
+      // ainda não tiver sido executado.
+      try {
+        const { data, error: fallbackError } = await window.biSupabase
+          .from("nq_especialistas")
+          .select("professor,ativo")
+          .eq("ativo", true);
+
+        if (fallbackError) throw fallbackError;
+
+        revisoresNQAtivos = new Map();
+        (data || []).forEach(r => {
+          const nome = String(r.professor || "").trim();
+          const chave = normalizar(nome);
+          if (nome && chave) revisoresNQAtivos.set(chave, nome);
+        });
+      } catch {
+        revisoresNQAtivos = new Map();
+      }
     }
   }
 
@@ -509,16 +542,8 @@
       });
     });
 
-    // Fallback somente se a Base de Especialistas não puder ser carregada.
-    // Assim a página continua funcional, mas em operação normal sempre usamos
-    // a lista oficial de revisores NQ.
-    if (
-      revisoresNQAtivos.size === 0
-    ) {
-      revisoresBrutos.forEach(
-        chave => revisores.add(chave)
-      );
-    }
+    // Sem cadastro oficial carregado, não promovemos nomes operacionais
+    // automaticamente a revisor NQ; isso evita voltar a contar DA/conteudista.
 
     const st =
       dados.map(x =>

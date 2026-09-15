@@ -12,6 +12,62 @@ document.addEventListener("DOMContentLoaded", async function () {
   let dadosCompletos = [];
   let paginaAtual = "resumo";
 
+
+  function normalizarResponsavelNQ(valor) {
+    return String(valor ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  async function carregarResponsaveisNQ() {
+    const estrutura = {
+      gestores: new Map(),
+      revisores: new Map()
+    };
+
+    try {
+      const { data, error } = await window.biSupabase
+        .from("nq_responsaveis")
+        .select("nome_oficial,aliases,emails,eh_gestor,eh_revisor,ativo")
+        .eq("ativo", true);
+
+      if (error) throw error;
+
+      (data || []).forEach(item => {
+        const nomeOficial = String(item.nome_oficial || "").trim();
+        if (!nomeOficial) return;
+
+        const chaves = [
+          nomeOficial,
+          ...(Array.isArray(item.aliases) ? item.aliases : []),
+          ...(Array.isArray(item.emails) ? item.emails : [])
+        ];
+
+        chaves.forEach(valor => {
+          const chave = normalizarResponsavelNQ(valor);
+          if (!chave) return;
+          if (item.eh_gestor) estrutura.gestores.set(chave, nomeOficial);
+          if (item.eh_revisor) estrutura.revisores.set(chave, nomeOficial);
+        });
+      });
+
+      console.log("Responsáveis NQ carregados:", {
+        gestoresAliases: estrutura.gestores.size,
+        revisoresAliases: estrutura.revisores.size
+      });
+    } catch (error) {
+      console.warn(
+        "Cadastro nq_responsaveis indisponível; filtros de pessoas usarão o comportamento anterior.",
+        error
+      );
+    }
+
+    window.BI_RESPONSAVEIS_NQ = estrutura;
+  }
+
   const filtros = [
     "filtroEsteira",
     "filtroMatriz",
@@ -137,6 +193,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       dadosCompletos = await window.carregarDadosBI();
       console.log("Total de registros:", dadosCompletos.length);
 
+      await carregarResponsaveisNQ();
       popularFiltros();
       mostrarUltimaAtualizacao();
       atualizarTela();
