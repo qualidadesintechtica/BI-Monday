@@ -146,20 +146,42 @@
     return null;
   }
 
-  function classificacaoInconformidade(row) {
+  function criterioAvaliado(row) {
+    const classificacao = normalizar(
+      row?.classificacao_especialista
+    );
+
+    /*
+     * A coluna Classificação do especialista continua sendo
+     * usada apenas para identificar se o critério foi avaliado.
+     *
+     * A fonte da NÃO CONFORMIDADE é exclusivamente
+     * “Apontamos inconformidade?”.
+     */
+    if (["sim", "nao"].includes(classificacao)) {
+      return true;
+    }
+
+    // Fallback: se a própria coluna Apontamos possuir Sim/Não,
+    // o critério também é considerado avaliado.
+    const apontamos = normalizar(
+      valorApontamosInconformidade(row)
+    );
+
+    return [
+      "sim", "s", "yes", "true", "1", "x",
+      "nao", "n", "no", "false", "0"
+    ].includes(apontamos);
+  }
+
+  function ehInconformidadeApontada(row) {
     const valor = normalizar(
       valorApontamosInconformidade(row)
     );
 
-    if (["sim", "s", "yes", "true", "1", "x"].includes(valor)) {
-      return "nao_conforme";
-    }
-
-    if (["nao", "n", "no", "false", "0"].includes(valor)) {
-      return "conforme";
-    }
-
-    return "";
+    return [
+      "sim", "s", "yes", "true", "1", "x"
+    ].includes(valor);
   }
 
   function criterioDaLinha(row) {
@@ -740,11 +762,17 @@
     const mapa = new Map();
 
     rows.forEach(x => {
-      const classificacao =
-        classificacaoInconformidade(x);
-
-      // Campo vazio ou valor diferente de Sim/Não não entra no cálculo.
-      if (!classificacao) {
+      /*
+       * V25.18
+       *
+       * Denominador: todos os critérios efetivamente avaliados.
+       * Não conformidade: SOMENTE quando “Apontamos inconformidade?” = Sim.
+       *
+       * Em muitos itens do Monday, a coluna Apontamos fica vazia quando
+       * não há inconformidade; por isso vazio não pode ser descartado
+       * depois que o critério já foi identificado como avaliado.
+       */
+      if (!criterioAvaliado(x)) {
         return;
       }
 
@@ -773,7 +801,7 @@
 
       r.criterios_avaliados++;
 
-      if (classificacao === "nao_conforme") {
+      if (ehInconformidadeApontada(x)) {
         r.nao_conformidades++;
       } else {
         r.conformidades++;
@@ -977,25 +1005,30 @@
       n(rf.a_liberar)
     );
 
+    /*
+     * V25.18
+     * Critérios avaliados vêm da classificação do especialista.
+     * A quantidade de NÃO conformes vem exclusivamente da coluna
+     * “Apontamos inconformidade?” = Sim.
+     *
+     * Assim, um Apontamos vazio em um critério já avaliado representa
+     * ausência de inconformidade, e não um registro a ser descartado.
+     */
     const validos =
       criteriosFiltrados.filter(
-        x =>
-          !!classificacaoInconformidade(x)
+        criterioAvaliado
       );
-
-    const conformes =
-      validos.filter(
-        x =>
-          classificacaoInconformidade(x) ===
-          "conforme"
-      ).length;
 
     const nao =
       validos.filter(
-        x =>
-          classificacaoInconformidade(x) ===
-          "nao_conforme"
+        ehInconformidadeApontada
       ).length;
+
+    const conformes =
+      Math.max(
+        0,
+        validos.length - nao
+      );
 
     setText(
       "nqCriterios",

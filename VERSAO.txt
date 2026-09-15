@@ -1,3 +1,3 @@
-V25.17
+V25.18
 2026-09-15
-Reunião NQ: critérios de conformidade e não conformidade passam a usar a coluna “Apontamos inconformidade?” do Monday. Sim = não conforme; Não = conforme; vazio = não avaliado.
+Reunião NQ: corrige o cálculo de qualidade. Critérios avaliados continuam vindo da classificação do especialista; não conformidade é contabilizada somente quando “Apontamos inconformidade?” = Sim. Critérios avaliados com Apontamos vazio/Não passam a contar como conformes.
