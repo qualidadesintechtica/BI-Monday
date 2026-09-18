@@ -141,11 +141,11 @@
 
 
   // ==========================================================
-  // V25.24 · Fonte completa da página Operação
+  // V25.25 · Fonte completa da página Operação
   // ==========================================================
   // A Operação precisa enxergar todo o universo da Esteira de Produção,
   // inclusive UCs/UAs que ainda não chegaram ao quadro de Validação.
-  // A view vw_operacao_materiais_completa é criada pelo SQL da V25.24.
+  // A view vw_operacao_materiais_completa é criada pelo SQL da V25.25.
   // Se a view ainda não estiver instalada, usamos a base consolidada do BI
   // como fallback para não interromper o restante do dashboard.
   async function carregarDadosOperacaoCompleta(fallback = []) {
@@ -174,9 +174,31 @@
         return {
           ...item,
           monday_item_validacao: item.monday_item_validacao || item.monday_item_id || null,
-          item_name: item.item_name || item.name || item.titulo_ua || item.titulo || null,
-          titulo: item.titulo || item.id_titulo || item.item_name || null,
-          titulo_ua: item.titulo_ua || item.unidade_material || null,
+          item_name:
+            item.item_name ||
+            item.name ||
+            item.titulo_ua ||
+            item.nome_ua ||
+            item.titulo ||
+            item.titulo_uc ||
+            item.nome_uc ||
+            item.unidade_curricular ||
+            null,
+          titulo:
+            item.titulo ||
+            item.titulo_uc ||
+            item.nome_titulo ||
+            item.nome_uc ||
+            item.unidade_curricular ||
+            item.uc ||
+            item.id_titulo ||
+            item.item_name ||
+            null,
+          titulo_ua:
+            item.titulo_ua ||
+            item.nome_ua ||
+            item.unidade_material ||
+            null,
           unidade_material: item.unidade_material || item.titulo_ua || item.item_name || null,
           chave_material:
             item.chave_material ||

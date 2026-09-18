@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
-    // V25.24 · A Operação usa uma fonte própria baseada na Esteira de Produção,
+    // V25.25 · A Operação usa uma fonte própria baseada na Esteira de Produção,
     // mas preserva exatamente os mesmos filtros globais já habilitados no BI.
     const dadosOperacaoFiltrados = window.aplicarFiltros(dadosOperacaoCompletos);
     window.atualizarPaginasBI?.(dadosFiltrados, dadosOperacaoFiltrados);

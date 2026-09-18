@@ -97,6 +97,7 @@
   let dadosOperacaoAtuais = [];
   let dadosAjustesAtuais = [];
   let nivelOperacaoAtual = "quadro-principal";
+  let buscaOperacaoAtual = "";
   const gruposFechadosOperacao = new Set();
 
   function campoTextoOperacao(item) {
@@ -140,7 +141,7 @@
     );
     const base = [categoria, escopo, nome, titulo, tituloUa, todosValores].join(" ");
 
-    // UCs sintéticas são criadas pela view V25.24 apenas para o Quadro principal.
+    // UCs sintéticas são criadas pela view V25.25 apenas para o Quadro principal.
     // Elas não entram indevidamente nas visões de UA/Avaliações/Planos.
     if (String(item?.tipo_operacao || "").toUpperCase() === "UC") {
       return "unidade-curricular";
@@ -235,6 +236,51 @@
     return classificados;
   }
 
+  // V25.25 · Pesquisa local da página Operação.
+  // A pesquisa atua DEPOIS dos filtros globais do BI e da visão Monday selecionada.
+  // Aceita nome da UC, nome/título da UA, IDs, matriz, bloco, status,
+  // categoria, gestor, revisor, esteira, formato e área CINE.
+  function filtrarBuscaOperacao(dados) {
+    const termo = normalizar(buscaOperacaoAtual);
+    if (!termo) return dados || [];
+
+    return (dados || []).filter(item => {
+      const basePesquisa = [
+        item?.titulo,
+        item?.titulo_uc,
+        item?.item_name,
+        item?.titulo_ua,
+        item?.unidade_material,
+        item?.id_titulo,
+        item?.id_ua,
+        item?.chave_material,
+        item?.chave_ua,
+        item?.matriz_oferta,
+        item?.bloco,
+        item?.status_validacao,
+        item?.categoria_material,
+        item?.gestor_validacao_nq,
+        item?.revisor_validador,
+        item?.esteira_producao,
+        item?.formato,
+        item?.area_cine,
+        item?.semestre_oferta,
+        item?.monday_group_title
+      ]
+        .filter(v => v !== null && v !== undefined)
+        .map(v => String(v))
+        .join(" | ");
+
+      return normalizar(basePesquisa).includes(termo);
+    });
+  }
+
+  function obterDadosOperacaoVisiveis(dados) {
+    return filtrarBuscaOperacao(
+      filtrarPorNivelOperacao(dados || [])
+    );
+  }
+
   function nomeGrupoOperacao(item) {
     const status = normalizar(item?.status_validacao);
     const grupo = String(item?.monday_group_title || "").trim();
@@ -302,7 +348,7 @@
 
   function renderBoardOperacao(dados) {
     dadosOperacaoAtuais = dados || [];
-    const filtrados = filtrarPorNivelOperacao(dadosOperacaoAtuais);
+    const filtrados = obterDadosOperacaoVisiveis(dadosOperacaoAtuais);
     const board = document.getElementById("operacaoBoard");
     const contador = document.getElementById("contadorOperacao");
     if (!board) return;
@@ -349,7 +395,10 @@
 
     if (!gruposOrdenados.length) {
       const totalFonte = dadosOperacaoAtuais.length;
-      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.24.</div>`;
+      const detalheBusca = buscaOperacaoAtual
+        ? `<br>Pesquisa atual: <b>${escapeHtml(buscaOperacaoAtual)}</b>.`
+        : "";
+      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro encontrado nesta visão.</b>${detalheBusca}<br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.25.</div>`;
       return;
     }
 
@@ -360,7 +409,11 @@
         gruposFechadosOperacao.add(chaveGrupo);
         gruposFechadosOperacao.add(`__visto__:${chaveGrupo}`);
       }
-      const fechado = gruposFechadosOperacao.has(chaveGrupo);
+      // Durante uma pesquisa, mantém os grupos abertos para que o resultado
+      // encontrado fique visível sem exigir um segundo clique.
+      const fechado = buscaOperacaoAtual
+        ? false
+        : gruposFechadosOperacao.has(chaveGrupo);
       const materiais = new Set(itens.map(chaveMaterialOperacao).filter(Boolean)).size;
       const amostra = itens.slice(0, 300);
       return `
@@ -577,7 +630,7 @@
     }
 
     if (event.target?.id === "exportarOperacao") {
-      const linhas = filtrarPorNivelOperacao(dadosOperacaoAtuais || []);
+      const linhas = obterDadosOperacaoVisiveis(dadosOperacaoAtuais || []);
       if (!linhas.length) {
         alert("Não há registros para exportar nesta visão com os filtros atuais.");
         return;
@@ -608,6 +661,22 @@
         { label: "Ajustes Total", get: x => numero(x.qtd_ajustes_total) }
       ];
       baixarCSV("ajustes_validacao_materiais.csv", colunas, dadosAjustesAtuais);
+    }
+  });
+
+
+  document.addEventListener("input", function (event) {
+    if (event.target?.id !== "pesquisaOperacao") return;
+
+    buscaOperacaoAtual = String(event.target.value || "").trim();
+    renderBoardOperacao(dadosOperacaoAtuais);
+
+    const contadorBusca = document.getElementById("contadorOperacaoBusca");
+    if (contadorBusca) {
+      const total = obterDadosOperacaoVisiveis(dadosOperacaoAtuais).length;
+      contadorBusca.textContent = buscaOperacaoAtual
+        ? `${total} resultado(s) para "${buscaOperacaoAtual}"`
+        : "";
     }
   });
 

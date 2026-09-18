@@ -1930,3 +1930,69 @@
   width: 20%;
   white-space: nowrap;
 }
+
+
+/* ============================================================
+   V25.25 · Pesquisa da Operação
+   ============================================================ */
+#viewOperacao .monday-operation-toolbar{
+  display:grid;
+  grid-template-columns:minmax(320px,1.2fr) minmax(280px,1fr);
+  gap:14px;
+  align-items:end;
+}
+#viewOperacao .monday-operation-search-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+#viewOperacao .monday-operation-search-wrap label{
+  color:#c9cce0;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+#viewOperacao .monday-operation-search{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 11px;
+  border:1px solid #4a4f70;
+  border-radius:8px;
+  background:#20243e;
+  color:#aeb2ca;
+}
+#viewOperacao .monday-operation-search:focus-within{
+  border-color:#a86cf5;
+  box-shadow:0 0 0 2px rgba(168,108,245,.16);
+}
+#viewOperacao .monday-operation-search input{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#fff;
+  font:inherit;
+  font-size:12px;
+}
+#viewOperacao .monday-operation-search input::placeholder{
+  color:#8f93ac;
+}
+#viewOperacao .monday-operation-toolbar-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+}
+@media(max-width:900px){
+  #viewOperacao .monday-operation-toolbar{
+    grid-template-columns:1fr;
+  }
+  #viewOperacao .monday-operation-toolbar-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+}
