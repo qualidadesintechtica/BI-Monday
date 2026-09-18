@@ -1,6 +1,0 @@
-V25.14 — Perfil completo por especialista
-
-1. A seção de experiência agora é agrupada por professor em painéis expansíveis.
-2. Exibe graduação, especialização, mestrado, doutorado, pós-doc, formação em andamento, áreas de atuação, experiência profissional, docência, gestão, pesquisa, marca, situação, status e link do Lattes.
-3. Adicionado KPI "Experiências / áreas".
-4. O número de experiências/áreas não deve ser comparado ao total de graduações: são métricas diferentes.

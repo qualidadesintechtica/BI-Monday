@@ -1,8 +1,0 @@
-BI-Monday V25.18
-
-Correção da Reunião NQ > Operação e Qualidade:
-- Critérios avaliados: baseados na classificação do especialista (denominador).
-- Não conformidade: somente “Apontamos inconformidade?” = Sim.
-- Critério avaliado sem Sim em Apontamos = conforme.
-- Gráfico e tabela de critérios críticos usam a mesma regra.
-- Filtros globais preservados.

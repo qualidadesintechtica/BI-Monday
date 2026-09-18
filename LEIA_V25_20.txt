@@ -1,7 +1,0 @@
-BI-Monday V25.20 — Responsáveis NQ
-
-1. Execute docs/V25_20_RESPONSAVEIS_NQ.sql no Supabase.
-2. A tabela nq_responsaveis passa a ser a fonte oficial de Gestores/Revisores do BI.
-3. O filtro Gestor e o filtro Revisor passam a listar nomes oficiais, mesmo quando o Monday usa e-mail ou nome reduzido.
-4. DAs, conteudistas e outros nomes fora do cadastro deixam de entrar no KPI Revisores mobilizados e nas opções dos filtros.
-5. O SQL cria política SELECT para usuários autenticados.
