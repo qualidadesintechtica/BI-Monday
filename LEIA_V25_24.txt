@@ -1,0 +1,14 @@
+BI-Monday V25.24 — Operação completa (UCs + UAs)
+
+1. Execute docs/V25_24_OPERACAO_UAS_UCS_COMPLETAS.sql no Supabase.
+2. Publique os arquivos da V25.24 no GitHub.
+3. Faça Ctrl+F5 no navegador.
+
+Mudanças:
+- Operação deixa de depender somente de vw_materiais_bi_consolidada.
+- Nova view vw_operacao_materiais_completa usa monday_esteira_producao como universo.
+- monday_validacao_materiais apenas complementa status, gestor, revisor e datas.
+- UCs sintéticas são criadas por ID Título para o Quadro principal.
+- UAs que ainda não chegaram à Validação permanecem visíveis.
+- Os filtros globais atuais continuam sendo aplicados à Operação.
+- Contador passa a exibir UCs, UAs, materiais e registros.

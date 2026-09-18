@@ -138,6 +138,90 @@
     return normalizados;
   }
 
+
+
+  // ==========================================================
+  // V25.24 · Fonte completa da página Operação
+  // ==========================================================
+  // A Operação precisa enxergar todo o universo da Esteira de Produção,
+  // inclusive UCs/UAs que ainda não chegaram ao quadro de Validação.
+  // A view vw_operacao_materiais_completa é criada pelo SQL da V25.24.
+  // Se a view ainda não estiver instalada, usamos a base consolidada do BI
+  // como fallback para não interromper o restante do dashboard.
+  async function carregarDadosOperacaoCompleta(fallback = []) {
+    const VIEW_NAME = "vw_operacao_materiais_completa";
+    const tamanhoLote = 1000;
+    let inicio = 0;
+    let todos = [];
+
+    try {
+      while (true) {
+        const fim = inicio + tamanhoLote - 1;
+        const { data, error } = await window.biSupabase
+          .from(VIEW_NAME)
+          .select("*")
+          .range(inicio, fim);
+
+        if (error) throw error;
+
+        const lote = data || [];
+        todos = todos.concat(lote);
+        if (lote.length < tamanhoLote) break;
+        inicio += tamanhoLote;
+      }
+
+      const normalizados = todos.map(function (item, indice) {
+        return {
+          ...item,
+          monday_item_validacao: item.monday_item_validacao || item.monday_item_id || null,
+          item_name: item.item_name || item.name || item.titulo_ua || item.titulo || null,
+          titulo: item.titulo || item.id_titulo || item.item_name || null,
+          titulo_ua: item.titulo_ua || item.unidade_material || null,
+          unidade_material: item.unidade_material || item.titulo_ua || item.item_name || null,
+          chave_material:
+            item.chave_material ||
+            item.chave_ua ||
+            item.monday_item_validacao ||
+            item.id_titulo ||
+            `operacao:${indice}`,
+          sincronizado_em:
+            item.sincronizado_validacao ||
+            item.sincronizado_esteira ||
+            item.sincronizado_em ||
+            null,
+          __fonte_operacao: VIEW_NAME
+        };
+      });
+
+      console.log("Operação completa carregada:", normalizados.length);
+      console.log(
+        "UCs na Operação:",
+        new Set(
+          normalizados
+            .map(x => String(x.id_titulo || "").trim())
+            .filter(Boolean)
+        ).size
+      );
+      console.log(
+        "UAs na Operação:",
+        new Set(
+          normalizados
+            .filter(x => String(x.id_ua || "").trim())
+            .map(x => `${String(x.id_titulo || "").trim()}|${String(x.id_ua || "").trim()}`)
+        ).size
+      );
+
+      return normalizados;
+    } catch (error) {
+      console.warn(
+        "View vw_operacao_materiais_completa indisponível; usando a base consolidada do BI como fallback.",
+        error
+      );
+      return Array.isArray(fallback) ? fallback : [];
+    }
+  }
+
   window.carregarDadosBI = carregarDadosBI;
   window.carregarDadosOperacaoMonday = carregarDadosOperacaoMonday;
+  window.carregarDadosOperacaoCompleta = carregarDadosOperacaoCompleta;
 })();

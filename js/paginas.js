@@ -140,6 +140,12 @@
     );
     const base = [categoria, escopo, nome, titulo, tituloUa, todosValores].join(" ");
 
+    // UCs sintéticas são criadas pela view V25.24 apenas para o Quadro principal.
+    // Elas não entram indevidamente nas visões de UA/Avaliações/Planos.
+    if (String(item?.tipo_operacao || "").toUpperCase() === "UC") {
+      return "unidade-curricular";
+    }
+
     // NÍVEL 2 - AVALIAÇÕES: A1-A5, BDQ e avaliações.
     if (
       /^a[1-5](?:\s|[-–—_]|$)/.test(nome) ||
@@ -316,7 +322,18 @@
 
     if (contador) {
       const materiais = new Set(filtrados.map(chaveMaterialOperacao).filter(Boolean)).size;
-      contador.textContent = `${materiais} materiais · ${filtrados.length} registros`;
+      const ucs = new Set(
+        filtrados
+          .map(x => String(x?.id_titulo || "").trim())
+          .filter(Boolean)
+      ).size;
+      const uas = new Set(
+        filtrados
+          .filter(x => String(x?.id_ua || "").trim())
+          .map(x => `${String(x?.id_titulo || "").trim()}|${String(x?.id_ua || "").trim()}`)
+      ).size;
+
+      contador.textContent = `${ucs} UCs · ${uas} UAs · ${materiais} materiais · ${filtrados.length} registros`;
     }
 
     const descricao = document.getElementById("operacaoNivelDescricao");
@@ -332,7 +349,7 @@
 
     if (!gruposOrdenados.length) {
       const totalFonte = dadosOperacaoAtuais.length;
-      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.12.</div>`;
+      board.innerHTML = `<div class="monday-board-empty"><b>Nenhum registro classificado nesta visão.</b><br>Fonte operacional carregada: ${totalFonte} registro(s). Build: V25.24.</div>`;
       return;
     }
 

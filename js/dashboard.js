@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const tituloPagina = document.querySelector(".topbar h1");
 
   let dadosCompletos = [];
+  let dadosOperacaoCompletos = [];
   let paginaAtual = "resumo";
 
 
@@ -130,10 +131,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
-    // A Operação usa exatamente a mesma base já carregada pelo BI.
-    // Não consultamos monday_validacao_materiais diretamente no navegador,
-    // porque RLS pode devolver [] sem erro e zerar a tela operacional.
-    window.atualizarPaginasBI?.(dadosFiltrados, dadosFiltrados);
+    // V25.24 · A Operação usa uma fonte própria baseada na Esteira de Produção,
+    // mas preserva exatamente os mesmos filtros globais já habilitados no BI.
+    const dadosOperacaoFiltrados = window.aplicarFiltros(dadosOperacaoCompletos);
+    window.atualizarPaginasBI?.(dadosFiltrados, dadosOperacaoFiltrados);
     window.atualizarIndicadoresBI?.(dadosFiltrados);
     window.atualizarResultadosAlcancados?.();
     window.atualizarReuniaoNQ?.(dadosFiltrados);
@@ -192,6 +193,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (statusCarregamento) statusCarregamento.textContent = "Carregando dados...";
       dadosCompletos = await window.carregarDadosBI();
       console.log("Total de registros:", dadosCompletos.length);
+
+      dadosOperacaoCompletos = typeof window.carregarDadosOperacaoCompleta === "function"
+        ? await window.carregarDadosOperacaoCompleta(dadosCompletos)
+        : dadosCompletos;
+
+      console.log("Total da fonte Operação:", dadosOperacaoCompletos.length);
 
       await carregarResponsaveisNQ();
       popularFiltros();
