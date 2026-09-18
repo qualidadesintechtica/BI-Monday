@@ -1,3 +1,3 @@
-V25.25
+V25.28.2
 2026-09-18
-Operação: pesquisa por UC/UA/ID/responsáveis e reforço da leitura do título da UC na Esteira de Produção.
+Base estável: Operação + Esteira + Validação + sincronização paginada + view compatível.
