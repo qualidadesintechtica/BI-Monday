@@ -505,6 +505,39 @@
             <span id="nqCoberturaFonte" class="nq-coverage-source">Carregando dados do Supabase...</span>
           </div>
 
+          <div class="nq-evolution-grid">
+            <article class="nq-viz-card nq-evolution-card">
+              <div class="nq-viz-head">
+                <div>
+                  <strong>Evolução da Abrangência Acadêmica do NQ</strong>
+                  <small>Áreas acadêmicas distintas incorporadas ao NQ de forma acumulada, conforme a entrada dos especialistas.</small>
+                </div>
+                <label class="nq-chart-filter">Formação considerada
+                  <select id="nqFiltroEvolucaoTitulacao">
+                    <option value="">Todas</option>
+                    <option value="graduacao">Graduação</option>
+                    <option value="especializacao">Especialização</option>
+                    <option value="mestrado">Mestrado</option>
+                    <option value="doutorado">Doutorado</option>
+                  </select>
+                </label>
+              </div>
+              <div id="graficoNQEvolucaoAbrangencia" class="nq-viz-chart nq-evolution-chart"></div>
+              <small id="nqEvolucaoAbrangenciaNota" class="nq-evolution-note"></small>
+            </article>
+
+            <article class="nq-viz-card nq-evolution-card">
+              <div class="nq-viz-head">
+                <div>
+                  <strong>Evolução das Áreas de Experiência do NQ</strong>
+                  <small>Experiências distintas disponíveis no núcleo, acumuladas conforme a data de entrada dos especialistas.</small>
+                </div>
+              </div>
+              <div id="graficoNQEvolucaoExperiencias" class="nq-viz-chart nq-evolution-chart"></div>
+              <small id="nqEvolucaoExperienciasNota" class="nq-evolution-note"></small>
+            </article>
+          </div>
+
           <div class="meeting-kpis meeting-kpis-6 nq-coverage-kpis">
             <article><span>Professores</span><strong id="nqProfessoresTotal">--</strong><small id="nqProfessoresLegenda">especialistas na base</small></article>
             <article><span>Graduações únicas</span><strong id="nqFormacoesUnicas">--</strong><small>cursos distintos</small></article>
@@ -1443,7 +1476,7 @@
   <script src="js/resultados.js?v=20260901-v20-ordenacao-colunas"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/reuniao-nq.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
+    <script src="js/reuniao-nq.js?v=20260922-v25-29-evolucao-nq"></script>
 
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>

@@ -1996,3 +1996,6 @@
     flex-direction:column;
   }
 }
+
+/* V25.29 · Evolução temporal NQ */
+.nq-evolution-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}.nq-evolution-card{min-width:0}.nq-evolution-chart{height:330px}.nq-evolution-note{display:block;margin-top:8px;color:#75697c;font-size:11px}.nq-evolution-card .nq-viz-head{align-items:flex-end;gap:16px}.nq-evolution-card .nq-chart-filter{min-width:190px}@media(max-width:1050px){.nq-evolution-grid{grid-template-columns:1fr}}

@@ -23,6 +23,8 @@
   let graficoNivelFormacaoNQ = null;
   let graficoFormacoesNQ = null;
   let graficoContratacaoNQ = null;
+  let graficoEvolucaoAbrangenciaNQ = null;
+  let graficoEvolucaoExperienciasNQ = null;
   let dadosBIAtuais = [];
   let ppsValidadosAtual = 0;
   let campoApontamosInconformidade = null;
@@ -4423,8 +4425,113 @@
   }
 
 
+
+  // ============================================================
+  // V25.29 · Evolução da abrangência acadêmica e das experiências
+  // ============================================================
+  function dataEntradaEspecialistaNQ(especialistaId, professor) {
+    const chaveProfessor = normalizar(professor);
+    const row = formacoesNQ.find(r =>
+      (especialistaId != null && String(r.especialista_id) === String(especialistaId)) ||
+      (chaveProfessor && normalizar(r.professor) === chaveProfessor)
+    );
+    if (!row) return null;
+    const raw = row.data_inicio || row.data_contratacao || row.data_admissao || row.contratacao || row.data_inicio_contratacao;
+    if (raw) {
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    // Fallback para bases antigas que possuem apenas semestre de entrada (ex.: 2025.2).
+    const sem = String(row.semestre_entrada_nq || "").trim();
+    const m = sem.match(/(20\d{2})\D*([12])/);
+    if (m) return new Date(Number(m[1]), m[2] === "1" ? 0 : 6, 1);
+    return null;
+  }
+
+  function periodoEntradaNQ(data) {
+    if (!(data instanceof Date) || Number.isNaN(data.getTime())) return null;
+    const ano = data.getFullYear();
+    return { chave: `${ano}.${data.getMonth() < 6 ? 1 : 2}`, ordem: ano * 2 + (data.getMonth() < 6 ? 0 : 1) };
+  }
+
+  function nivelDiplomaNQ(row) {
+    const t = normalizar(`${row?.nivel || ""} ${row?.curso_titulo || ""}`);
+    if (t.includes("dout")) return "doutorado";
+    if (t.includes("mestr")) return "mestrado";
+    if (t.includes("especial") || t.includes("mba") || t.includes("pos-gradu") || t.includes("pos gradu")) return "especializacao";
+    if (t.includes("gradua") || t.includes("bacharel") || t.includes("licencia") || t.includes("tecnolog")) return "graduacao";
+    return "";
+  }
+
+  function nomeAreaAcademicaNQ(row) {
+    // CINE é a taxonomia preferencial; quando ausente, preservamos o curso/título.
+    return String(row?.area_cine || row?.area_formacao || row?.curso_titulo || row?.formacao || "").trim();
+  }
+
+  function construirEvolucaoAcumuladaNQ(registros) {
+    const porPeriodo = new Map();
+    registros.forEach(r => {
+      const periodo = periodoEntradaNQ(r.data);
+      const area = String(r.area || "").trim();
+      if (!periodo || !area) return;
+      if (!porPeriodo.has(periodo.chave)) porPeriodo.set(periodo.chave, { ordem: periodo.ordem, areas: new Map() });
+      const key = normalizar(area).replace(/[^a-z0-9]+/g, " ").trim();
+      if (key && !porPeriodo.get(periodo.chave).areas.has(key)) porPeriodo.get(periodo.chave).areas.set(key, area);
+    });
+    const acumulado = new Map();
+    return [...porPeriodo.entries()].sort((a,b) => a[1].ordem-b[1].ordem).map(([periodo, info]) => {
+      const novas = [];
+      info.areas.forEach((nome,key) => { if (!acumulado.has(key)) { acumulado.set(key,nome); novas.push(nome); } });
+      return { periodo, total: acumulado.size, novas };
+    });
+  }
+
+  function renderGraficoEvolucaoAbrangenciaNQ() {
+    const el = document.getElementById("graficoNQEvolucaoAbrangencia");
+    if (!el || !window.echarts) return;
+    const filtro = document.getElementById("nqFiltroEvolucaoTitulacao")?.value || "";
+    const registros = diplomasNQ
+      .filter(r => !filtro || nivelDiplomaNQ(r) === filtro)
+      .map(r => ({ data: dataEntradaEspecialistaNQ(r.especialista_id, r.professor), area: nomeAreaAcademicaNQ(r) }))
+      .filter(r => r.data && r.area);
+    const dados = construirEvolucaoAcumuladaNQ(registros);
+    graficoEvolucaoAbrangenciaNQ?.dispose();
+    graficoEvolucaoAbrangenciaNQ = echarts.init(el);
+    graficoEvolucaoAbrangenciaNQ.setOption({
+      grid:{left:52,right:28,top:30,bottom:48},
+      tooltip:{trigger:"axis",formatter: params => { const i=params?.[0]?.dataIndex ?? 0; const d=dados[i]; if(!d) return ""; const novas=d.novas.length?d.novas.map(x=>`• ${escapeHtml(x)}`).join("<br>"):"Nenhuma nova área"; return `<strong>${d.periodo}</strong><br>Áreas acumuladas: <strong>${d.total}</strong><br>Novas no período: <strong>${d.novas.length}</strong><br>${novas}`; }},
+      xAxis:{type:"category",boundaryGap:false,data:dados.map(d=>d.periodo),name:"Entrada no NQ",nameLocation:"middle",nameGap:30},
+      yAxis:{type:"value",minInterval:1,name:"Áreas distintas"},
+      series:[{type:"line",smooth:true,symbolSize:8,data:dados.map(d=>d.total),areaStyle:{opacity:.08},label:{show:true,position:"top"}}]
+    });
+    const nota=document.getElementById("nqEvolucaoAbrangenciaNota");
+    if(nota) nota.textContent = dados.length ? `${dados.at(-1).total} áreas acadêmicas distintas acumuladas · ${registros.length} registros considerados.` : "Sem dados de formação com data de entrada para o filtro selecionado.";
+  }
+
+  function renderGraficoEvolucaoExperienciasNQ() {
+    const el = document.getElementById("graficoNQEvolucaoExperiencias");
+    if (!el || !window.echarts) return;
+    const registros = experienciasNQ.map(r => ({ data:dataEntradaEspecialistaNQ(r.especialista_id, r.professor), area:r.area_experiencia })).filter(r=>r.data && r.area);
+    const dados = construirEvolucaoAcumuladaNQ(registros);
+    graficoEvolucaoExperienciasNQ?.dispose();
+    graficoEvolucaoExperienciasNQ = echarts.init(el);
+    graficoEvolucaoExperienciasNQ.setOption({
+      grid:{left:52,right:28,top:30,bottom:48},
+      tooltip:{trigger:"axis",formatter: params => { const i=params?.[0]?.dataIndex ?? 0; const d=dados[i]; if(!d) return ""; const novas=d.novas.length?d.novas.map(x=>`• ${escapeHtml(x)}`).join("<br>"):"Nenhuma nova experiência"; return `<strong>${d.periodo}</strong><br>Experiências acumuladas: <strong>${d.total}</strong><br>Novas no período: <strong>${d.novas.length}</strong><br>${novas}`; }},
+      xAxis:{type:"category",boundaryGap:false,data:dados.map(d=>d.periodo),name:"Entrada no NQ",nameLocation:"middle",nameGap:30},
+      yAxis:{type:"value",minInterval:1,name:"Experiências distintas"},
+      series:[{type:"line",smooth:true,symbolSize:8,data:dados.map(d=>d.total),areaStyle:{opacity:.08},label:{show:true,position:"top"}}]
+    });
+    const nota=document.getElementById("nqEvolucaoExperienciasNota");
+    if(nota) nota.textContent = dados.length ? `${dados.at(-1).total} áreas de experiência distintas acumuladas · ${registros.length} registros considerados.` : "Sem experiências com data de entrada disponíveis na base.";
+  }
+
   function renderCoberturaNQ() {
     renderKPIsCoberturaNQ();
+
+    renderGraficoEvolucaoAbrangenciaNQ();
+
+    renderGraficoEvolucaoExperienciasNQ();
 
     renderKPIsFormacoesDiplomasNQ();
 
@@ -4493,6 +4600,12 @@
         );
       }
     );
+
+    const filtroEvolucao = document.getElementById("nqFiltroEvolucaoTitulacao");
+    if (filtroEvolucao && filtroEvolucao.dataset.ready !== "1") {
+      filtroEvolucao.dataset.ready = "1";
+      filtroEvolucao.addEventListener("change", renderGraficoEvolucaoAbrangenciaNQ);
+    }
 
     const filtroNivelGrafico =
       document.getElementById(

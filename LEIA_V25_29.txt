@@ -1,0 +1,15 @@
+BI-Monday V25.29 — 22/09/2026
+
+NOVO NA ABA PROFESSORES E ESPECIALISTAS / REUNIÃO NQ
+1. Gráfico Evolução da Abrangência Acadêmica do NQ.
+   - evolução acumulada por semestre/data de entrada;
+   - filtro: Todas, Graduação, Especialização, Mestrado e Doutorado;
+   - usa Área CINE como área preferencial e curso/título como fallback;
+   - tooltip mostra as novas áreas incorporadas em cada período.
+2. Gráfico Evolução das Áreas de Experiência do NQ.
+   - evolução acumulada por entrada;
+   - sem filtro de titulação;
+   - tooltip mostra novas experiências do período.
+3. Compatibilidade com data_inicio e fallback semestre_entrada_nq.
+
+Não requer alteração SQL adicional se a V25.22 e a estrutura de diplomas/experiências já estiverem instaladas.

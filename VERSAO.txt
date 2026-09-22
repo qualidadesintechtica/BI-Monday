@@ -1,3 +1,3 @@
-V25.28.2
-2026-09-18
-Base estável: Operação + Esteira + Validação + sincronização paginada + view compatível.
+V25.29
+2026-09-22
+Evolução da abrangência acadêmica e das áreas de experiência do NQ por entrada dos especialistas.
