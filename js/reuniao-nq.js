@@ -4429,29 +4429,50 @@
   // ============================================================
   // V25.29 · Evolução da abrangência acadêmica e das experiências
   // ============================================================
+  function parseDataNQ(raw) {
+    if (!raw) return null;
+    if (raw instanceof Date && !Number.isNaN(raw.getTime())) return raw;
+    const txt = String(raw).trim();
+    let m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(txt);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function mapaEntradaEspecialistasNQ() {
+    const porId = new Map();
+    const porProfessor = new Map();
+    formacoesNQ.forEach(row => {
+      const raw = row.data_inicio || row.data_contratacao || row.data_admissao || row.contratacao || row.data_inicio_contratacao;
+      let data = parseDataNQ(raw);
+      if (!data) {
+        const sem = String(row.semestre_entrada_nq || "").trim();
+        const m = sem.match(/(20\d{2})\D*([12])/);
+        if (m) data = new Date(Number(m[1]), m[2] === "1" ? 0 : 6, 1);
+      }
+      if (!data) return;
+      const id = String(row.especialista_id ?? "").trim();
+      const professor = normalizar(row.professor);
+      if (id && !porId.has(id)) porId.set(id, data);
+      if (professor && !porProfessor.has(professor)) porProfessor.set(professor, data);
+    });
+    return { porId, porProfessor };
+  }
+
   function dataEntradaEspecialistaNQ(especialistaId, professor) {
-    const chaveProfessor = normalizar(professor);
-    const row = formacoesNQ.find(r =>
-      (especialistaId != null && String(r.especialista_id) === String(especialistaId)) ||
-      (chaveProfessor && normalizar(r.professor) === chaveProfessor)
-    );
-    if (!row) return null;
-    const raw = row.data_inicio || row.data_contratacao || row.data_admissao || row.contratacao || row.data_inicio_contratacao;
-    if (raw) {
-      const d = new Date(raw);
-      if (!Number.isNaN(d.getTime())) return d;
-    }
-    // Fallback para bases antigas que possuem apenas semestre de entrada (ex.: 2025.2).
-    const sem = String(row.semestre_entrada_nq || "").trim();
-    const m = sem.match(/(20\d{2})\D*([12])/);
-    if (m) return new Date(Number(m[1]), m[2] === "1" ? 0 : 6, 1);
-    return null;
+    const mapas = mapaEntradaEspecialistasNQ();
+    const id = String(especialistaId ?? "").trim();
+    const nome = normalizar(professor);
+    return (id && mapas.porId.get(id)) || (nome && mapas.porProfessor.get(nome)) || null;
   }
 
   function periodoEntradaNQ(data) {
     if (!(data instanceof Date) || Number.isNaN(data.getTime())) return null;
     const ano = data.getFullYear();
-    return { chave: `${ano}.${data.getMonth() < 6 ? 1 : 2}`, ordem: ano * 2 + (data.getMonth() < 6 ? 0 : 1) };
+    const semestre = data.getMonth() < 6 ? 1 : 2;
+    return { chave: `${ano}.${semestre}`, ordem: ano * 2 + semestre };
   }
 
   function nivelDiplomaNQ(row) {
@@ -4511,7 +4532,10 @@
   function renderGraficoEvolucaoExperienciasNQ() {
     const el = document.getElementById("graficoNQEvolucaoExperiencias");
     if (!el || !window.echarts) return;
-    const registros = experienciasNQ.map(r => ({ data:dataEntradaEspecialistaNQ(r.especialista_id, r.professor), area:r.area_experiencia })).filter(r=>r.data && r.area);
+    const registros = experienciasNQ.flatMap(r => {
+      const data = dataEntradaEspecialistaNQ(r.especialista_id, r.professor);
+      return separarValoresAcademicos(r.area_experiencia).map(area => ({ data, area }));
+    }).filter(r => r.data && r.area);
     const dados = construirEvolucaoAcumuladaNQ(registros);
     graficoEvolucaoExperienciasNQ?.dispose();
     graficoEvolucaoExperienciasNQ = echarts.init(el);

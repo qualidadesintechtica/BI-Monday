@@ -1,3 +1,3 @@
-V25.29
+V25.30
 2026-09-22
-Evolução da abrangência acadêmica e das áreas de experiência do NQ por entrada dos especialistas.
+Correção da evolução NQ por DATA INÍCIO real + experiências vinculadas por especialista + reorganização visual da página Professores.
