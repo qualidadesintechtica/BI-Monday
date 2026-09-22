@@ -4532,10 +4532,30 @@
   function renderGraficoEvolucaoExperienciasNQ() {
     const el = document.getElementById("graficoNQEvolucaoExperiencias");
     if (!el || !window.echarts) return;
-    const registros = experienciasNQ.flatMap(r => {
-      const data = dataEntradaEspecialistaNQ(r.especialista_id, r.professor);
-      return separarValoresAcademicos(r.area_experiencia).map(area => ({ data, area }));
-    }).filter(r => r.data && r.area);
+
+    // A evolução precisa usar a mesma fonte que alimenta o KPI de experiências.
+    // nq_especialistas_experiencias não possui o nome do professor e, em bases
+    // históricas, o especialista_id pode não coincidir com o id presente na view
+    // de formações. O perfil acadêmico é a ponte confiável professor <-> id.
+    const complementaresPorId = new Map();
+    experienciasNQ.forEach(r => {
+      const id = String(r.especialista_id || "").trim();
+      if (!id) return;
+      if (!complementaresPorId.has(id)) complementaresPorId.set(id, []);
+      separarValoresAcademicos(r.area_experiencia).forEach(v => complementaresPorId.get(id).push(v));
+    });
+
+    const registros = [];
+    perfilAcademicoNQ.forEach(perfil => {
+      const data = dataEntradaEspecialistaNQ(perfil.especialista_id, perfil.professor);
+      if (!data) return;
+      const valores = [];
+      separarValoresAcademicos(perfil.areas_atuacao).forEach(v => valores.push(v));
+      separarValoresAcademicos(perfil.experiencia_profissional).forEach(v => valores.push(v));
+      (complementaresPorId.get(String(perfil.especialista_id || "").trim()) || []).forEach(v => valores.push(v));
+      valores.forEach(area => { if (area) registros.push({ data, area }); });
+    });
+
     const dados = construirEvolucaoAcumuladaNQ(registros);
     graficoEvolucaoExperienciasNQ?.dispose();
     graficoEvolucaoExperienciasNQ = echarts.init(el);

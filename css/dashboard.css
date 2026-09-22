@@ -2015,3 +2015,12 @@
 .nq-evolution-note{display:block;padding-top:8px;border-top:1px solid #eee8f1;margin-top:6px;color:#6f6477;font-size:11px}
 @media(max-width:1100px){.nq-coverage-section .nq-coverage-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.nq-coverage-section .nq-professor-filters{grid-template-columns:1fr}.nq-coverage-section .nq-coverage-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.nq-evolution-card .nq-viz-head{grid-template-columns:1fr}.nq-evolution-chart{height:320px;min-height:320px}}
+
+/* V25.31 · refinamento visual da evolução NQ */
+.nq-coverage-section .nq-coverage-kpis{margin-bottom:18px}
+.nq-evolution-grid{gap:14px;margin:0 0 18px}
+.nq-evolution-card{padding:16px 18px}
+.nq-evolution-card .nq-viz-head{margin-bottom:4px}
+.nq-evolution-chart{height:300px;min-height:300px}
+.nq-evolution-note{min-height:24px;padding-top:7px;margin-top:2px}
+@media(max-width:760px){.nq-evolution-chart{height:280px;min-height:280px}}
