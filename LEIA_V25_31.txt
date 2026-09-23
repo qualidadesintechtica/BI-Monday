@@ -1,7 +1,0 @@
-V25.31 - Reunião NQ
-
-- Corrigida a evolução das experiências: agora usa vw_nq_perfil_academico como ponte entre professor, especialista_id e DATA INÍCIO.
-- O gráfico utiliza as mesmas fontes do KPI Experiências / áreas: áreas de atuação, experiência profissional e nq_especialistas_experiencias.
-- Mantida a evolução acadêmica já validada.
-- Cards de evolução compactados e alinhados para reduzir espaço vazio e melhorar leitura executiva.
-- Badge atualizado para v25.31.

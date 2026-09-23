@@ -1,8 +1,0 @@
-BI-Monday V25.30
-
-Correções:
-- Evolução acadêmica passa a relacionar cada diploma ao especialista e à DATA INÍCIO real.
-- Datas aceitam ISO e dd/mm/aaaa, com semestre_entrada_nq apenas como fallback.
-- Evolução de experiências relaciona nq_especialistas_experiencias.especialista_id à entrada do professor.
-- Experiências compostas são separadas antes da contagem de áreas distintas.
-- Página Professores reorganizada: filtros, KPIs e gráficos de evolução em largura total.

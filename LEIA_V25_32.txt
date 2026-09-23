@@ -1,6 +1,0 @@
-V25.32 - Correção dos gráficos de evolução NQ
-
-- Corrige o dimensionamento dos dois gráficos criados enquanto a aba Professores e Especialistas estava oculta.
-- Inclui resize dos gráficos ao abrir a aba e ao redimensionar a janela.
-- Mantém o eixo categórico por semestre (2025.2, 2026.1, 2026.2) e o acumulado existente.
-- Atualiza cache/versionamento do reuniao-nq.js.

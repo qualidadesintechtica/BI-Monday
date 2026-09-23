@@ -1,0 +1,10 @@
+BI-Monday V25.37 — versão limpa para publicação
+
+Mantidos somente os arquivos necessários ao funcionamento do sistema e a identificação da versão atual.
+Removidos arquivos históricos de versões anteriores e scripts SQL/documentação de instalação que não são usados pelo site em execução.
+
+Correção principal da V25.37:
+- paginação ordenada da view de critérios;
+- deduplicação por subitem_id;
+- uso de apontamos_inconformidade na qualidade;
+- reconciliação do total carregado.
