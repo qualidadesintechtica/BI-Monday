@@ -1,0 +1,7 @@
+BI-Monday V25.38 — correção de reconciliação da Qualidade
+
+- Evita contar múltiplas linhas históricas/revalidações da mesma UA e critério.
+- Regra: 1 UA + 1 critério + 1 matriz = 1 resultado vigente.
+- Mantém a avaliação mais recente por data_classificacao_especialista; subitem_id desempata.
+- KPIs, tabela e gráfico usam o mesmo conjunto consolidado.
+- Paginação do Supabase passa a ter ordenação estável por subitem_id.

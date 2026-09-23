@@ -119,7 +119,7 @@
     if (!row || typeof row !== "object") return null;
 
     /*
-     * V25.36 · fonte oficial
+     * V25.38 · fonte oficial
      * A view vw_nq_reuniao_criterios_detalhe já expõe o alias
      * normalizado apontamos_inconformidade. Não inferimos este valor
      * por classificação, eh_conformidade ou eh_nao_conformidade.
@@ -149,7 +149,7 @@
 
   function entraNoCalculoQualidade(row) {
     /*
-     * V25.36 · universo correto da qualidade
+     * V25.38 · universo da qualidade
      * A view já informa quais linhas pertencem ao cálculo por meio de
      * entra_no_calculo. A coluna apontamos_inconformidade é usada
      * exclusivamente para identificar a ocorrência da inconformidade:
@@ -313,6 +313,10 @@
               .from(detalheView)
               .select(
                 camposDetalhe
+              )
+              .order(
+                "subitem_id",
+                { ascending: true }
               )
               .range(
                 inicio,
@@ -847,10 +851,84 @@
     );
   }
 
+  /* =========================================================
+     V25.38 · CONSOLIDAÇÃO DA QUALIDADE
+
+     Regra executiva:
+       1 UA + 1 critério + 1 matriz = 1 resultado vigente.
+
+     A view pode conter mais de uma linha para a mesma combinação
+     (reclassificação/revalidação/histórico). Para não inflar os totais,
+     mantemos somente a linha mais recente. A data de classificação é
+     a referência principal; subitem_id é o desempate/fallback.
+  ========================================================= */
+  function timestampAvaliacaoQualidade(row) {
+    const candidatos = [
+      row?.data_classificacao_especialista,
+      row?.sincronizado_em,
+      row?.ultima_atualizacao_monday,
+      row?.updated_at,
+      row?.created_at
+    ];
+
+    for (const valor of candidatos) {
+      if (!valor) continue;
+      const t = Date.parse(valor);
+      if (Number.isFinite(t)) return t;
+    }
+
+    const id = Number(row?.subitem_id || 0);
+    return Number.isFinite(id) ? id : 0;
+  }
+
+  function chaveAvaliacaoQualidade(row) {
+    const matriz = normalizar(row?.matriz_oferta || "");
+    const ua = normalizar(
+      row?.id_ua ||
+      row?.parent_item_id ||
+      ""
+    );
+    const criterio = normalizar(criterioDaLinha(row));
+
+    if (!ua || !criterio) return null;
+    return `${matriz}|||${ua}|||${criterio}`;
+  }
+
+  function consolidarAvaliacoesQualidade(rows) {
+    const mapa = new Map();
+
+    (rows || []).forEach(row => {
+      if (!criterioAvaliado(row)) return;
+
+      const chave = chaveAvaliacaoQualidade(row);
+      if (!chave) return;
+
+      const atual = mapa.get(chave);
+      if (!atual) {
+        mapa.set(chave, row);
+        return;
+      }
+
+      const tNovo = timestampAvaliacaoQualidade(row);
+      const tAtual = timestampAvaliacaoQualidade(atual);
+      const idNovo = Number(row?.subitem_id || 0);
+      const idAtual = Number(atual?.subitem_id || 0);
+
+      if (
+        tNovo > tAtual ||
+        (tNovo === tAtual && idNovo > idAtual)
+      ) {
+        mapa.set(chave, row);
+      }
+    });
+
+    return [...mapa.values()];
+  }
+
   function agregarCriterios(rows) {
     const mapa = new Map();
 
-    rows.forEach(x => {
+    consolidarAvaliacoesQualidade(rows).forEach(x => {
       /*
        * V25.36
        * V25.36 · universo: entra_no_calculo = true.
@@ -892,8 +970,9 @@
         r.conformidades++;
       }
 
-      if (x.id_ua) {
-        r._uas.add(x.id_ua);
+      const uaId = x.id_ua || x.parent_item_id;
+      if (uaId) {
+        r._uas.add(uaId);
       }
     });
 
@@ -1115,8 +1194,8 @@
      * apontamos_inconformidade = Sim. Vazio/Não é conforme dentro do universo.
      */
     const validos =
-      criteriosFiltrados.filter(
-        criterioAvaliado
+      consolidarAvaliacoesQualidade(
+        criteriosFiltrados
       );
 
     const nao =
