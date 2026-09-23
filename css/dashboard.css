@@ -2024,3 +2024,8 @@
 .nq-evolution-chart{height:300px;min-height:300px}
 .nq-evolution-note{min-height:24px;padding-top:7px;margin-top:2px}
 @media(max-width:760px){.nq-evolution-chart{height:280px;min-height:280px}}
+
+/* V25.32 - correção de dimensionamento dos gráficos de evolução NQ */
+.nq-evolution-grid,.nq-evolution-card,.nq-evolution-chart{width:100%;max-width:100%;box-sizing:border-box}
+.nq-evolution-card{min-width:0}
+.nq-evolution-chart{position:relative;overflow:hidden}

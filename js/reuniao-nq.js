@@ -997,6 +997,18 @@
 
                 graficoExperienciasNQ
                   ?.resize();
+
+                graficoEvolucaoAbrangenciaNQ
+                  ?.resize();
+
+                graficoEvolucaoExperienciasNQ
+                  ?.resize();
+
+                graficoEvolucaoAbrangenciaNQ
+                  ?.resize();
+
+                graficoEvolucaoExperienciasNQ
+                  ?.resize();
               }
             );
           }
