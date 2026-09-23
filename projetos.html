@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20260923-v25-39-anexos">
+    <link rel="stylesheet" href="css/projetos.css?v=20260908-v24-9-completo">
   </head>
 
   <body>
@@ -230,7 +230,7 @@
 
                     <fieldset class="evidence-fieldset">
                       <legend>Evidências <b>*</b></legend>
-                      <p>Adicione links ou envie arquivos PDF, Word (DOC/DOCX) e imagens JPG/JPEG de até 20 MB.</p>
+                      <p>Adicione links para arquivos, apresentações, painéis ou registros.</p>
                       <div id="evidenceList" class="evidence-list"></div>
                       <button id="addEvidenceButton" class="secondary-action small" type="button">+ Adicionar evidência</button>
                     </fieldset>
@@ -278,16 +278,7 @@
       <div class="evidence-row">
         <label><span>Título</span><input data-evidence="titulo" type="text" placeholder="Ex.: Apresentação executiva"></label>
         <label><span>Tipo</span><select data-evidence="tipo"><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
-        <label class="wide evidence-file-field">
-          <span>Arquivo do computador</span>
-          <input
-            data-evidence-file
-            type="file"
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg"
-          >
-          <small class="evidence-file-status">Nenhum arquivo selecionado.</small>
-        </label>
-        <label class="wide"><span>Link externo (opcional)</span><input data-evidence="url" type="url" placeholder="https://…"></label>
+        <label class="wide"><span>Link</span><input data-evidence="url" type="url" placeholder="https://…"></label>
         <label class="wide"><span>O que comprova</span><input data-evidence="descricao" type="text" placeholder="Explique brevemente a evidência"></label>
         <button class="remove-evidence" type="button" aria-label="Remover evidência">×</button>
       </div>
@@ -297,6 +288,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20260923-v25-39-anexos"></script>
+    <script src="js/projetos.js?v=20260908-v24-12"></script>
   </body>
 </html>
