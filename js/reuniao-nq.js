@@ -2380,215 +2380,102 @@
 
 
   function renderGraficoNivelFormacaoNQ() {
-    const el =
-      document.getElementById(
-        "graficoNQNivelFormacao"
-      );
+    const el = document.getElementById("graficoNQNivelFormacao");
+    if (!el || !window.echarts) return;
 
-    if (
-      !el ||
-      !window.echarts
-    ) {
-      return;
-    }
-
-    const nivelSelecionado =
-      document.getElementById(
-        "nqFiltroNivelGraficoFormacao"
-      )?.value || "";
-
-    const niveis = [
-      { chave: "graduacao", nome: "Graduação" },
-      { chave: "especializacao", nome: "Especialização" },
-      { chave: "mestrado", nome: "Mestrado" },
-      { chave: "doutorado", nome: "Doutorado" }
-    ];
-
+    const nivelSelecionado = document.getElementById("nqFiltroNivelGraficoFormacao")?.value || "";
+    const nomesNivel = {
+      graduacao: "Graduação",
+      especializacao: "Especialização",
+      mestrado: "Mestrado",
+      doutorado: "Doutorado"
+    };
     const mapa = new Map();
+    const registros = diplomasFiltradosNQ().filter(r => {
+      const nivel = nivelDiplomaNQ(r);
+      return nivel && (!nivelSelecionado || nivel === nivelSelecionado);
+    });
 
-    diplomasFiltradosNQ()
-      .forEach(r => {
-        const nivel =
-          nivelDiplomaNQ(
-            r.nivel
-          );
-
-        if (
-          !nivel ||
-          (
-            nivelSelecionado &&
-            nivel !== nivelSelecionado
-          )
-        ) {
-          return;
-        }
-
-        const professor =
-          String(
-            r.professor ||
-            "Professor não identificado"
-          ).trim();
-
-        if (!mapa.has(professor)) {
-          mapa.set(professor, {
-            professor,
-            graduacao: 0,
-            especializacao: 0,
-            mestrado: 0,
-            doutorado: 0
-          });
-        }
-
-        mapa.get(professor)[nivel]++;
+    registros.forEach(r => {
+      const nivel = nivelDiplomaNQ(r);
+      const professor = String(r.professor || "Professor não identificado").trim();
+      const key = normalizar(professor);
+      if (!mapa.has(key)) {
+        mapa.set(key, { professor, concluidas: 0, andamento: 0, detalhes: [] });
+      }
+      const item = mapa.get(key);
+      const emAndamento = normalizar(r.situacao).includes("andamento");
+      if (emAndamento) item.andamento++;
+      else item.concluidas++;
+      item.detalhes.push({
+        nivel: nomesNivel[nivel] || nivel,
+        titulo: String(r.curso_titulo || r.formacao || r.area_formacao || r.area_cine || "Formação").trim(),
+        situacao: emAndamento ? "Em andamento" : "Concluída"
       });
+    });
 
-    const dados =
-      [...mapa.values()]
-        .sort(
-          (a, b) => {
-            const totalA =
-              a.graduacao +
-              a.especializacao +
-              a.mestrado +
-              a.doutorado;
+    const dados = [...mapa.values()].sort((a,b) =>
+      (b.concluidas + b.andamento) - (a.concluidas + a.andamento) ||
+      a.professor.localeCompare(b.professor, "pt-BR")
+    );
 
-            const totalB =
-              b.graduacao +
-              b.especializacao +
-              b.mestrado +
-              b.doutorado;
+    const concluidas = registros.filter(r => !normalizar(r.situacao).includes("andamento")).length;
+    const andamento = registros.filter(r => normalizar(r.situacao).includes("andamento")).length;
+    const setResumo = (id, valor) => { const x=document.getElementById(id); if(x) x.textContent=n(valor); };
+    setResumo("nqNivelResumoProfessores", dados.length);
+    setResumo("nqNivelResumoTotal", registros.length);
+    setResumo("nqNivelResumoConcluidas", concluidas);
+    setResumo("nqNivelResumoAndamento", andamento);
 
-            return (
-              totalB - totalA ||
-              a.professor.localeCompare(
-                b.professor,
-                "pt-BR"
-              )
-            );
-          }
-        );
-
-    const altura =
-      Math.max(
-        420,
-        dados.length * 34 + 100
-      );
-
-    el.style.height =
-      `${altura}px`;
-    el.style.minHeight =
-      `${altura}px`;
+    const altura = Math.max(430, dados.length * 38 + 115);
+    el.style.height = `${altura}px`;
+    el.style.minHeight = `${altura}px`;
     el.style.width = "100%";
-
-    graficoNivelFormacaoNQ
-      ?.dispose();
-
-    graficoNivelFormacaoNQ =
-      echarts.init(el);
+    graficoNivelFormacaoNQ?.dispose();
+    graficoNivelFormacaoNQ = echarts.init(el);
 
     if (!dados.length) {
       graficoNivelFormacaoNQ.setOption({
-        title: {
-          text: "Nenhuma formação encontrada para o nível selecionado.",
-          left: "center",
-          top: "middle",
-          textStyle: {
-            fontSize: 15,
-            fontWeight: "normal"
-          }
-        }
+        title:{text:"Nenhuma formação encontrada para o nível selecionado.",left:"center",top:"middle",textStyle:{fontSize:15,fontWeight:"normal"}}
       });
-
       return;
     }
 
-    const niveisVisiveis =
-      nivelSelecionado
-        ? niveis.filter(
-            n =>
-              n.chave ===
-              nivelSelecionado
-          )
-        : niveis;
-
     graficoNivelFormacaoNQ.setOption({
-      animationDuration: 350,
-
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "shadow"
+      animationDuration:350,
+      tooltip:{
+        trigger:"axis",
+        axisPointer:{type:"shadow"},
+        formatter: params => {
+          const i=params?.[0]?.dataIndex ?? 0;
+          const d=dados[i];
+          if(!d) return "";
+          const lista=d.detalhes.map(x=>`• ${escapeHtml(x.nivel)} — ${escapeHtml(x.titulo)} <em>(${x.situacao})</em>`).join("<br>");
+          return `<strong>${escapeHtml(d.professor)}</strong><br>Total: <strong>${d.concluidas+d.andamento}</strong> · Concluídas: <strong>${d.concluidas}</strong> · Em andamento: <strong>${d.andamento}</strong><br><br>${lista}`;
         }
       },
-
-      legend: {
-        top: 0,
-        left: 0,
-        data:
-          niveisVisiveis.map(
-            n => n.nome
-          )
-      },
-
-      grid: {
-        left: 285,
-        right: 55,
-        top: 55,
-        bottom: 35,
-        containLabel: false
-      },
-
-      xAxis: {
-        type: "value",
-        min: 0,
-        minInterval: 1,
-        name: "Formações"
-      },
-
-      yAxis: {
-        type: "category",
-        inverse: true,
-        data:
-          dados.map(
-            d => d.professor
-          ),
-        axisLabel: {
-          interval: 0,
-          width: 255,
-          overflow: "truncate",
-          margin: 12
-        }
-      },
-
-      series:
-        niveisVisiveis.map(
-          nivel => ({
-            name: nivel.nome,
-            type: "bar",
-            stack: "formacoes",
-            barMaxWidth: 24,
-            data:
-              dados.map(
-                d =>
-                  d[nivel.chave]
-              ),
-            label: {
-              show: true,
-              position: "insideRight",
-              formatter: p =>
-                p.value
-                  ? p.value
-                  : ""
-            }
-          })
-        )
+      legend:{top:0,left:0,data:["Concluídas","Em andamento"]},
+      grid:{left:285,right:55,top:55,bottom:38,containLabel:false},
+      xAxis:{type:"value",min:0,minInterval:1,name:"Quantidade de formações"},
+      yAxis:{type:"category",inverse:true,data:dados.map(d=>d.professor),axisLabel:{interval:0,width:255,overflow:"truncate",margin:12}},
+      series:[
+        {name:"Concluídas",type:"bar",stack:"formacoes",barMaxWidth:24,data:dados.map(d=>d.concluidas),label:{show:true,position:"insideRight",formatter:p=>p.value?p.value:""}},
+        {name:"Em andamento",type:"bar",stack:"formacoes",barMaxWidth:24,data:dados.map(d=>d.andamento),label:{show:true,position:"insideRight",formatter:p=>p.value?p.value:""}}
+      ]
     });
 
-    requestAnimationFrame(
-      () =>
-        graficoNivelFormacaoNQ
-          ?.resize()
-    );
+    graficoNivelFormacaoNQ.off("click");
+    graficoNivelFormacaoNQ.on("click", params => {
+      const professor = dados[params.dataIndex]?.professor;
+      if (!professor) return;
+      const alvo = [...document.querySelectorAll(".nq-professor-profile-card")]
+        .find(card => normalizar(card.dataset.professor || "") === normalizar(professor));
+      if (alvo) {
+        alvo.open = true;
+        alvo.scrollIntoView({behavior:"smooth",block:"start"});
+      }
+    });
+    requestAnimationFrame(()=>graficoNivelFormacaoNQ?.resize());
   }
 
     function renderGraficoCineNQ() {
@@ -3703,7 +3590,7 @@
         "--";
 
       return `
-        <details class="nq-professor-profile-card" ${index === 0 ? "open" : ""}>
+        <details class="nq-professor-profile-card" data-professor="${escapeHtml(r.professor)}" ${index === 0 ? "open" : ""}>
           <summary>
             <div class="nq-professor-profile-name">
               <strong>${escapeHtml(r.professor)}</strong>

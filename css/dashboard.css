@@ -2029,3 +2029,11 @@
 .nq-evolution-grid,.nq-evolution-card,.nq-evolution-chart{width:100%;max-width:100%;box-sizing:border-box}
 .nq-evolution-card{min-width:0}
 .nq-evolution-chart{position:relative;overflow:hidden}
+
+/* V25.33 · resumo executivo e distribuição de formações por professor */
+.nq-level-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+.nq-level-summary>div{border:1px solid #e6deea;border-radius:12px;background:#fff;padding:11px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.nq-level-summary span{font-size:11px;color:#756a7e;font-weight:700}
+.nq-level-summary strong{font-size:20px;color:#2d1553}
+.nq-level-hint{display:block;margin:2px 0 4px;color:#817687;font-size:11px}
+@media(max-width:760px){.nq-level-summary{grid-template-columns:1fr 1fr}.nq-level-summary>div{padding:10px}}
