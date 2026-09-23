@@ -1,0 +1,30 @@
+BI-Monday V25.39 - Anexos em Projetos da Qualidade
+
+Base utilizada
+- Esta versão foi criada diretamente sobre a V25.38 correta.
+- A deduplicação dos resultados da Qualidade foi preservada.
+
+O que mudou
+- A seção Evidências aceita PDF, DOC, DOCX, JPG e JPEG.
+- Limite de 20 MB por arquivo.
+- Os anexos ficam em armazenamento privado.
+- A abertura usa link temporário de 120 segundos.
+- Os arquivos ficam associados ao histórico da versão do relatório.
+- Links externos continuam aceitos.
+
+Publicação obrigatória
+1. Execute docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no SQL Editor do Supabase.
+2. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql no SQL Editor.
+3. Publique os arquivos da pasta BI-Monday na raiz do repositório.
+4. Aguarde a publicação e atualize o navegador com Ctrl+F5.
+
+Teste rápido
+1. Abra Projetos da Qualidade > Editar e gerar relatório.
+2. Escolha um projeto e adicione uma evidência.
+3. Selecione um PDF, DOC/DOCX ou JPG/JPEG de até 20 MB.
+4. Salve uma nova versão.
+5. Abra a versão salva e clique em Abrir arquivo.
+
+Importante
+- A importação da base continua aceitando somente Excel.
+- Remover uma evidência de uma nova versão não apaga o arquivo de versões anteriores.
