@@ -2030,7 +2030,7 @@
 .nq-evolution-card{min-width:0}
 .nq-evolution-chart{position:relative;overflow:hidden}
 
-/* V25.33 · resumo executivo e distribuição de formações por professor */
+/* V25.34 · resumo executivo e distribuição de formações por professor */
 .nq-level-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 4px}
 .nq-level-summary>div{border:1px solid #e6deea;border-radius:12px;background:#fff;padding:11px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .nq-level-summary span{font-size:11px;color:#756a7e;font-weight:700}

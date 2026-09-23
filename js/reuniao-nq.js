@@ -116,79 +116,45 @@
   }
 
   function valorApontamosInconformidade(row) {
-    if (!row) return null;
-
-    const campo =
-      campoApontamosInconformidade ||
-      localizarCampoApontamos(row);
-
-    if (campo) {
-      const valor = row[campo];
-      if (valor !== null && valor !== undefined && String(valor).trim() !== "") {
-        return valor;
-      }
-    }
+    if (!row || typeof row !== "object") return null;
 
     /*
-     * Fallback para views que trazem o JSON completo das colunas
-     * do Monday em dados_colunas.
+     * V25.35 · fonte oficial
+     * A view vw_nq_reuniao_criterios_detalhe já expõe o alias
+     * normalizado apontamos_inconformidade. Não inferimos este valor
+     * por classificação, eh_conformidade ou eh_nao_conformidade.
      */
-    const dadosColunas = row.dados_colunas;
-
-    if (dadosColunas && typeof dadosColunas === "object") {
-      for (const [id, coluna] of Object.entries(dadosColunas)) {
-        if (!coluna || typeof coluna !== "object") continue;
-
-        const titulo = normalizarNomeCampo(coluna.title || id);
-
-        if (
-          titulo === "apontamosinconformidade" ||
-          titulo === "apontamosinconformidades"
-        ) {
-          return coluna.text ?? coluna.value ?? null;
-        }
-      }
+    if (Object.prototype.hasOwnProperty.call(row, "apontamos_inconformidade")) {
+      return row.apontamos_inconformidade;
     }
 
-    return null;
+    // Compatibilidade defensiva com versões anteriores da view.
+    const campo = localizarCampoApontamos(row);
+    return campo ? row[campo] : null;
+  }
+
+  function statusApontamosInconformidade(row) {
+    const valor = normalizar(valorApontamosInconformidade(row));
+
+    if (["sim", "s", "yes", "true", "1", "x"].includes(valor)) {
+      return "sim";
+    }
+
+    if (["nao", "n", "no", "false", "0"].includes(valor)) {
+      return "nao";
+    }
+
+    return "sem_resposta";
   }
 
   function criterioAvaliado(row) {
-    const classificacao = normalizar(
-      row?.classificacao_especialista
-    );
-
-    /*
-     * A coluna Classificação do especialista continua sendo
-     * usada apenas para identificar se o critério foi avaliado.
-     *
-     * A fonte da NÃO CONFORMIDADE é exclusivamente
-     * “Apontamos inconformidade?”.
-     */
-    if (["sim", "nao"].includes(classificacao)) {
-      return true;
-    }
-
-    // Fallback: se a própria coluna Apontamos possuir Sim/Não,
-    // o critério também é considerado avaliado.
-    const apontamos = normalizar(
-      valorApontamosInconformidade(row)
-    );
-
-    return [
-      "sim", "s", "yes", "true", "1", "x",
-      "nao", "n", "no", "false", "0"
-    ].includes(apontamos);
+    // Para os indicadores desta seção, somente respostas explícitas
+    // da coluna apontamos_inconformidade entram no denominador.
+    return statusApontamosInconformidade(row) !== "sem_resposta";
   }
 
   function ehInconformidadeApontada(row) {
-    const valor = normalizar(
-      valorApontamosInconformidade(row)
-    );
-
-    return [
-      "sim", "s", "yes", "true", "1", "x"
-    ].includes(valor);
+    return statusApontamosInconformidade(row) === "sim";
   }
 
   function criterioDaLinha(row) {
@@ -867,14 +833,10 @@
 
     rows.forEach(x => {
       /*
-       * V25.18
-       *
-       * Denominador: todos os critérios efetivamente avaliados.
-       * Não conformidade: SOMENTE quando “Apontamos inconformidade?” = Sim.
-       *
-       * Em muitos itens do Monday, a coluna Apontamos fica vazia quando
-       * não há inconformidade; por isso vazio não pode ser descartado
-       * depois que o critério já foi identificado como avaliado.
+       * V25.35
+       * Fonte exclusiva: apontamos_inconformidade da view de detalhe.
+       * Sim entra como não conformidade; Não entra como conformidade;
+       * vazio/null permanece sem resposta e não entra no denominador.
        */
       if (!criterioAvaliado(x)) {
         return;
@@ -935,7 +897,7 @@
 
     const secoes = [
       ...document.querySelectorAll(
-        "#viewReuniaoNQ > .meeting-section[data-nq-section]"
+        "#viewReuniaoNQ > [data-nq-section]"
       )
     ];
 
@@ -1128,13 +1090,10 @@
     );
 
     /*
-     * V25.18
-     * Critérios avaliados vêm da classificação do especialista.
-     * A quantidade de NÃO conformes vem exclusivamente da coluna
-     * “Apontamos inconformidade?” = Sim.
-     *
-     * Assim, um Apontamos vazio em um critério já avaliado representa
-     * ausência de inconformidade, e não um registro a ser descartado.
+     * V25.35
+     * Fonte exclusiva: apontamos_inconformidade.
+     * Sim = não conformidade; Não = conformidade; vazio = sem resposta.
+     * Registros vazios não são convertidos artificialmente em conformidade.
      */
     const validos =
       criteriosFiltrados.filter(
@@ -1489,7 +1448,7 @@
 
         status.textContent = fonteEncontrada
           ? "Dados atualizados conforme os filtros globais. Não conformidades: coluna ‘Apontamos inconformidade?’ do Monday."
-          : "Atenção: a coluna ‘Apontamos inconformidade?’ não foi localizada na view de critérios. Verifique a view vw_nq_reuniao_criterios_detalhe.";
+          : "Atenção: os dados de não conformidade não estão disponíveis na fonte de critérios neste momento.";
       }
 
     } catch (e) {

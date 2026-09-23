@@ -1,4 +1,4 @@
-V25.33 - Formações por nível acadêmico
+V25.34 - Formações por nível acadêmico
 
 - Corrige a classificação de nível acadêmico no gráfico.
 - Troca a distribuição abstrata por barras horizontais por professor.
