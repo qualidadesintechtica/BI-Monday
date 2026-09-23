@@ -119,7 +119,7 @@
     if (!row || typeof row !== "object") return null;
 
     /*
-     * V25.35 · fonte oficial
+     * V25.36 · fonte oficial
      * A view vw_nq_reuniao_criterios_detalhe já expõe o alias
      * normalizado apontamos_inconformidade. Não inferimos este valor
      * por classificação, eh_conformidade ou eh_nao_conformidade.
@@ -147,14 +147,33 @@
     return "sem_resposta";
   }
 
+  function entraNoCalculoQualidade(row) {
+    /*
+     * V25.36 · universo correto da qualidade
+     * A view já informa quais linhas pertencem ao cálculo por meio de
+     * entra_no_calculo. A coluna apontamos_inconformidade é usada
+     * exclusivamente para identificar a ocorrência da inconformidade:
+     *   Sim -> não conforme
+     *   vazio/Não -> conforme, desde que entra_no_calculo = true
+     *
+     * Isso preserva a semântica observada na própria view, em que uma
+     * linha pode ter apontamos_inconformidade = null, eh_conformidade = true
+     * e entra_no_calculo = true. eh_conformidade não é usado para decidir
+     * a ocorrência; apenas o universo vem de entra_no_calculo.
+     */
+    const v = row?.entra_no_calculo;
+    if (v === true || v === 1) return true;
+    const nv = normalizar(v);
+    return ["true", "1", "sim", "s", "yes"].includes(nv);
+  }
+
   function criterioAvaliado(row) {
-    // Para os indicadores desta seção, somente respostas explícitas
-    // da coluna apontamos_inconformidade entram no denominador.
-    return statusApontamosInconformidade(row) !== "sem_resposta";
+    return entraNoCalculoQualidade(row);
   }
 
   function ehInconformidadeApontada(row) {
-    return statusApontamosInconformidade(row) === "sim";
+    return criterioAvaliado(row) &&
+      statusApontamosInconformidade(row) === "sim";
   }
 
   function criterioDaLinha(row) {
@@ -833,10 +852,10 @@
 
     rows.forEach(x => {
       /*
-       * V25.35
-       * Fonte exclusiva: apontamos_inconformidade da view de detalhe.
-       * Sim entra como não conformidade; Não entra como conformidade;
-       * vazio/null permanece sem resposta e não entra no denominador.
+       * V25.36
+       * V25.36 · universo: entra_no_calculo = true.
+       * Fonte da ocorrência: apontamos_inconformidade.
+       * Sim = não conformidade; vazio/Não = conformidade dentro do universo.
        */
       if (!criterioAvaliado(x)) {
         return;
@@ -1090,10 +1109,10 @@
     );
 
     /*
-     * V25.35
-     * Fonte exclusiva: apontamos_inconformidade.
-     * Sim = não conformidade; Não = conformidade; vazio = sem resposta.
-     * Registros vazios não são convertidos artificialmente em conformidade.
+     * V25.36
+     * Universo avaliado: entra_no_calculo = true.
+     * A ocorrência de não conformidade vem exclusivamente de
+     * apontamos_inconformidade = Sim. Vazio/Não é conforme dentro do universo.
      */
     const validos =
       criteriosFiltrados.filter(
@@ -1442,8 +1461,8 @@
 
       if (status) {
         const fonteEncontrada =
-          (criteriosDetalhe || []).slice(0, 50).some(
-            linha => valorApontamosInconformidade(linha) !== null
+          (criteriosDetalhe || []).some(
+            linha => localizarCampoApontamos(linha) !== null
           );
 
         status.textContent = fonteEncontrada
