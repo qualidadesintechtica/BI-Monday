@@ -930,6 +930,13 @@
           "filtroRevisor",
         campo:
           "revisor_validador"
+      },
+
+      {
+        select:
+          "filtroUAName",
+        campo:
+          "item_name"
       }
 
     ];

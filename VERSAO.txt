@@ -1,3 +1,3 @@
-V25.44.2
+V25.45
 2026-09-24
-Correção estrutural: restauração do index.html completo e do dashboard.css completo; preservados Certificados V25.44 com filtro por semestre/revisor, geração PDF, envio Supabase/Resend e histórico.
+Filtro global UA/Name adicionado ao BI, com suporte ao mesmo multiselect/pesquisa dos filtros existentes e aplicação sobre KPIs, gráficos e tabelas globais.
