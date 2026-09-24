@@ -19,11 +19,12 @@
   <link
     rel="stylesheet"
     href="css/global.css?v=20260901-v20-ordenacao-colunas"
+    
   >
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260918-v25-26-operacao-pesquisa-titulos"
+    href="css/dashboard.css?v=20260924-v25-44-2"
   >
 
 
@@ -1035,7 +1036,7 @@
       <!-- =============================================
            GESTORES E MATERIAIS
       ============================================== -->
-      <section id="viewGestoresMateriais" class="page-view" data-page="gestores-materiais">
+            <section id="viewGestoresMateriais" class="page-view" data-page="gestores-materiais">
         <div class="section-heading">
           <div>
             <h2>Gestores e Materiais</h2>
@@ -1174,6 +1175,33 @@
       </section>
 
       
+
+
+  <div class="pq-summary-line">
+    <span id="pqUltimaImportacao">Última importação: --</span>
+    <a class="action-button" href="projetos.html?v=20260923-v25-39-anexos">
+      Voltar para Projetos da Qualidade
+    </a>
+  </div>
+
+  <!-- Elementos auxiliares mantidos para compatibilidade do JS -->
+  <div hidden>
+    <span id="pqTotalProjetos">0</span>
+    <span id="pqTotalTarefas">0</span>
+    <span id="pqEmProgresso">0</span>
+    <span id="pqFinalizados">0</span>
+    <span id="pqSemVinculo">0</span>
+    <input id="pqBusca" type="search">
+    <select id="pqFiltroStatus"><option value="">Todos</option></select>
+    <select id="pqFiltroSponsor"><option value="">Todos</option></select>
+    <button id="pqLimparFiltros" type="button">Limpar</button>
+    <span id="pqResumoFiltro"></span>
+    <div id="pqListaProjetos"></div>
+  </div>
+
+</section>
+
+
 <section id="viewOperacao" class="page-view" data-page="operacao">
   <div class="monday-operation-shell">
     <div class="monday-operation-titlebar">
@@ -1452,8 +1480,8 @@
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="js/certificados.js?v=20260924-v25-44"></script>
-  <script src="js/dashboard.js?v=20260924-v25-44"></script>
+  <script src="js/certificados.js?v=20260924-v25-44-2"></script>
+  <script src="js/dashboard.js?v=20260924-v25-44-2"></script>
 
 
 <div data-build-version="20260918-v25-26-operacao-pesquisa-titulos" style="display:none"></div>
