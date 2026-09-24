@@ -67,6 +67,7 @@
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
         <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
+        <a href="#certificados" data-view="certificados">Certificados</a>
         <a href="projetos.html">Projeto Qualidade</a>
 
         <div class="nav-section-title">Indicadores</div>
@@ -1034,6 +1035,38 @@
       <!-- =============================================
            GESTORES E MATERIAIS
       ============================================== -->
+      <section id="viewCertificados" class="page-view" data-page="certificados">
+        <div class="cert-page">
+          <div class="cert-toolbar">
+            <div>
+              <h2>Certificados dos Revisores</h2>
+              <p>Certificados elegíveis a partir dos materiais com Status Validação = Validado.</p>
+            </div>
+            <div class="cert-actions">
+              <button id="certSelecionarTodos" class="secondary-button" type="button">Selecionar todos</button>
+              <button id="certGerarSelecionados" class="primary-button" type="button">Gerar selecionados</button>
+            </div>
+          </div>
+          <div class="cert-kpis">
+            <div class="cert-kpi"><span>Elegíveis</span><strong id="certKpiElegiveis">0</strong></div>
+            <div class="cert-kpi"><span>Revisores</span><strong id="certKpiRevisores">0</strong></div>
+            <div class="cert-kpi"><span>Gerados</span><strong id="certKpiGerados">0</strong></div>
+            <div class="cert-kpi"><span>Selecionados</span><strong id="certKpiSelecionados">0</strong></div>
+          </div>
+          <div class="cert-filter-row">
+            <input id="certBusca" type="search" placeholder="Pesquisar revisor, UA, título ou semestre">
+            <select id="certFiltroRevisor"><option value="">Todos os revisores</option></select>
+          </div>
+          <div id="certAviso" class="cert-notice" hidden></div>
+          <div class="cert-table-wrap">
+            <table class="cert-table">
+              <thead><tr><th><input id="certCheckTodos" type="checkbox"></th><th>Revisor</th><th>Unidade de Aprendizagem</th><th>Título</th><th>Semestre</th><th>Status</th><th>Ação</th></tr></thead>
+              <tbody id="certTabelaBody"><tr><td colspan="7">Carregando certificados...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section id="viewGestoresMateriais" class="page-view" data-page="gestores-materiais">
         <div class="section-heading">
           <div>
@@ -1490,7 +1523,8 @@
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
-  <script src="js/dashboard.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
+  <script src="js/certificados.js?v=20260924-v25-43-certificados"></script>
+  <script src="js/dashboard.js?v=20260924-v25-43-certificados"></script>
 
 
 <div data-build-version="20260918-v25-26-operacao-pesquisa-titulos" style="display:none"></div>

@@ -1,0 +1,11 @@
+V25.43 - CERTIFICADOS DOS REVISORES
+
+Nova aba Certificados no BI.
+Fonte: vw_materiais_bi_consolidada já carregada pelo dashboard.
+Elegibilidade: status_validacao = Validado e Revisor Validador preenchido.
+Campos do modelo: Revisor_Validador, Name/UA, Titulo, Semestre_Oferta.
+Deduplicação: Revisor + UA + Título + Semestre.
+Geração: abre certificado A4 paisagem usando a arte original do DOCX e chama a impressão do navegador; selecionar Salvar como PDF.
+Controle Gerado: armazenado localmente no navegador para evitar geração acidental repetida.
+
+Observação: envio automático por e-mail não foi ativado nesta versão porque requer uma função de backend/serviço de e-mail e remetente autorizado. A geração não altera o Supabase nem o Projeto Qualidade.

@@ -1,3 +1,3 @@
-V25.42
+V25.43
 2026-09-24
-Correção da detecção do editor em Projetos da Qualidade: tabela e RPC diagnosticadas separadamente; evita falso aviso de editor não instalado.
+Certificados de revisores: elegibilidade por Status Validação = Validado, deduplicação Revisor + UA + Título + Semestre, geração em PDF pelo modelo oficial e controle local de gerados.
