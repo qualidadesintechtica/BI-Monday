@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   let dadosOperacaoCompletos = [];
   let paginaAtual = "resumo";
 
-
   function normalizarResponsavelNQ(valor) {
     return String(valor ?? "")
       .normalize("NFD")
@@ -50,8 +49,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         chaves.forEach(valor => {
           const chave = normalizarResponsavelNQ(valor);
           if (!chave) return;
-          if (item.eh_gestor) estrutura.gestores.set(chave, nomeOficial);
-          if (item.eh_revisor) estrutura.revisores.set(chave, nomeOficial);
+
+          if (item.eh_gestor) {
+            estrutura.gestores.set(chave, nomeOficial);
+          }
+
+          if (item.eh_revisor) {
+            estrutura.revisores.set(chave, nomeOficial);
+          }
         });
       });
 
@@ -59,6 +64,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         gestoresAliases: estrutura.gestores.size,
         revisoresAliases: estrutura.revisores.size
       });
+
     } catch (error) {
       console.warn(
         "Cadastro nq_responsaveis indisponível; filtros de pessoas usarão o comportamento anterior.",
@@ -118,9 +124,18 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   function mostrarUltimaAtualizacao() {
     if (!ultimaAtualizacao) return;
+
     const tempos = dadosCompletos
-      .map(x => Date.parse(x.sincronizado_validacao || x.sincronizado_esteira || x.sincronizado_em || ""))
+      .map(x =>
+        Date.parse(
+          x.sincronizado_validacao ||
+          x.sincronizado_esteira ||
+          x.sincronizado_em ||
+          ""
+        )
+      )
       .filter(Number.isFinite);
+
     ultimaAtualizacao.textContent = tempos.length
       ? new Date(Math.max(...tempos)).toLocaleString("pt-BR")
       : "--";
@@ -132,88 +147,240 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     window.preencherKPIs(kpis);
     window.atualizarGraficos(dadosFiltrados);
-    // V25.25 · A Operação usa uma fonte própria baseada na Esteira de Produção,
-    // mas preserva exatamente os mesmos filtros globais já habilitados no BI.
-    const dadosOperacaoFiltrados = window.aplicarFiltros(dadosOperacaoCompletos);
-    window.atualizarPaginasBI?.(dadosFiltrados, dadosOperacaoFiltrados);
+
+    // =========================================================
+    // OPERAÇÃO
+    // A Operação utiliza a fonte própria da Esteira de Produção,
+    // preservando os filtros globais do BI.
+    // =========================================================
+
+    const dadosOperacaoFiltrados =
+      window.aplicarFiltros(dadosOperacaoCompletos);
+
+    window.atualizarPaginasBI?.(
+      dadosFiltrados,
+      dadosOperacaoFiltrados
+    );
+
     window.atualizarIndicadoresBI?.(dadosFiltrados);
+
     window.atualizarResultadosAlcancados?.();
+
     window.atualizarReuniaoNQ?.(dadosFiltrados);
+
     window.inicializarIndicadoresUC?.();
+
     window.atualizarGestoresMateriais?.(dadosFiltrados);
+
     window.atualizarProjetoQualidade?.();
+
+    // =========================================================
+    // CERTIFICADOS V25.44
+    //
+    // Usa a base completa porque o próprio certificados.js
+    // controla:
+    // - Status Validação = Validado
+    // - Semestre
+    // - Revisor
+    // - Pesquisa
+    // - E-mail
+    // - geração do PDF
+    // - envio pelo Supabase/Resend
+    // =========================================================
+
     window.atualizarCertificados?.(dadosCompletos);
 
     if (quantidadeFiltrada) {
-      quantidadeFiltrada.textContent = `${dadosFiltrados.length} registros no filtro atual`;
+      quantidadeFiltrada.textContent =
+        `${dadosFiltrados.length} registros no filtro atual`;
     }
   }
 
   function trocarPagina(nome) {
-    if (!titulosPaginas[nome]) nome = "resumo";
+    if (!titulosPaginas[nome]) {
+      nome = "resumo";
+    }
+
     paginaAtual = nome;
 
     document.querySelectorAll(".page-view").forEach(el => {
-      el.classList.toggle("active", el.dataset.page === nome);
+      el.classList.toggle(
+        "active",
+        el.dataset.page === nome
+      );
     });
 
     document.querySelectorAll(".nav [data-view]").forEach(el => {
-      el.classList.toggle("active", el.dataset.view === nome);
+      el.classList.toggle(
+        "active",
+        el.dataset.view === nome
+      );
     });
 
-    if (tituloPagina) tituloPagina.textContent = titulosPaginas[nome];
-    history.replaceState(null, "", `#${nome}`);
+    if (tituloPagina) {
+      tituloPagina.textContent =
+        titulosPaginas[nome];
+    }
 
-    const filtrosGlobais = document.querySelector(".filters");
-    const statusGlobal = document.querySelector(".status-line");
-    const paginaUc = nome === "indicadores-uc";
-    filtrosGlobais?.classList.toggle("page-filters-hidden", paginaUc);
-    statusGlobal?.classList.toggle("page-status-hidden", paginaUc);
+    history.replaceState(
+      null,
+      "",
+      `#${nome}`
+    );
 
-    if (["resumo", "resultados", "reuniao-nq", "indicadores-uc", "gestores-materiais", "certificados", "projeto-qualidade", "grafico-operacional", "ajustes", "dias-validacao", "historico"].includes(nome)) {
-      setTimeout(() => window.dispatchEvent(new Event("resize")), 0);
+    const filtrosGlobais =
+      document.querySelector(".filters");
+
+    const statusGlobal =
+      document.querySelector(".status-line");
+
+    const paginaUc =
+      nome === "indicadores-uc";
+
+    filtrosGlobais?.classList.toggle(
+      "page-filters-hidden",
+      paginaUc
+    );
+
+    statusGlobal?.classList.toggle(
+      "page-status-hidden",
+      paginaUc
+    );
+
+    if (
+      [
+        "resumo",
+        "resultados",
+        "reuniao-nq",
+        "indicadores-uc",
+        "gestores-materiais",
+        "certificados",
+        "projeto-qualidade",
+        "grafico-operacional",
+        "ajustes",
+        "dias-validacao",
+        "historico"
+      ].includes(nome)
+    ) {
+      setTimeout(
+        () =>
+          window.dispatchEvent(
+            new Event("resize")
+          ),
+        0
+      );
     }
   }
 
+  // ===========================================================
+  // NAVEGAÇÃO
+  // ===========================================================
+
   document.addEventListener("click", function (event) {
-    const link = event.target.closest(".nav [data-view]");
+    const link =
+      event.target.closest(".nav [data-view]");
+
     if (!link) return;
+
     event.preventDefault();
-    trocarPagina(link.dataset.view);
+
+    trocarPagina(
+      link.dataset.view
+    );
   });
 
-  document.addEventListener("multifilterchange", function (event) {
-    const alvo = event.target;
-    if (alvo && filtros.includes(alvo.id)) atualizarTela();
-  });
+  // ===========================================================
+  // FILTROS GLOBAIS
+  // ===========================================================
 
-  const logoutButton = document.getElementById("logoutButton");
-  if (logoutButton) logoutButton.addEventListener("click", window.sairBI);
+  document.addEventListener(
+    "multifilterchange",
+    function (event) {
+      const alvo = event.target;
+
+      if (
+        alvo &&
+        filtros.includes(alvo.id)
+      ) {
+        atualizarTela();
+      }
+    }
+  );
+
+  // ===========================================================
+  // LOGOUT
+  // ===========================================================
+
+  const logoutButton =
+    document.getElementById("logoutButton");
+
+  if (logoutButton) {
+    logoutButton.addEventListener(
+      "click",
+      window.sairBI
+    );
+  }
+
+  // ===========================================================
+  // CARREGAMENTO DO DASHBOARD
+  // ===========================================================
 
   async function carregarDashboard() {
     try {
-      if (statusCarregamento) statusCarregamento.textContent = "Carregando dados...";
-      dadosCompletos = await window.carregarDadosBI();
-      console.log("Total de registros:", dadosCompletos.length);
+      if (statusCarregamento) {
+        statusCarregamento.textContent =
+          "Carregando dados...";
+      }
 
-      dadosOperacaoCompletos = typeof window.carregarDadosOperacaoCompleta === "function"
-        ? await window.carregarDadosOperacaoCompleta(dadosCompletos)
-        : dadosCompletos;
+      dadosCompletos =
+        await window.carregarDadosBI();
 
-      console.log("Total da fonte Operação:", dadosOperacaoCompletos.length);
+      console.log(
+        "Total de registros:",
+        dadosCompletos.length
+      );
+
+      dadosOperacaoCompletos =
+        typeof window.carregarDadosOperacaoCompleta === "function"
+          ? await window.carregarDadosOperacaoCompleta(dadosCompletos)
+          : dadosCompletos;
+
+      console.log(
+        "Total da fonte Operação:",
+        dadosOperacaoCompletos.length
+      );
 
       await carregarResponsaveisNQ();
+
       popularFiltros();
+
       mostrarUltimaAtualizacao();
+
       atualizarTela();
-      trocarPagina(location.hash.replace("#", "") || "resumo");
+
+      trocarPagina(
+        location.hash.replace("#", "") ||
+        "resumo"
+      );
+
       if (statusCarregamento) {
-        statusCarregamento.textContent = `${dadosCompletos.length} registros carregados`;
+        statusCarregamento.textContent =
+          `${dadosCompletos.length} registros carregados`;
       }
+
     } catch (error) {
-      console.error("Erro no dashboard:", error);
+      console.error(
+        "Erro no dashboard:",
+        error
+      );
+
       if (statusCarregamento) {
-        statusCarregamento.textContent = "Erro ao carregar dados: " + (error?.message || "erro desconhecido");
+        statusCarregamento.textContent =
+          "Erro ao carregar dados: " +
+          (
+            error?.message ||
+            "erro desconhecido"
+          );
       }
     }
   }
