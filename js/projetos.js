@@ -319,7 +319,7 @@
       return "O armazenamento de evidências não autorizou a operação. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql e entre novamente no sistema.";
     }
     if (/pq_projetos_edicoes|pq_salvar_edicao|does not exist|schema cache/i.test(bruto)) {
-      return "O editor ainda não foi instalado no Supabase. Execute o arquivo docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no SQL Editor e recarregue esta página.";
+      return "O editor ainda não foi instalado no Supabase. Execute o arquivo docs/00_INSTALAR_PROJETOS_QUALIDADE_V25_41.sql no SQL Editor do Supabase e recarregue esta página.";
     }
     if (/permission|policy|row-level|unauthorized|jwt/i.test(bruto)) {
       return "Sua sessão não tem permissão para esta operação. Entre novamente e confirme se o SQL do editor foi executado no projeto correto.";

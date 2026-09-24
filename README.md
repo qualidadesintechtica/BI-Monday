@@ -33,3 +33,7 @@ Execute os dois arquivos no SQL Editor do Supabase antes de testar os anexos.
 - Aceita PDF, DOC, DOCX, JPG e JPEG, com limite de 20 MB.
 - Mantém o bucket privado e abre o arquivo por link temporário.
 - Preserva os anexos no histórico de versões do relatório.
+
+
+## V25.41 — instalação do editor/anexos
+Execute uma única vez no Supabase > SQL Editor: `docs/00_INSTALAR_PROJETOS_QUALIDADE_V25_41.sql`. O script instala/atualiza o editor versionado e o bucket privado `pq-evidencias`.
