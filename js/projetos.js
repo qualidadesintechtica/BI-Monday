@@ -26,6 +26,7 @@
   };
 
   const EVIDENCE_BUCKET = "pq-evidencias";
+  let editorTabelaConfirmada = false;
   const TAMANHO_MAXIMO_EVIDENCIA = 20 * 1024 * 1024;
   const EXTENSOES_EVIDENCIA = new Set(["pdf", "doc", "docx", "jpg", "jpeg"]);
   const MIME_EVIDENCIA = {
@@ -318,8 +319,14 @@
     if (/evidência.*(?:row-level|policy|permission|unauthorized|jwt)/i.test(bruto)) {
       return "O armazenamento de evidências não autorizou a operação. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql e entre novamente no sistema.";
     }
-    if (/pq_projetos_edicoes|pq_salvar_edicao|does not exist|schema cache/i.test(bruto)) {
-      return "O editor ainda não foi instalado no Supabase. Execute o arquivo docs/00_INSTALAR_PROJETOS_QUALIDADE_V25_41.sql no SQL Editor do Supabase e recarregue esta página.";
+    // Só declarar o editor ausente quando a própria tabela não existir.
+    // Se a tabela já foi lida com sucesso, erros de RPC/schema cache devem ser
+    // apresentados como erro de função, sem induzir uma reinstalação do editor.
+    if (!editorTabelaConfirmada && /(pq_projetos_edicoes.*does not exist|relation .*pq_projetos_edicoes.*does not exist|PGRST205)/i.test(bruto)) {
+      return "A tabela do editor não foi localizada no Supabase. Confirme se public.pq_projetos_edicoes existe neste projeto.";
+    }
+    if (/pq_salvar_edicao|PGRST202|schema cache/i.test(bruto)) {
+      return `O editor está instalado, mas a função de salvamento não foi reconhecida pela API do Supabase. Detalhe: ${bruto}`;
     }
     if (/permission|policy|row-level|unauthorized|jwt/i.test(bruto)) {
       return "Sua sessão não tem permissão para esta operação. Entre novamente e confirme se o SQL do editor foi executado no projeto correto.";
@@ -364,6 +371,8 @@
       estado.projetos = projetosResp.data || [];
       estado.tarefas = tarefasResp.data || [];
       estado.edicoes = edicoesResp.data || [];
+      // Se chegamos aqui, pq_projetos_edicoes respondeu pela API: o editor existe.
+      editorTabelaConfirmada = true;
       estado.importacaoAtual = importacaoResp.data || null;
 
       // A base atual já preserva os responsáveis diretamente nos projetos/tarefas.
