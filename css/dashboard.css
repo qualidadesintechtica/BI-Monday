@@ -2037,3 +2037,6 @@
 .nq-level-summary strong{font-size:20px;color:#2d1553}
 .nq-level-hint{display:block;margin:2px 0 4px;color:#817687;font-size:11px}
 @media(max-width:760px){.nq-level-summary{grid-template-columns:1fr 1fr}.nq-level-summary>div{padding:10px}}
+
+/* V25.44 · Certificados */
+.cert-toolbar{display:grid;grid-template-columns:220px 280px minmax(260px,1fr);gap:14px;margin:18px 0}.cert-toolbar label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700}.cert-toolbar select,.cert-toolbar input{min-height:42px;border:1px solid #ddd;border-radius:8px;padding:8px 10px;background:#fff}.cert-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0}.cert-btn{border:1px solid #2d1553;background:#fff;color:#2d1553;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.cert-primary{background:#2d1553;color:#fff}.cert-btn:disabled{opacity:.5;cursor:not-allowed}#certStatus{font-size:13px}.cert-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f2eef8;font-size:12px}.cert-email-missing{color:#a33;font-weight:700}@media(max-width:900px){.cert-toolbar{grid-template-columns:1fr}}

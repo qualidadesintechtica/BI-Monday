@@ -53,7 +53,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.38 · Reunião NQ</small>
+        <small class="build-badge">v25.44 · Certificados</small>
 
       </div>
 
@@ -67,6 +67,7 @@
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
         <a href="#equipe" data-view="equipe">Equipe</a>
         <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
+        <a href="#certificados" data-view="certificados">Certificados</a>
         <a href="projetos.html">Projeto Qualidade</a>
 
         <div class="nav-section-title">Indicadores</div>
@@ -1414,6 +1415,34 @@
 
 
       <!-- =============================================
+           CERTIFICADOS
+      ============================================== -->
+      <section id="viewCertificados" class="page-view" data-page="certificados">
+        <div class="section-heading"><div><h2>Certificados de Revisores</h2><p>Certificados das Unidades de Aprendizagem com Status Validação = Validado.</p></div></div>
+        <div class="cert-toolbar">
+          <label>Semestre<select id="certSemestre"><option value="">Todos os semestres</option></select></label>
+          <label>Revisor<select id="certRevisor"><option value="">Todos os revisores</option></select></label>
+          <label class="cert-search">Pesquisar<input id="certBusca" type="search" placeholder="Nome, UA, título ou e-mail"></label>
+        </div>
+        <section class="mini-kpis four">
+          <article class="mini-kpi"><span>Elegíveis</span><strong id="certElegiveis">0</strong></article>
+          <article class="mini-kpi"><span>Revisores</span><strong id="certRevisores">0</strong></article>
+          <article class="mini-kpi"><span>Selecionados</span><strong id="certSelecionados">0</strong></article>
+          <article class="mini-kpi"><span>Sem e-mail</span><strong id="certSemEmail">0</strong></article>
+        </section>
+        <div class="cert-actions">
+          <button id="certSelecionarTodos" class="cert-btn" type="button">Selecionar todos</button>
+          <button id="certGerar" class="cert-btn" type="button">Gerar PDFs selecionados</button>
+          <button id="certEnviar" class="cert-btn cert-primary" type="button">Enviar selecionados</button>
+          <span id="certStatus"></span>
+        </div>
+        <div class="table-card"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th></th><th>Revisor</th><th>E-mail</th><th>UA / Name</th><th>Título</th><th>Semestre</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody id="certTbody"><tr><td colspan="8" class="empty-table">Carregando certificados...</td></tr></tbody>
+        </table></div></div>
+      </section>
+
+      <!-- =============================================
            EQUIPE
       ============================================== -->
       <section id="viewEquipe" class="page-view" data-page="equipe">
@@ -1490,7 +1519,9 @@
   <script src="js/indicadores-uc.js?v=20260904-v22-3"></script>
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
-  <script src="js/dashboard.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="js/certificados.js?v=20260924-v25-44"></script>
+  <script src="js/dashboard.js?v=20260924-v25-44"></script>
 
 
 <div data-build-version="20260918-v25-26-operacao-pesquisa-titulos" style="display:none"></div>
