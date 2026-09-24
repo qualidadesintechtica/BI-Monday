@@ -1,3 +1,3 @@
-V25.45
+V25.45.1
 2026-09-24
-Filtro global UA/Name adicionado ao BI, com suporte ao mesmo multiselect/pesquisa dos filtros existentes e aplicação sobre KPIs, gráficos e tabelas globais.
+Correção do filtro global UA/Name: multisseleção, aplicação real em aplicarFiltros e integração com Certificados.
