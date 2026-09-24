@@ -25,6 +25,17 @@
     observacoes: "notesField",
   };
 
+  const EVIDENCE_BUCKET = "pq-evidencias";
+  const TAMANHO_MAXIMO_EVIDENCIA = 20 * 1024 * 1024;
+  const EXTENSOES_EVIDENCIA = new Set(["pdf", "doc", "docx", "jpg", "jpeg"]);
+  const MIME_EVIDENCIA = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+  };
+
   const $ = (id) => document.getElementById(id);
 
   function texto(valor) {
@@ -210,6 +221,64 @@
     return url;
   }
 
+  function extensaoArquivo(nome) {
+    const partes = texto(nome).toLowerCase().split(".");
+    return partes.length > 1 ? partes.pop() : "";
+  }
+
+  function nomeArquivoSeguro(nome) {
+    const original = texto(nome) || "arquivo";
+    const ext = extensaoArquivo(original);
+    const base = original
+      .replace(/\.[^.]+$/, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "arquivo";
+    return `${base}.${ext}`;
+  }
+
+  function validarArquivoEvidencia(file) {
+    if (!file) return "Selecione um arquivo.";
+    const ext = extensaoArquivo(file.name);
+    if (!EXTENSOES_EVIDENCIA.has(ext)) {
+      return "Formato não permitido. Use PDF, DOC, DOCX, JPG ou JPEG.";
+    }
+    if (file.size <= 0) return "O arquivo está vazio.";
+    if (file.size > TAMANHO_MAXIMO_EVIDENCIA) {
+      return "O arquivo excede o limite de 20 MB.";
+    }
+    return "";
+  }
+
+  function tipoPorArquivo(nome) {
+    const ext = extensaoArquivo(nome);
+    return ext === "jpg" || ext === "jpeg" ? "Imagem" : "Documento";
+  }
+
+  function atualizarStatusArquivo(linha, mensagem, classe = "") {
+    const status = linha.querySelector(".evidence-file-status");
+    if (!status) return;
+    status.textContent = mensagem;
+    status.className = `evidence-file-status${classe ? ` ${classe}` : ""}`;
+  }
+
+  function limparMetadadosArquivo(linha) {
+    delete linha.dataset.storagePath;
+    delete linha.dataset.fileName;
+    delete linha.dataset.mimeType;
+    delete linha.dataset.fileSize;
+  }
+
+  function arquivoPendente(linha) {
+    return linha.querySelector("[data-evidence-file]")?.files?.[0] || null;
+  }
+
+  function evidenciaComArquivo(item) {
+    return Boolean(item.storage_path || item.arquivo_pendente);
+  }
+
   function mesmoId(a, b) {
     return String(a ?? "") === String(b ?? "");
   }
@@ -240,6 +309,15 @@
 
   function mensagemErro(error) {
     const bruto = texto(error?.message || error);
+    if (/bucket.*not found|pq-evidencias.*not found/i.test(bruto)) {
+      return "O armazenamento de evidências ainda não foi instalado. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql no Supabase.";
+    }
+    if (/mime type|maximum allowed size|payload too large|entity too large/i.test(bruto)) {
+      return "O arquivo foi recusado. Confirme o formato permitido e o limite de 20 MB.";
+    }
+    if (/evidência.*(?:row-level|policy|permission|unauthorized|jwt)/i.test(bruto)) {
+      return "O armazenamento de evidências não autorizou a operação. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql e entre novamente no sistema.";
+    }
     if (/pq_projetos_edicoes|pq_salvar_edicao|does not exist|schema cache/i.test(bruto)) {
       return "O editor ainda não foi instalado no Supabase. Execute o arquivo docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql no SQL Editor e recarregue esta página.";
     }
@@ -605,10 +683,54 @@
   function adicionarEvidencia(dados = {}) {
     const fragmento = $("evidenceTemplate").content.cloneNode(true);
     const linha = fragmento.querySelector(".evidence-row");
+    linha.dataset.storagePath = texto(dados.storage_path);
+    linha.dataset.fileName = texto(dados.arquivo_nome);
+    linha.dataset.mimeType = texto(dados.mime_type);
+    linha.dataset.fileSize = texto(dados.tamanho_bytes);
     linha.querySelectorAll("[data-evidence]").forEach((entrada) => {
       entrada.value = dados[entrada.dataset.evidence] || "";
       entrada.addEventListener("input", atualizarPreview);
       entrada.addEventListener("change", atualizarPreview);
+    });
+    const inputArquivo = linha.querySelector("[data-evidence-file]");
+    if (linha.dataset.storagePath) {
+      atualizarStatusArquivo(
+        linha,
+        `Anexado: ${linha.dataset.fileName || "arquivo protegido"}`,
+        "ready",
+      );
+    }
+    inputArquivo.addEventListener("change", () => {
+      const file = inputArquivo.files?.[0];
+      if (!file) {
+        if (linha.dataset.storagePath) {
+          atualizarStatusArquivo(linha, `Anexado: ${linha.dataset.fileName}`, "ready");
+        } else {
+          atualizarStatusArquivo(linha, "Nenhum arquivo selecionado.");
+        }
+        atualizarPreview();
+        return;
+      }
+
+      const erro = validarArquivoEvidencia(file);
+      if (erro) {
+        inputArquivo.value = "";
+        atualizarStatusArquivo(linha, erro, "error");
+        atualizarPreview();
+        return;
+      }
+
+      limparMetadadosArquivo(linha);
+      const titulo = linha.querySelector('[data-evidence="titulo"]');
+      const tipo = linha.querySelector('[data-evidence="tipo"]');
+      if (titulo && !texto(titulo.value)) titulo.value = file.name.replace(/\.[^.]+$/, "");
+      if (tipo) tipo.value = tipoPorArquivo(file.name);
+      atualizarStatusArquivo(
+        linha,
+        `Pronto para enviar: ${file.name} · ${(file.size / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`,
+        "ready",
+      );
+      atualizarPreview();
     });
     linha.querySelector(".remove-evidence").addEventListener("click", () => {
       linha.remove();
@@ -625,9 +747,55 @@
         linha.querySelectorAll("[data-evidence]").forEach((entrada) => {
           evidencia[entrada.dataset.evidence] = texto(entrada.value);
         });
+        evidencia.storage_path = texto(linha.dataset.storagePath);
+        evidencia.arquivo_nome = texto(linha.dataset.fileName);
+        evidencia.mime_type = texto(linha.dataset.mimeType);
+        evidencia.tamanho_bytes = Number(linha.dataset.fileSize || 0) || 0;
+        evidencia.arquivo_pendente = Boolean(arquivoPendente(linha));
         return evidencia;
       })
-      .filter((item) => item.titulo || item.url || item.descricao);
+      .filter((item) => item.titulo || item.url || item.descricao || evidenciaComArquivo(item));
+  }
+
+  async function enviarArquivosPendentes() {
+    const linhas = [...$("evidenceList").querySelectorAll(".evidence-row")];
+
+    for (const linha of linhas) {
+      const input = linha.querySelector("[data-evidence-file]");
+      const file = input?.files?.[0];
+      if (!file) continue;
+
+      const erroValidacao = validarArquivoEvidencia(file);
+      if (erroValidacao) throw new Error(`${file.name}: ${erroValidacao}`);
+
+      const ext = extensaoArquivo(file.name);
+      const identificador = globalThis.crypto?.randomUUID?.()
+        || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const usuarioId = texto(estado.usuario?.id).replace(/[^a-zA-Z0-9-]/g, "") || "usuario";
+      const projetoId = texto(estado.projetoId).replace(/[^a-zA-Z0-9-]/g, "-") || "projeto";
+      const caminho = `${usuarioId}/${projetoId}/${Date.now()}-${identificador}-${nomeArquivoSeguro(file.name)}`;
+
+      atualizarStatusArquivo(linha, `Enviando ${file.name}…`, "uploading");
+      const { data, error } = await window.biSupabase.storage
+        .from(EVIDENCE_BUCKET)
+        .upload(caminho, file, {
+          cacheControl: "3600",
+          contentType: MIME_EVIDENCIA[ext],
+          upsert: false,
+        });
+
+      if (error) {
+        atualizarStatusArquivo(linha, `Falha no envio de ${file.name}.`, "error");
+        throw new Error(`Upload de evidência: ${error.message || error}`);
+      }
+
+      linha.dataset.storagePath = data.path;
+      linha.dataset.fileName = file.name;
+      linha.dataset.mimeType = MIME_EVIDENCIA[ext];
+      linha.dataset.fileSize = String(file.size);
+      input.value = "";
+      atualizarStatusArquivo(linha, `Anexado: ${file.name}`, "ready");
+    }
   }
 
   function obterFormulario() {
@@ -643,8 +811,8 @@
     if (!dados.resultados_esperados) faltantes.push("Resultados esperados");
     if (!dados.resultados_alcancados) faltantes.push("Resultados alcançados");
     if (!dados.impacto) faltantes.push("Impacto gerado");
-    if (!dados.evidencias.some((item) => item.titulo && urlSegura(item.url))) {
-      faltantes.push("Ao menos uma evidência com título e link http(s)");
+    if (!dados.evidencias.some((item) => item.titulo && (urlSegura(item.url) || evidenciaComArquivo(item)))) {
+      faltantes.push("Ao menos uma evidência com título e arquivo ou link http(s)");
     }
     return faltantes;
   }
@@ -655,7 +823,7 @@
       ["Resultados esperados", Boolean(dados.resultados_esperados)],
       ["Resultados alcançados", Boolean(dados.resultados_alcancados)],
       ["Impacto gerado", Boolean(dados.impacto)],
-      ["Evidência com título e link", dados.evidencias.some((e) => e.titulo && urlSegura(e.url))],
+      ["Evidência com título e arquivo ou link", dados.evidencias.some((e) => e.titulo && (urlSegura(e.url) || evidenciaComArquivo(e)))],
     ];
     $("completionChecklist").innerHTML = itens
       .map(([rotulo, pronto]) => `<li class="${pronto ? "done" : ""}">${escapar(rotulo)}</li>`)
@@ -687,18 +855,23 @@
   }
 
   function tabelaEvidencias(evidencias) {
-    const validas = evidencias.filter((item) => item.titulo || item.url || item.descricao);
+    const validas = evidencias.filter((item) => item.titulo || item.url || item.descricao || evidenciaComArquivo(item));
     if (!validas.length) return '<p class="report-empty">Nenhuma evidência registrada.</p>';
     return `
       <table class="report-evidence-table">
         <thead><tr><th>Evidência</th><th>Tipo</th><th>O que comprova</th><th>Link</th></tr></thead>
         <tbody>${validas.map((item) => {
           const url = urlSegura(item.url);
+          const acesso = item.storage_path
+            ? `<button type="button" class="evidence-open-file" data-storage-path="${escapar(item.storage_path)}" data-file-name="${escapar(item.arquivo_nome || item.titulo || "arquivo")}">Abrir arquivo</button>`
+            : (url
+              ? `<a href="${escapar(url)}" target="_blank" rel="noopener noreferrer">Abrir evidência</a>`
+              : (item.arquivo_pendente ? "Será enviado ao salvar" : "—"));
           return `<tr>
             <td>${escapar(item.titulo || "—")}</td>
             <td>${escapar(item.tipo || "—")}</td>
             <td>${escapar(item.descricao || "—")}</td>
-            <td>${url ? `<a href="${escapar(url)}">Abrir evidência</a>` : "—"}</td>
+            <td>${acesso}</td>
           </tr>`;
         }).join("")}</tbody>
       </table>`;
@@ -821,10 +994,31 @@
     $("finalizeButton").textContent = ativo ? "Salvando…" : "Finalizar e gerar PDF";
   }
 
+  async function abrirArquivoArmazenado(caminho, nome) {
+    const janela = window.open("", "_blank");
+    if (janela) {
+      janela.opener = null;
+      janela.document.title = "Abrindo arquivo…";
+      janela.document.body.textContent = "Gerando acesso seguro ao arquivo…";
+    }
+
+    try {
+      const { data, error } = await window.biSupabase.storage
+        .from(EVIDENCE_BUCKET)
+        .createSignedUrl(caminho, 120, { download: nome || undefined });
+      if (error) throw new Error(`Abertura da evidência: ${error.message || error}`);
+      if (janela) janela.location.replace(data.signedUrl);
+      else window.location.href = data.signedUrl;
+    } catch (error) {
+      if (janela) janela.close();
+      mostrarFeedback(mensagemErro(error), "error");
+    }
+  }
+
   async function salvar(finalizar) {
     if (!estado.projetoId || estado.salvando) return;
-    const dados = obterFormulario();
-    const faltantes = validarFinalizacao(dados);
+    let dados = obterFormulario();
+    let faltantes = validarFinalizacao(dados);
 
     if (finalizar && faltantes.length) {
       mostrarFeedback(`Complete antes de finalizar: ${faltantes.join("; ")}.`, "warning");
@@ -837,6 +1031,13 @@
     definirSalvando(true);
     mostrarFeedback(finalizar ? "Finalizando a versão…" : "Salvando uma nova versão…");
     try {
+      await enviarArquivosPendentes();
+      dados = obterFormulario();
+      faltantes = validarFinalizacao(dados);
+      if (finalizar && faltantes.length) {
+        throw new Error(`Complete antes de finalizar: ${faltantes.join("; ")}.`);
+      }
+
       const { data, error } = await window.biSupabase.rpc("pq_salvar_edicao", {
         p_projeto_id: estado.projetoId,
         p_contexto_objetivo: dados.contexto_objetivo || null,
@@ -845,7 +1046,7 @@
         p_resultados_alcancados: dados.resultados_alcancados || null,
         p_impacto: dados.impacto || null,
         p_observacoes: dados.observacoes || null,
-        p_evidencias: dados.evidencias,
+        p_evidencias: dados.evidencias.map(({ arquivo_pendente, ...evidencia }) => evidencia),
         p_finalizar: finalizar,
       });
       if (error) throw error;
@@ -931,6 +1132,11 @@
     $("saveDraftButton").addEventListener("click", () => salvar(false));
     $("finalizeButton").addEventListener("click", () => salvar(true));
     $("printDraftButton").addEventListener("click", imprimirRelatorio);
+    $("reportDocument").addEventListener("click", (evento) => {
+      const botao = evento.target.closest(".evidence-open-file");
+      if (!botao) return;
+      abrirArquivoArmazenado(botao.dataset.storagePath, botao.dataset.fileName);
+    });
     document.addEventListener("click", (evento) => {
       if (!evento.target.closest(".responsible-combobox")) fecharMenuResponsaveis();
     });

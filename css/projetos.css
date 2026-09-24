@@ -565,6 +565,40 @@
 }
 
 .evidence-row .wide { grid-column: 1 / -1; }
+.evidence-file-field input[type="file"] {
+  min-height: 50px;
+  padding: 8px;
+  cursor: pointer;
+}
+.evidence-file-field input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: #efe7f6;
+  color: var(--purple);
+  font-weight: 800;
+  cursor: pointer;
+}
+.evidence-file-status {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.evidence-file-status.ready { color: #176536; font-weight: 800; }
+.evidence-file-status.uploading { color: #7b4a00; font-weight: 800; }
+.evidence-file-status.error { color: #a51f44; font-weight: 800; }
+.evidence-open-file {
+  padding: 5px 9px;
+  border: 1px solid #cdbada;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--purple);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.evidence-open-file:hover { background: #f8f3fb; }
 .remove-evidence { position: absolute; top: 9px; right: 9px; width: 27px; height: 27px; border: 0; border-radius: 50%; background: #f4e9ef; color: #9c205c; font-size: 1.1rem; cursor: pointer; }
 
 .history-help { font-size: 0.8rem; }
