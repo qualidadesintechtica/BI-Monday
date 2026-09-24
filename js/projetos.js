@@ -1128,6 +1128,13 @@
       adicionarEvidencia();
       atualizarPreview();
     });
+    $("attachEvidenceButton")?.addEventListener("click", () => {
+      if (!$("evidenceList").children.length) adicionarEvidencia();
+      const ultimaLinha = $("evidenceList").lastElementChild;
+      const inputArquivo = ultimaLinha?.querySelector("[data-evidence-file]");
+      document.querySelector(".evidence-fieldset")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => inputArquivo?.click(), 350);
+    });
     Object.values(campos).forEach((id) => $(id).addEventListener("input", atualizarPreview));
     $("saveDraftButton").addEventListener("click", () => salvar(false));
     $("finalizeButton").addEventListener("click", () => salvar(true));

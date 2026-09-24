@@ -1,4 +1,4 @@
-# BI-Monday V25.39
+# BI-Monday V25.40
 
 Base V25.38 preservada com upload protegido de evidências em Projetos da Qualidade.
 
@@ -29,7 +29,7 @@ Execute os dois arquivos no SQL Editor do Supabase antes de testar os anexos.
 - Mantém somente o resultado vigente por UA, critério e matriz.
 - Usa a data de classificação e o `subitem_id` como desempate.
 
-## V25.39 — Evidências dos projetos
+## V25.40 — Evidências dos projetos
 - Aceita PDF, DOC, DOCX, JPG e JPEG, com limite de 20 MB.
 - Mantém o bucket privado e abre o arquivo por link temporário.
 - Preserva os anexos no histórico de versões do relatório.

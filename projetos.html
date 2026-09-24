@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20260923-v25-39-anexos">
+    <link rel="stylesheet" href="css/projetos.css?v=20260924-v25-40-anexos-visiveis">
   </head>
 
   <body>
@@ -168,6 +168,7 @@
                 <p id="selectedProjectMeta">—</p>
               </div>
               <div class="toolbar-actions">
+                <button id="attachEvidenceButton" class="secondary-action attachment-action" type="button">Anexar arquivo</button>
                 <button id="printDraftButton" class="secondary-action" type="button">Visualizar PDF</button>
                 <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar nova versão</button>
                 <button id="finalizeButton" class="primary-action" type="button">Finalizar e gerar PDF</button>
@@ -232,7 +233,7 @@
                       <legend>Evidências <b>*</b></legend>
                       <p>Adicione links ou envie arquivos PDF, Word (DOC/DOCX) e imagens JPG/JPEG de até 20 MB.</p>
                       <div id="evidenceList" class="evidence-list"></div>
-                      <button id="addEvidenceButton" class="secondary-action small" type="button">+ Adicionar evidência</button>
+                      <button id="addEvidenceButton" class="secondary-action small attachment-action" type="button">+ Anexar arquivo / adicionar evidência</button>
                     </fieldset>
                   </form>
                 </section>
@@ -297,6 +298,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20260923-v25-39-anexos"></script>
+    <script src="js/projetos.js?v=20260924-v25-40-anexos-visiveis"></script>
   </body>
 </html>

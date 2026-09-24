@@ -770,3 +770,22 @@
   white-space:pre-wrap;
   color:#625669;
 }
+
+/* V25.40 - anexos sempre visíveis no editor */
+.attachment-action {
+  border-color: #d8a8cc !important;
+  background: #fff7fc !important;
+  color: var(--purple) !important;
+  font-weight: 900 !important;
+}
+.evidence-fieldset {
+  border: 2px solid #ead4e5;
+  background: #fffafd;
+}
+.evidence-file-field {
+  padding: 10px;
+  border: 1px dashed #cfa7c6;
+  border-radius: 10px;
+  background: #fff;
+}
+.evidence-file-field input[type="file"] { width: 100%; display: block; }
