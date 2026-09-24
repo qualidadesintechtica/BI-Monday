@@ -932,13 +932,6 @@
           "revisor_validador"
       },
 
-      {
-        select:
-          "filtroUAName",
-        campo:
-          "item_name"
-      }
-
     ];
 
     return dados.filter(

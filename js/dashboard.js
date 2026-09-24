@@ -318,9 +318,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     "filtroGestor",
 
-    "filtroRevisor",
-
-    "filtroUAName"
+    "filtroRevisor"
 
   ];
 
@@ -422,12 +420,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         "revisor_validador",
         "Todos os revisores"
       ],
-
-      [
-        "filtroUAName",
-        "item_name",
-        "Todas as UAs/Names"
-      ]
 
     ];
 
