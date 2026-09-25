@@ -3,7 +3,7 @@
 
   let base = [];
   let filtrados = [];
-  let emailMap = new Map();
+  let emailPorItem = new Map();
   let historico = new Set();
   let inicializado = false;
 
@@ -45,105 +45,51 @@
   }
 
 
-  // Base de e-mails dos revisores importada da planilha de certificados 2026.
-  // É usada como fonte prioritária para o envio dos certificados.
-  const EMAILS_REVISORES_CERTIFICADOS = {
-    "Adriana Neves dos Reis": "adriana.neves@animaeducacao.com.br",
-    "Adriano Rodrigues Teixeira": "adriano.texeira@ulife.com.br",
-    "Alexia Soares Montingelli Lopes": "alexia.lopes@ulife.com.br",
-    "Amandio Luís Barbosa Furtado": "amandio.furtado@animaeducacao.com.br",
-    "Arnaldo Vieira da Silva": "prof.arnaldosilva@usjt.br",
-    "Carlos Pereira Martins": "carlos.p.martins@ulife.com.br",
-    "Elaini Karoline Russi": "elaini.russi@animaeducacao.com.br",
-    "Evelyne Ferreira": "evelyne.ferreira@ulife.com.br",
-    "Fabio Luiz Oliveira de Carvalho": "fabio.l.carvalho@ulife.com.br",
-    "Gisele Baumgarten Rosumek": "gisele.baumgarten@unisociesc.com.br",
-    "Gisele Moraes Silveira Guilhermino": "gisele.guilhermino@ulife.com.br",
-    "Giseli Quirino Batista": "prof.giselibatista@ulife.com.br",
-    "Giuliano Barros": "giuliano.barro@ulife.com.br",
-    "Giuliano Richards Ribeiro": "giuliano.ribeiro@animaeducacao.com.br",
-    "Joseane Borges de Miranda": "joseane.miranda@animaeducacao.com.br",
-    "Juarez de Quadros Barbosa Júnior": "juarez.barbosa@animaeducacao.com.br",
-    "Marcilene Pereira da Silva": "marcilene.pereira@ulife.com.br",
-    "Marília Dantas Costa Carneiro": "marilia.carneiro@animaeducacao.com.br",
-    "ROSANA SILVA DOS REIS": "rosana.reis@ulife.com.br",
-    "Renato Luiz Vieira de Carvalho": "renato.l.carvalho@ulife.com.br",
-    "Samantha Borges": "samantha.borges@ulife.com.br",
-    "Suellen Fonseca": "suellen.fonseca@prof.una.br",
-    "Suzana Cimara Batista": "suzana.cimara@animaeducacao.com.br",
-    "Tamires Souto": "tamires.souto@animaeducacao.com.br",
-    "Wagner Fernandes dos Santos": "wagner.f.santos@animaeducacao.com.br",
-    "Waleska Diniz Santana": "waleska.santana@ulife.com.br"
-  };
+  // ============================================================
+  // E-MAILS DOS REVISORES — FONTE OFICIAL: MONDAY
+  // ============================================================
 
-  function carregarEmailsPlanilha() {
-    Object.entries(EMAILS_REVISORES_CERTIFICADOS).forEach(([nome, email]) => {
-      if (norm(nome) && emailDoTexto(email)) {
-        emailMap.set(norm(nome), emailDoTexto(email));
-      }
+  async function carregarEmails() {
+    emailPorItem = new Map();
+
+    const { data: { session } } = await window.biSupabase.auth.getSession();
+    if (!session) throw new Error("Sessão expirada. Entre novamente no BI.");
+
+    const url = `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/monday-revisores`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({ board_id: 9433297929 })
+    });
+
+    const out = await resp.json().catch(() => ({}));
+    if (!resp.ok || !out.success) {
+      throw new Error(out.error || `Erro HTTP ${resp.status} ao consultar revisores no Monday.`);
+    }
+
+    (out.itens || []).forEach((x) => {
+      const itemId = txt(x.monday_item_id);
+      const pessoas = Array.isArray(x.pessoas) ? x.pessoas : [];
+      // Regra segura: o e-mail pertence ao person_id gravado NESTE item.
+      // Se houver zero ou mais de uma pessoa, não fazemos fallback por nome.
+      if (!itemId || pessoas.length !== 1) return;
+      const pessoa = pessoas[0];
+      const email = emailDoTexto(pessoa.email);
+      if (!email || !pessoa.monday_user_id) return;
+      emailPorItem.set(itemId, {
+        monday_user_id: Number(pessoa.monday_user_id),
+        nome: txt(pessoa.nome),
+        email
+      });
     });
   }
 
   function ehUnidadeAprendizagem(v) {
     return /^UNIDADE\s*0?[1-8]\b/i.test(txt(v));
-  }
-
-  // ============================================================
-  // E-MAILS DOS REVISORES
-  // ============================================================
-
-  async function carregarEmails() {
-    carregarEmailsPlanilha();
-    try {
-      const { data, error } = await window.biSupabase
-        .from("nq_responsaveis")
-        .select(
-          "nome_oficial,aliases,emails,eh_revisor,ativo"
-        )
-        .eq("ativo", true)
-        .eq("eh_revisor", true);
-
-      if (error) throw error;
-
-      (data || []).forEach((x) => {
-        const emails = Array.isArray(x.emails)
-          ? x.emails
-          : [];
-
-        const email =
-          emails
-            .map(emailDoTexto)
-            .find(Boolean) || "";
-
-        const aliases = Array.isArray(x.aliases)
-          ? x.aliases
-          : [];
-
-        [
-          x.nome_oficial,
-          ...aliases,
-          ...emails
-        ].forEach((alias) => {
-          if (norm(alias) && email) {
-            emailMap.set(
-              norm(alias),
-              email
-            );
-          }
-        });
-      });
-
-      // A planilha de certificados é a referência prioritária para nomes exatos.
-      carregarEmailsPlanilha();
-
-    } catch (e) {
-      // Mesmo sem nq_responsaveis, a lista da planilha permanece disponível.
-      carregarEmailsPlanilha();
-      console.warn(
-        "E-mails NQ não carregados.",
-        e
-      );
-    }
   }
 
   // ============================================================
@@ -224,11 +170,13 @@
 
         if (!name) return;
 
-        const email =
-          emailDoTexto(revisorOriginal) ||
-          emailMap.get(norm(revisor)) ||
-          emailMap.get(norm(revisorOriginal)) ||
-          "";
+        const mondayItemId = txt(
+          x.monday_item_validacao ||
+          x.monday_item_id
+        );
+
+        const pessoaMonday = emailPorItem.get(mondayItemId);
+        const email = pessoaMonday?.email || "";
 
         const r = {
           revisor,
