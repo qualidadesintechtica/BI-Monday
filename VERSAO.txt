@@ -1,3 +1,3 @@
-V25.46.2
+V25.46.3
 2026-09-25
-Certificados somente para UAs + mensagem atualizada + remoção segura do botão Voltar para Projetos da Qualidade, preservando o layout original.
+Base visual restaurada da V25.45.2; certificados somente para UAs; e-mails de revisores; nova mensagem; botão Voltar para Projetos da Qualidade removido sem alterar o contêiner de layout.
