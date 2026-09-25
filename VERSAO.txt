@@ -1,3 +1,3 @@
-V25.45.2
-2026-09-24
-Remoção completa do filtro global UA/Name. Mantidos os filtros Esteira, Matriz, Bloco, Status, Categoria, Gestor e Revisor.
+V25.46
+2026-09-25
+Certificados: envio restrito às Unidades de Aprendizagem (UNIDADE 01 a UNIDADE 08); e-mails de revisores incorporados da planilha certificados2026_com_ArquivoPDF.xlsx; nova mensagem de e-mail; função Supabase enviar-certificado incluída para deploy.

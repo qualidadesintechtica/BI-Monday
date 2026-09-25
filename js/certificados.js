@@ -44,11 +44,56 @@
     ].join("|");
   }
 
+
+  // Base de e-mails dos revisores importada da planilha de certificados 2026.
+  // É usada como fonte prioritária para o envio dos certificados.
+  const EMAILS_REVISORES_CERTIFICADOS = {
+    "Adriana Neves dos Reis": "adriana.neves@animaeducacao.com.br",
+    "Adriano Rodrigues Teixeira": "adriano.texeira@ulife.com.br",
+    "Alexia Soares Montingelli Lopes": "alexia.lopes@ulife.com.br",
+    "Amandio Luís Barbosa Furtado": "amandio.furtado@animaeducacao.com.br",
+    "Arnaldo Vieira da Silva": "prof.arnaldosilva@usjt.br",
+    "Carlos Pereira Martins": "carlos.p.martins@ulife.com.br",
+    "Elaini Karoline Russi": "elaini.russi@animaeducacao.com.br",
+    "Evelyne Ferreira": "evelyne.ferreira@ulife.com.br",
+    "Fabio Luiz Oliveira de Carvalho": "fabio.l.carvalho@ulife.com.br",
+    "Gisele Baumgarten Rosumek": "gisele.baumgarten@unisociesc.com.br",
+    "Gisele Moraes Silveira Guilhermino": "gisele.guilhermino@ulife.com.br",
+    "Giseli Quirino Batista": "prof.giselibatista@ulife.com.br",
+    "Giuliano Barros": "giuliano.barro@ulife.com.br",
+    "Giuliano Richards Ribeiro": "giuliano.ribeiro@animaeducacao.com.br",
+    "Joseane Borges de Miranda": "joseane.miranda@animaeducacao.com.br",
+    "Juarez de Quadros Barbosa Júnior": "juarez.barbosa@animaeducacao.com.br",
+    "Marcilene Pereira da Silva": "marcilene.pereira@ulife.com.br",
+    "Marília Dantas Costa Carneiro": "marilia.carneiro@animaeducacao.com.br",
+    "ROSANA SILVA DOS REIS": "rosana.reis@ulife.com.br",
+    "Renato Luiz Vieira de Carvalho": "renato.l.carvalho@ulife.com.br",
+    "Samantha Borges": "samantha.borges@ulife.com.br",
+    "Suellen Fonseca": "suellen.fonseca@prof.una.br",
+    "Suzana Cimara Batista": "suzana.cimara@animaeducacao.com.br",
+    "Tamires Souto": "tamires.souto@animaeducacao.com.br",
+    "Wagner Fernandes dos Santos": "wagner.f.santos@animaeducacao.com.br",
+    "Waleska Diniz Santana": "waleska.santana@ulife.com.br"
+  };
+
+  function carregarEmailsPlanilha() {
+    Object.entries(EMAILS_REVISORES_CERTIFICADOS).forEach(([nome, email]) => {
+      if (norm(nome) && emailDoTexto(email)) {
+        emailMap.set(norm(nome), emailDoTexto(email));
+      }
+    });
+  }
+
+  function ehUnidadeAprendizagem(v) {
+    return /^UNIDADE\s*0?[1-8]\b/i.test(txt(v));
+  }
+
   // ============================================================
   // E-MAILS DOS REVISORES
   // ============================================================
 
   async function carregarEmails() {
+    carregarEmailsPlanilha();
     try {
       const { data, error } = await window.biSupabase
         .from("nq_responsaveis")
@@ -88,7 +133,12 @@
         });
       });
 
+      // A planilha de certificados é a referência prioritária para nomes exatos.
+      carregarEmailsPlanilha();
+
     } catch (e) {
+      // Mesmo sem nq_responsaveis, a lista da planilha permanece disponível.
+      carregarEmailsPlanilha();
       console.warn(
         "E-mails NQ não carregados.",
         e
@@ -159,6 +209,9 @@
           x.unidade_material ||
           x.id_ua
         );
+
+        // Regra V25.46: certificados somente para Unidades de Aprendizagem (UA).
+        if (!ehUnidadeAprendizagem(name)) return;
 
         const titulo = txt(
           x.titulo ||
