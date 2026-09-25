@@ -1,5 +1,2 @@
 [functions.sincronizar-projetos-qualidade]
 verify_jwt = true
-
-[functions.enviar-certificado]
-verify_jwt = false
