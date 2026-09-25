@@ -35,6 +35,10 @@
     return m ? m[0].toLowerCase() : "";
   }
 
+  function emailValido(v) {
+    return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(txt(v));
+  }
+
   function chave(r) {
     return [
       norm(r.revisor),
@@ -379,11 +383,18 @@
               <td>
                 ${
                   r.email
-                    ? esc(r.email)
+                    ? `${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : ''}`
                     : `
-                      <span class="cert-email-missing">
-                        Não localizado
-                      </span>
+                      <div class="cert-email-missing">Não localizado</div>
+                      <input
+                        type="email"
+                        class="cert-email-manual"
+                        data-i="${i}"
+                        placeholder="Digite o e-mail"
+                        autocomplete="off"
+                        aria-label="E-mail manual de ${esc(r.revisor)}"
+                      >
+                      <div class="cert-email-manual-msg" data-email-msg="${i}"></div>
                     `
                 }
               </td>
@@ -852,7 +863,9 @@
         true;
 
       await Promise.all([
-        carregarEmails(),
+        carregarEmails().catch((e) => {
+          console.warn("E-mails do Monday não carregados; preenchimento manual continuará disponível.", e);
+        }),
         carregarHistorico()
       ]);
 
@@ -874,6 +887,44 @@
           "input",
           render
         );
+
+      // E-mail manual somente quando o Monday não localizar o endereço.
+      document.addEventListener(
+        "input",
+        (e) => {
+          const input = e.target?.closest?.(".cert-email-manual");
+          if (!input) return;
+
+          const indice = Number(input.dataset.i);
+          const registro = filtrados[indice];
+          if (!registro) return;
+
+          const valor = txt(input.value).toLowerCase();
+          const linha = input.closest("tr");
+          const check = linha?.querySelector(".cert-check");
+          const msg = linha?.querySelector(`[data-email-msg="${indice}"]`);
+
+          if (emailValido(valor)) {
+            registro.email = valor;
+            registro.emailManual = true;
+            if (check) check.disabled = false;
+            if (msg) msg.textContent = "E-mail válido — envio liberado";
+          } else {
+            registro.email = "";
+            registro.emailManual = false;
+            if (check) {
+              check.checked = false;
+              check.disabled = true;
+            }
+            if (msg) msg.textContent = valor ? "Informe um e-mail válido" : "";
+          }
+
+          if ($("certSemEmail")) {
+            $("certSemEmail").textContent = filtrados.filter((x) => !x.email).length;
+          }
+          atualizarSel();
+        }
+      );
 
       document.addEventListener(
         "change",
