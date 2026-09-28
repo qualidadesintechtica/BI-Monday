@@ -3,3 +3,6 @@ verify_jwt = true
 
 [functions.enviar-certificado]
 verify_jwt = false
+
+[functions.monday-revisores]
+verify_jwt = true

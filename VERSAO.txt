@@ -1,3 +1,3 @@
-V25.46.2
-2026-09-25
-Certificados somente para UAs + mensagem atualizada + remoção segura do botão Voltar para Projetos da Qualidade, preservando o layout original.
+V25.46.8
+2026-09-28
+Certificados: e-mail do Monday preenchido automaticamente; quando não houver e-mail localizado, o campo fica disponível para preenchimento manual e libera o envio após validação.
