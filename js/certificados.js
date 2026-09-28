@@ -286,6 +286,9 @@
     const rev =
       $("certRevisor")?.value || "";
 
+    const emailFiltro =
+      $("certEmail")?.value || "";
+
     const q =
       norm(
         $("certBusca")?.value || ""
@@ -297,6 +300,9 @@
           r.semestre === sem) &&
         (!rev ||
           r.revisor === rev) &&
+        (!emailFiltro ||
+          (emailFiltro === "com" && emailValido(r.email)) ||
+          (emailFiltro === "sem" && !emailValido(r.email))) &&
         (
           !q ||
           norm(
@@ -860,7 +866,8 @@
 
       [
         "certSemestre",
-        "certRevisor"
+        "certRevisor",
+        "certEmail"
       ].forEach(
         (id) => {
           $(id)
@@ -923,6 +930,11 @@
             $("certSemEmail").textContent = filtrados.filter((x) => !x.email).length;
           }
           atualizarSel();
+
+          // Se o filtro de e-mail estiver ativo, atualiza a lista imediatamente.
+          if ($("certEmail")?.value) {
+            render();
+          }
         }
       );
 

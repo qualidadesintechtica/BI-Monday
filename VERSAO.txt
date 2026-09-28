@@ -1,3 +1,3 @@
-V25.46.10
+V25.46.11
 2026-09-28
-Certificados: cada revisor vinculado ao mesmo item/UA do Monday passa a gerar uma linha e um certificado independente, com e-mail obtido pelo monday_user_id. Quando o e-mail não existir, permanece disponível o preenchimento manual.
+Certificados: adicionado filtro de e-mail com as opções Todos, Com e-mail e Sem e-mail. O filtro considera tanto e-mails localizados automaticamente no Monday quanto e-mails válidos preenchidos manualmente.
