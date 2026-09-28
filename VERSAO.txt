@@ -1,3 +1,3 @@
-V25.46.9
+V25.46.10
 2026-09-28
-Certificados: cada item do Monday permanece em uma linha independente, mesmo quando UA, título, semestre e revisor forem iguais. Mantido e-mail automático do Monday com preenchimento manual quando ausente.
+Certificados: cada revisor vinculado ao mesmo item/UA do Monday passa a gerar uma linha e um certificado independente, com e-mail obtido pelo monday_user_id. Quando o e-mail não existir, permanece disponível o preenchimento manual.

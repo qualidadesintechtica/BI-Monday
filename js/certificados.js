@@ -3,7 +3,7 @@
 
   let base = [];
   let filtrados = [];
-  let emailPorItem = new Map();
+  let revisoresPorItem = new Map();
   let historico = new Set();
   let inicializado = false;
 
@@ -38,8 +38,9 @@
   function chave(r) {
     // Cada item do Monday representa um registro/certificado independente.
     // Assim, UAs iguais não são consolidadas em uma única linha.
-    return txt(r.mondayItemId) || [
-      norm(r.revisor),
+    return [
+      txt(r.mondayItemId),
+      txt(r.mondayUserId) || norm(r.revisor),
       norm(r.name),
       norm(r.titulo),
       norm(r.semestre)
@@ -52,7 +53,7 @@
   // ============================================================
 
   async function carregarEmails() {
-    emailPorItem = new Map();
+    revisoresPorItem = new Map();
 
     const { data: { session } } = await window.biSupabase.auth.getSession();
     if (!session) throw new Error("Sessão expirada. Entre novamente no BI.");
@@ -75,18 +76,19 @@
 
     (out.itens || []).forEach((x) => {
       const itemId = txt(x.monday_item_id);
-      const pessoas = Array.isArray(x.pessoas) ? x.pessoas : [];
-      // Regra segura: o e-mail pertence ao person_id gravado NESTE item.
-      // Se houver zero ou mais de uma pessoa, não fazemos fallback por nome.
-      if (!itemId || pessoas.length !== 1) return;
-      const pessoa = pessoas[0];
-      const email = emailDoTexto(pessoa.email);
-      if (!email || !pessoa.monday_user_id) return;
-      emailPorItem.set(itemId, {
-        monday_user_id: Number(pessoa.monday_user_id),
-        nome: txt(pessoa.nome),
-        email
-      });
+      if (!itemId) return;
+
+      const pessoas = (Array.isArray(x.pessoas) ? x.pessoas : [])
+        .filter((p) => p?.monday_user_id)
+        .map((p) => ({
+          monday_user_id: Number(p.monday_user_id),
+          nome: txt(p.nome),
+          email: emailDoTexto(p.email)
+        }));
+
+      // Mantém TODAS as pessoas ligadas ao item. Cada pessoa vira um
+      // certificado independente, mesmo quando a UA é a mesma.
+      revisoresPorItem.set(itemId, pessoas);
     });
   }
 
@@ -138,18 +140,7 @@
           txt(x.revisor_validador)
       )
       .forEach((x) => {
-
-        const revisorOriginal =
-          txt(x.revisor_validador);
-
-        const revisor =
-          revisorOriginal
-            .replace(
-              /\s*-?\s*[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
-              ""
-            )
-            .trim() ||
-          revisorOriginal;
+        const revisorOriginal = txt(x.revisor_validador);
 
         const name = txt(
           x.item_name ||
@@ -158,18 +149,10 @@
           x.id_ua
         );
 
-        // Regra V25.46: certificados somente para Unidades de Aprendizagem (UA).
         if (!ehUnidadeAprendizagem(name)) return;
 
-        const titulo = txt(
-          x.titulo ||
-          x.id_titulo
-        );
-
-        const semestre = txt(
-          x.semestre_oferta
-        );
-
+        const titulo = txt(x.titulo || x.id_titulo);
+        const semestre = txt(x.semestre_oferta);
         if (!name) return;
 
         const mondayItemId = txt(
@@ -177,31 +160,40 @@
           x.monday_item_id
         );
 
-        const pessoaMonday = emailPorItem.get(mondayItemId);
-        const email = pessoaMonday?.email || "";
+        const pessoasMonday = revisoresPorItem.get(mondayItemId) || [];
 
-        const r = {
-          mondayItemId,
-          revisor,
-          email,
-          name,
-          titulo,
-          semestre
-        };
+        // Regra V25.46.10: cada pessoa da coluna Revisor do Monday gera
+        // sua própria linha/certificado, ainda que pertença à mesma UA.
+        const registros = pessoasMonday.length
+          ? pessoasMonday.map((pessoa) => ({
+              mondayItemId,
+              mondayUserId: pessoa.monday_user_id,
+              revisor: pessoa.nome || revisorOriginal,
+              email: pessoa.email || "",
+              name,
+              titulo,
+              semestre
+            }))
+          : [{
+              mondayItemId,
+              mondayUserId: "",
+              revisor: revisorOriginal
+                .replace(/\s*-?\s*[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i, "")
+                .trim() || revisorOriginal,
+              email: "",
+              name,
+              titulo,
+              semestre
+            }];
 
-        r.chave = chave(r);
-
-        if (!map.has(r.chave)) {
-          map.set(r.chave, r);
-        }
+        registros.forEach((r) => {
+          r.chave = chave(r);
+          if (!map.has(r.chave)) map.set(r.chave, r);
+        });
       });
 
-    base = [...map.values()].sort(
-      (a, b) =>
-        a.revisor.localeCompare(
-          b.revisor,
-          "pt-BR"
-        )
+    base = [...map.values()].sort((a, b) =>
+      a.revisor.localeCompare(b.revisor, "pt-BR")
     );
   }
 
