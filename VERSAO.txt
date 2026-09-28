@@ -1,3 +1,3 @@
-V25.46.11
+V25.46.12
 2026-09-28
-Certificados: adicionado filtro de e-mail com as opções Todos, Com e-mail e Sem e-mail. O filtro considera tanto e-mails localizados automaticamente no Monday quanto e-mails válidos preenchidos manualmente.
+Certificados: corrigido o erro emailValido is not defined no filtro de e-mail e adicionada proteção contra reenvio em lote. Certificados já registrados como enviados ficam indisponíveis para seleção e são ignorados pela rotina de envio selecionado.

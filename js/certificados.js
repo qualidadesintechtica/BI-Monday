@@ -35,6 +35,10 @@
     return m ? m[0].toLowerCase() : "";
   }
 
+  function emailValido(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(txt(v));
+  }
+
   function chave(r) {
     // Cada item do Monday representa um registro/certificado independente.
     // Assim, UAs iguais não são consolidadas em uma única linha.
@@ -369,7 +373,7 @@
                   type="checkbox"
                   class="cert-check"
                   data-i="${i}"
-                  ${!r.email ? "disabled" : ""}
+                  ${(!emailValido(r.email) || historico.has(r.chave)) ? "disabled" : ""}
                 >
               </td>
 
@@ -454,7 +458,7 @@
             )
           ]
       )
-      .filter(Boolean);
+      .filter((r) => r && emailValido(r.email) && !historico.has(r.chave));
   }
 
   function atualizarSel() {
@@ -922,8 +926,8 @@
           const linha = campo.closest("tr");
           const check = linha?.querySelector(".cert-check");
           if (check) {
-            check.disabled = !valido;
-            if (!valido) check.checked = false;
+            check.disabled = !valido || historico.has(registro.chave);
+            if (check.disabled) check.checked = false;
           }
 
           if ($("certSemEmail")) {
