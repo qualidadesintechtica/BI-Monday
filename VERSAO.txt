@@ -1,3 +1,3 @@
-V25.46.12
-2026-09-28
-Certificados: corrigido o erro emailValido is not defined no filtro de e-mail e adicionada proteção contra reenvio em lote. Certificados já registrados como enviados ficam indisponíveis para seleção e são ignorados pela rotina de envio selecionado.
+V25.46.13
+2026-09-29
+Certificados: a lista passa a considerar exclusivamente o Revisor_Validador registrado na própria UA. As pessoas retornadas pelo Monday são usadas apenas para localizar person_id e e-mail; pessoas adicionais vinculadas ao item não geram certificados. Quando não há correspondência segura no Monday, o revisor da UA é mantido com preenchimento manual de e-mail.

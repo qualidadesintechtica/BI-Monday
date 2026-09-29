@@ -90,14 +90,34 @@
           email: emailDoTexto(p.email)
         }));
 
-      // Mantém TODAS as pessoas ligadas ao item. Cada pessoa vira um
-      // certificado independente, mesmo quando a UA é a mesma.
+      // Mantém as pessoas do item apenas para cruzamento posterior.
+      // Só quem corresponder ao Revisor_Validador da UA poderá virar certificado.
       revisoresPorItem.set(itemId, pessoas);
     });
   }
 
   function ehUnidadeAprendizagem(v) {
     return /^UNIDADE\s*0?[1-8]\b/i.test(txt(v));
+  }
+
+  // Confirma se a pessoa retornada pelo Monday é realmente o
+  // Revisor_Validador registrado para aquela UA.
+  function pessoaEhRevisorDaUA(pessoa, revisorOriginal) {
+    const nomePessoa = norm(pessoa?.nome)
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+    const campoRevisor = norm(revisorOriginal)
+      .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, " ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!nomePessoa || !campoRevisor) return false;
+
+    // Nome completo como frase, evitando coincidências parciais
+    // como "Ana" dentro de "Mariana".
+    return (` ${campoRevisor} `).includes(` ${nomePessoa} `);
   }
 
   // ============================================================
@@ -166,10 +186,16 @@
 
         const pessoasMonday = revisoresPorItem.get(mondayItemId) || [];
 
-        // Regra V25.46.10: cada pessoa da coluna Revisor do Monday gera
-        // sua própria linha/certificado, ainda que pertença à mesma UA.
-        const registros = pessoasMonday.length
-          ? pessoasMonday.map((pessoa) => ({
+        // Regra V25.46.13:
+        // o campo Revisor_Validador da própria UA define QUEM pode receber
+        // certificado. O Monday é usado para localizar o person_id/e-mail,
+        // mas nenhuma pessoa extra do item é transformada em revisor.
+        const revisoresDaUA = pessoasMonday.filter((pessoa) =>
+          pessoaEhRevisorDaUA(pessoa, revisorOriginal)
+        );
+
+        const registros = revisoresDaUA.length
+          ? revisoresDaUA.map((pessoa) => ({
               mondayItemId,
               mondayUserId: pessoa.monday_user_id,
               revisor: pessoa.nome || revisorOriginal,
@@ -179,6 +205,8 @@
               semestre
             }))
           : [{
+              // Se não houver correspondência segura no Monday, mantém
+              // SOMENTE o Revisor_Validador da UA e deixa o e-mail manual.
               mondayItemId,
               mondayUserId: "",
               revisor: revisorOriginal
