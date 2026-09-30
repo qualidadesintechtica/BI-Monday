@@ -18,6 +18,43 @@
       .toLowerCase()
       .replace(/\s+/g, " ");
 
+  // V25.46.17 — reconhece exclusivamente UAs 01 a 08, tolerando variações
+  // como "UA 1", "UA01", "Unidade 1" e "Unidade de Aprendizagem 01".
+  function ehUnidadeAprendizagem(valor) {
+    const n = norm(valor)
+      .replace(/[._-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return /^(?:ua|unidade|unidade de aprendizagem)\s*0?([1-8])(?:\b|\s|$)/i.test(n);
+  }
+
+  function chaveUC(valor) {
+    return norm(valor)
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function revisoresDaUC(valor) {
+    const chave = chaveUC(valor);
+    if (!chave) return [];
+
+    // Primeiro: correspondência exata normalizada.
+    const exatos = revisoresPorUC.get(chave);
+    if (exatos?.length) return exatos;
+
+    // Segundo: tolera prefixos/sufixos do Monday somente quando a
+    // correspondência aponta para UMA ÚNICA UC da Base Oficial.
+    const candidatos = [];
+    for (const [ucBase, lista] of revisoresPorUC.entries()) {
+      if (chave.includes(ucBase) || ucBase.includes(chave)) {
+        candidatos.push([ucBase, lista]);
+      }
+    }
+    if (candidatos.length === 1) return candidatos[0][1];
+    return [];
+  }
+
   const esc = (s) =>
     txt(s).replace(/[&<>"']/g, (m) => ({
       "&": "&amp;",
@@ -71,7 +108,7 @@
     }
 
     (data || []).forEach((r) => {
-      const ucChave = norm(r.uc);
+      const ucChave = chaveUC(r.uc);
       const revisor = txt(r.docente_revisor);
       if (!ucChave || !revisor) return;
 
@@ -164,24 +201,44 @@
 
   function montar(dados) {
     const map = new Map();
+    const diagnostico = {
+      recebidos: (dados || []).length,
+      validados: 0,
+      uas: 0,
+      uas20262: 0,
+      semUCBase: 0,
+      certificados: 0,
+      ucsSemCorrespondencia: new Map()
+    };
 
     (dados || [])
       .filter((x) => norm(x.status_validacao) === "validado")
       .forEach((x) => {
+        diagnostico.validados += 1;
+
         const name = txt(
           x.item_name || x.titulo_ua || x.unidade_material || x.id_ua
         );
         if (!ehUnidadeAprendizagem(name)) return;
+        diagnostico.uas += 1;
 
-        // A UC do Monday é a chave de cruzamento com a Base Oficial.
         const titulo = txt(x.titulo || x.id_titulo);
         const semestre = txt(x.semestre_oferta);
-        const mondayItemId = txt(x.monday_item_validacao || x.monday_item_id);
-        const revisores = revisoresPorUC.get(norm(titulo)) || [];
+        if (norm(semestre).includes("2026.2")) diagnostico.uas20262 += 1;
 
-        // Regra V25.46.14: se a UC não estiver na Base Oficial, ninguém é
-        // incluído na aba Certificados. Pessoas das colunas People do Monday
-        // não são usadas para definir quem é revisor.
+        const mondayItemId = txt(x.monday_item_validacao || x.monday_item_id);
+        const revisores = revisoresDaUC(titulo);
+
+        if (!revisores.length) {
+          diagnostico.semUCBase += 1;
+          const k = titulo || "(UC não informada)";
+          diagnostico.ucsSemCorrespondencia.set(
+            k,
+            (diagnostico.ucsSemCorrespondencia.get(k) || 0) + 1
+          );
+          return;
+        }
+
         revisores.forEach((cadastro) => {
           const r = {
             mondayItemId,
@@ -196,7 +253,7 @@
             semestre
           };
           r.chave = [
-            mondayItemId,
+            mondayItemId || norm(name),
             txt(cadastro.id) || norm(cadastro.revisor),
             norm(name),
             norm(titulo),
@@ -209,6 +266,25 @@
     base = [...map.values()].sort((a, b) =>
       a.revisor.localeCompare(b.revisor, "pt-BR")
     );
+    diagnostico.certificados = base.length;
+    window.__BI_CERT_DIAGNOSTICO = diagnostico;
+
+    const status = $("certStatus");
+    if (status) {
+      status.textContent =
+        `Certificados: ${diagnostico.certificados} | ` +
+        `UAs validadas identificadas: ${diagnostico.uas} | ` +
+        `2026.2: ${diagnostico.uas20262} | ` +
+        `sem correspondência na Base Oficial: ${diagnostico.semUCBase}.`;
+    }
+
+    if (diagnostico.semUCBase) {
+      console.warn(
+        "[Certificados] UCs sem correspondência na Base Oficial:",
+        [...diagnostico.ucsSemCorrespondencia.entries()]
+          .sort((a, b) => b[1] - a[1])
+      );
+    }
   }
 
   // ============================================================
