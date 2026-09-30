@@ -3,7 +3,7 @@
 
   let base = [];
   let filtrados = [];
-  let revisoresPorUC = new Map();
+  let revisoresPorItem = new Map();
   let historico = new Set();
   let inicializado = false;
 
@@ -53,79 +53,71 @@
 
 
   // ============================================================
-  // BASE OFICIAL DE REVISORES — SUPABASE
+  // E-MAILS DOS REVISORES — FONTE OFICIAL: MONDAY
   // ============================================================
 
-  async function carregarBaseRevisores() {
-    revisoresPorUC = new Map();
+  async function carregarEmails() {
+    revisoresPorItem = new Map();
 
-    const { data, error } = await window.biSupabase
-      .from("revisores_ua")
-      .select("id,nq_responsavel,docente_revisor,email,uc,ativo")
-      .eq("ativo", true);
+    const { data: { session } } = await window.biSupabase.auth.getSession();
+    if (!session) throw new Error("Sessão expirada. Entre novamente no BI.");
 
-    if (error) {
-      throw new Error(
-        "Não foi possível carregar a Base Oficial de Revisores: " + error.message
-      );
+    const url = `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/monday-revisores`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({ board_id: 9433297929 })
+    });
+
+    const out = await resp.json().catch(() => ({}));
+    if (!resp.ok || !out.success) {
+      throw new Error(out.error || `Erro HTTP ${resp.status} ao consultar revisores no Monday.`);
     }
 
-    (data || []).forEach((r) => {
-      const ucChave = norm(r.uc);
-      const revisor = txt(r.docente_revisor);
-      if (!ucChave || !revisor) return;
+    (out.itens || []).forEach((x) => {
+      const itemId = txt(x.monday_item_id);
+      if (!itemId) return;
 
-      const lista = revisoresPorUC.get(ucChave) || [];
-      lista.push({
-        id: r.id,
-        nqResponsavel: txt(r.nq_responsavel),
-        revisor,
-        email: emailDoTexto(r.email),
-        uc: txt(r.uc)
-      });
-      revisoresPorUC.set(ucChave, lista);
+      const pessoas = (Array.isArray(x.pessoas) ? x.pessoas : [])
+        .filter((p) => p?.monday_user_id)
+        .map((p) => ({
+          monday_user_id: Number(p.monday_user_id),
+          nome: txt(p.nome),
+          email: emailDoTexto(p.email)
+        }));
+
+      // Mantém as pessoas do item apenas para cruzamento posterior.
+      // Só quem corresponder ao Revisor_Validador da UA poderá virar certificado.
+      revisoresPorItem.set(itemId, pessoas);
     });
   }
 
-  async function importarBaseRevisores(arquivo) {
-    if (!arquivo) return;
-    if (!window.XLSX) throw new Error("Biblioteca XLSX não carregada.");
+  function ehUnidadeAprendizagem(v) {
+    return /^UNIDADE\s*0?[1-8]\b/i.test(txt(v));
+  }
 
-    const buffer = await arquivo.arrayBuffer();
-    const workbook = window.XLSX.read(buffer, { type: "array", cellDates: false });
-    const nomeAba = workbook.SheetNames[0];
-    const linhas = window.XLSX.utils.sheet_to_json(workbook.Sheets[nomeAba], {
-      defval: "",
-      raw: false
-    });
+  // Confirma se a pessoa retornada pelo Monday é realmente o
+  // Revisor_Validador registrado para aquela UA.
+  function pessoaEhRevisorDaUA(pessoa, revisorOriginal) {
+    const nomePessoa = norm(pessoa?.nome)
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
 
-    const registros = linhas.map((r) => ({
-      nq_responsavel: txt(r["NQ RESPONSÁVEL"]),
-      docente_revisor: txt(r["DOCENTE REVISOR"]),
-      email: emailDoTexto(r["E-MAIL"]),
-      uc: txt(r["UC A VALIDAR"]),
-      ativo: true
-    })).filter((r) => r.docente_revisor && r.uc);
+    const campoRevisor = norm(revisorOriginal)
+      .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, " ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    if (!registros.length) {
-      throw new Error("Nenhum revisor encontrado. Confira os cabeçalhos da planilha.");
-    }
+    if (!nomePessoa || !campoRevisor) return false;
 
-    const { error: erroDelete } = await window.biSupabase
-      .from("revisores_ua")
-      .delete()
-      .neq("id", 0);
-    if (erroDelete) throw erroDelete;
-
-    for (let i = 0; i < registros.length; i += 200) {
-      const { error } = await window.biSupabase
-        .from("revisores_ua")
-        .insert(registros.slice(i, i + 200));
-      if (error) throw error;
-    }
-
-    await carregarBaseRevisores();
-    return registros.length;
+    // Nome completo como frase, evitando coincidências parciais
+    // como "Ana" dentro de "Mariana".
+    return (` ${campoRevisor} `).includes(` ${nomePessoa} `);
   }
 
   // ============================================================
@@ -164,44 +156,47 @@
 
   function montar(dados) {
     const map = new Map();
+    const baseOficial = window.BI_REVISORES_UA || new Map();
 
     (dados || [])
       .filter((x) => norm(x.status_validacao) === "validado")
       .forEach((x) => {
         const name = txt(
-          x.item_name || x.titulo_ua || x.unidade_material || x.id_ua
+          x.item_name ||
+          x.titulo_ua ||
+          x.unidade_material ||
+          x.id_ua
         );
+
         if (!ehUnidadeAprendizagem(name)) return;
 
-        // A UC do Monday é a chave de cruzamento com a Base Oficial.
         const titulo = txt(x.titulo || x.id_titulo);
         const semestre = txt(x.semestre_oferta);
         const mondayItemId = txt(x.monday_item_validacao || x.monday_item_id);
-        const revisores = revisoresPorUC.get(norm(titulo)) || [];
 
-        // Regra V25.46.14: se a UC não estiver na Base Oficial, ninguém é
-        // incluído na aba Certificados. Pessoas das colunas People do Monday
-        // não são usadas para definir quem é revisor.
-        revisores.forEach((cadastro) => {
+        // Regra definitiva V25.46.15:
+        // somente a tabela revisores_ua define quem é revisor da UC.
+        // Pessoas/colunas People do Monday NÃO criam certificados.
+        const chaveUC = norm(titulo);
+        const revisores = Array.isArray(x.revisores_oficiais) && x.revisores_oficiais.length
+          ? x.revisores_oficiais
+          : (baseOficial.get(chaveUC) || []);
+
+        if (!revisores.length) return;
+
+        revisores.forEach((oficial) => {
           const r = {
             mondayItemId,
             mondayUserId: "",
-            revisorBaseId: cadastro.id,
-            revisor: cadastro.revisor,
-            email: cadastro.email || "",
-            nqResponsavel: cadastro.nqResponsavel,
-            ucBase: cadastro.uc,
+            revisor: txt(oficial.docente_revisor),
+            email: emailDoTexto(oficial.email),
             name,
             titulo,
             semestre
           };
-          r.chave = [
-            mondayItemId,
-            txt(cadastro.id) || norm(cadastro.revisor),
-            norm(name),
-            norm(titulo),
-            norm(semestre)
-          ].join("|");
+
+          if (!r.revisor) return;
+          r.chave = chave(r);
           if (!map.has(r.chave)) map.set(r.chave, r);
         });
       });
@@ -873,10 +868,7 @@
       inicializado =
         true;
 
-      await Promise.all([
-        carregarBaseRevisores(),
-        carregarHistorico()
-      ]);
+      await carregarHistorico();
 
       [
         "certSemestre",
@@ -951,26 +943,6 @@
           }
         }
       );
-
-      $("certImportarRevisores")?.addEventListener("change", async (e) => {
-        const arquivo = e.target.files?.[0];
-        if (!arquivo) return;
-        const status = $("certStatus");
-        try {
-          if (status) status.textContent = "Atualizando Base Oficial de Revisores...";
-          const total = await importarBaseRevisores(arquivo);
-          montar(window.__BI_CERT_DADOS || []);
-          popular();
-          render();
-          if (status) status.textContent = `Base de Revisores atualizada: ${total} vínculo(s).`;
-        } catch (erro) {
-          console.error(erro);
-          if (status) status.textContent = `Erro ao importar revisores: ${erro.message}`;
-          alert(`Erro ao importar Base de Revisores: ${erro.message}`);
-        } finally {
-          e.target.value = "";
-        }
-      });
 
       // Selecionar todos
       $("certSelecionarTodos")
@@ -1210,8 +1182,6 @@
         }
       );
     }
-
-    window.__BI_CERT_DADOS = dados || [];
 
     montar(
       dados
