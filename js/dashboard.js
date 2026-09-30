@@ -663,7 +663,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       // --------------------------------------------------------
 
       window.atualizarCertificados?.(
-        dadosFiltrados
+        dadosCompletos
       );
 
 

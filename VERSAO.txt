@@ -1,3 +1,3 @@
-V25.46.19
+V25.46.20
 2026-09-30
-Pacote de recuperação para download. Index limpo e certificados.js validado, sem conflitos Git e sem arquivo truncado.
+Certificados: universo oficial composto pelas UAs das matrizes E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL. As UAs sem revisor permanecem visíveis; geração/envio somente para UAs validadas com revisor oficial.

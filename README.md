@@ -37,3 +37,11 @@ Execute os dois arquivos no SQL Editor do Supabase antes de testar os anexos.
 
 ## V25.41 — instalação do editor/anexos
 Execute uma única vez no Supabase > SQL Editor: `docs/00_INSTALAR_PROJETOS_QUALIDADE_V25_41.sql`. O script instala/atualiza o editor versionado e o bucket privado `pq-evidencias`.
+
+
+## V25.46.20 — Universo oficial de UAs em Certificados
+- Certificados usa a base completa do BI, sem ser reduzida pelos filtros globais.
+- Considera somente as matrizes: E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL.
+- O total de UAs segue a mesma regra do Resumo Executivo (`eh_ua` ou categoria Unidade de Aprendizagem), com deduplicação por chave material.
+- UAs sem correspondência em `revisores_ua` continuam visíveis.
+- PDFs/envios são habilitados somente quando a UA está Validada e possui revisor oficial.
