@@ -1,3 +1,3 @@
 V25.46.19
 2026-09-30
-Correção exclusiva da aba Certificados: removida colisão do identificador chave que impedia o carregamento do JavaScript no navegador.
+Pacote de recuperação para download. Index limpo e certificados.js validado, sem conflitos Git e sem arquivo truncado.

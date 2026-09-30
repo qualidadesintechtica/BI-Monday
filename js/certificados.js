@@ -1,6 +1,5 @@
-function revisoresDaUC(valor) {
-  const chave = chaveUC(valor);
-  if (!chave) return [];
+(function () {
+  "use strict";
 
   let base = [];
   let filtrados = [];
@@ -360,10 +359,10 @@ function revisoresDaUC(valor) {
         )
         .join("");
 
-  for (const [ucBase, lista] of revisoresOficiaisPorUc.entries()) {
     if (
-      chave.includes(ucBase) ||
-      ucBase.includes(chave)
+      semestres.includes(
+        semestreAtual
+      )
     ) {
       sem.value =
         semestreAtual;
@@ -1272,11 +1271,21 @@ function revisoresDaUC(valor) {
         }
       );
     }
+
+    montar(
+      dados
+    );
+
+    popular();
+
+    render();
   }
 
-  if (candidatos.length === 1) {
-    return candidatos[0][1];
-  }
+  // ============================================================
+  // FUNÇÃO EXPOSTA PARA O DASHBOARD
+  // ============================================================
 
-  return [];
-}
+  window.atualizarCertificados =
+    init;
+
+})();
