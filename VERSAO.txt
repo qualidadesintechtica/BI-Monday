@@ -1,3 +1,3 @@
-V25.46.15
+V25.46.14
 2026-09-30
-Base Oficial de Revisores integrada ao BI. A tabela revisores_ua passa a definir os revisores exibidos nas análises e filtros do dashboard por UC. Certificados: somente UAs 01 a 08 com status Validado e com UC presente na base oficial geram linhas; nome e e-mail vêm exclusivamente de revisores_ua. Corrigida e garantida a função ehUnidadeAprendizagem.
+Certificados: criada Base Oficial de Revisores de UA. A elegibilidade passa a ser definida exclusivamente pelo cruzamento UC do Monday x UC cadastrada em revisores_ua. Nome e e-mail vêm da base oficial; pessoas extras das colunas People do Monday deixam de gerar certificados. Incluída importação XLSX da base de revisores na própria aba Certificados.

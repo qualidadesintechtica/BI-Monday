@@ -133,80 +133,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
   // ============================================================
-  // BASE OFICIAL DE REVISORES DE UA — V25.46.15
-  // ============================================================
-
-  async function carregarBaseOficialRevisores() {
-    const mapa = new Map();
-
-    try {
-      const { data, error } = await window.biSupabase
-        .from("revisores_ua")
-        .select("nq_responsavel,docente_revisor,email,uc,ativo")
-        .eq("ativo", true);
-
-      if (error) throw error;
-
-      (data || []).forEach((r) => {
-        const chave = normalizarResponsavelNQ(r.uc);
-        if (!chave || !r.docente_revisor) return;
-        if (!mapa.has(chave)) mapa.set(chave, []);
-        mapa.get(chave).push({
-          nq_responsavel: String(r.nq_responsavel || "").trim(),
-          docente_revisor: String(r.docente_revisor || "").trim(),
-          email: String(r.email || "").trim().toLowerCase(),
-          uc: String(r.uc || "").trim()
-        });
-      });
-
-      window.BI_REVISORES_UA = mapa;
-      console.log("Base oficial de revisores UA carregada:", {
-        ucs: mapa.size,
-        vinculos: [...mapa.values()].reduce((n, a) => n + a.length, 0)
-      });
-    } catch (error) {
-      console.error("Erro ao carregar revisores_ua:", error);
-      window.BI_REVISORES_UA = mapa;
-    }
-
-    return mapa;
-  }
-
-  function aplicarBaseOficialRevisores(dados, mapa) {
-    return (dados || []).map((item) => {
-      // O título da UC é a chave oficial do cruzamento com a planilha/base.
-      const candidatos = [item.titulo, item.id_titulo]
-        .map(normalizarResponsavelNQ)
-        .filter(Boolean);
-
-      let revisores = [];
-      for (const chave of candidatos) {
-        if (mapa.has(chave)) {
-          revisores = mapa.get(chave);
-          break;
-        }
-      }
-
-      if (!revisores.length) {
-        return {
-          ...item,
-          revisor_validador: null,
-          revisor_oficial_encontrado: false,
-          revisores_oficiais: []
-        };
-      }
-
-      return {
-        ...item,
-        // Todas as abas passam a enxergar somente revisores da base oficial.
-        revisor_validador: revisores.map((r) => r.docente_revisor).join(" | "),
-        revisor_oficial_encontrado: true,
-        revisores_oficiais: revisores
-      };
-    });
-  }
-
-  // ============================================================
   // RESPONSÁVEIS NQ
   // ============================================================
 
@@ -1117,9 +1043,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       dadosCompletos =
         await window.carregarDadosBI();
-
-      const mapaRevisoresUA = await carregarBaseOficialRevisores();
-      dadosCompletos = aplicarBaseOficialRevisores(dadosCompletos, mapaRevisoresUA);
 
 
       if (
