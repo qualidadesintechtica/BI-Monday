@@ -2,9 +2,9 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.20
-  // Universo oficial da aba: UAs das quatro matrizes abaixo.
-  // A UA NÃO desaparece quando não encontra revisor.
+  // CERTIFICADOS V25.46.21
+  // Universo oficial da aba: somente UAs VALIDADAS das quatro matrizes abaixo.
+  // A UA validada NÃO desaparece quando não encontra revisor.
   // ============================================================
 
   let base = [];
@@ -255,6 +255,8 @@
     (dados || []).forEach((item, indice) => {
       if (!matrizAlvo(item)) return;
       if (!ehUA(item)) return;
+      // V25.46.21: Certificados trabalha SOMENTE com UAs já validadas.
+      if (!estaValidada(item)) return;
 
       const chaveUa = chaveMaterial(item, indice);
       if (mapa.has(chaveUa)) return;
@@ -271,7 +273,7 @@
         matriz: txt(item?.matriz_oferta),
         semestre: txt(item?.semestre_oferta),
         statusValidacao: txt(item?.status_validacao),
-        validado: estaValidada(item),
+        validado: true,
         revisores,
         origem: item
       });
@@ -291,7 +293,7 @@
       (total, ua) => total + certificadosDaUa(ua).length,
       0
     );
-    const validadas = base.filter((x) => x.validado).length;
+    const validadas = base.length;
 
     window.__BI_CERT_DIAGNOSTICO = {
       totalUAs: base.length,
@@ -302,7 +304,7 @@
       matrizes: [...MATRIZES_ALVO]
     };
 
-    console.info("[Certificados] Universo das quatro matrizes:", {
+    console.info("[Certificados] Universo VALIDADO das quatro matrizes:", {
       totalUAs: base.length,
       validadas,
       comRevisor,
@@ -356,12 +358,13 @@
     }
   }
 
-  function atualizarKPIs() {
-    const comRevisor = base.filter((x) => x.revisores.length > 0).length;
-    const semRevisor = base.length - comRevisor;
-    const geraveis = base.reduce((n, ua) => n + certificadosDaUa(ua).length, 0);
+  function atualizarKPIs(lista = base) {
+    const universo = Array.isArray(lista) ? lista : [];
+    const comRevisor = universo.filter((x) => x.revisores.length > 0).length;
+    const semRevisor = universo.length - comRevisor;
+    const geraveis = universo.reduce((n, ua) => n + certificadosDaUa(ua).length, 0);
 
-    if ($("certTotalUAs")) $("certTotalUAs").textContent = base.length;
+    if ($("certTotalUAs")) $("certTotalUAs").textContent = universo.length;
     if ($("certComRevisor")) $("certComRevisor").textContent = comRevisor;
     if ($("certSemRevisor")) $("certSemRevisor").textContent = semRevisor;
     if ($("certGeraveis")) $("certGeraveis").textContent = geraveis;
@@ -397,7 +400,7 @@
       return true;
     });
 
-    atualizarKPIs();
+    atualizarKPIs(filtrados);
 
     const tb = $("certTbody");
     if (!tb) return;
@@ -494,7 +497,7 @@
         `${arr.length} UA(s) selecionada(s) · ${qtdCertificados} certificado(s).`;
     } else {
       status.textContent =
-        `Exibindo ${filtrados.length} de ${base.length} UAs das 4 matrizes.`;
+        `Exibindo ${filtrados.length} de ${base.length} UAs validadas das 4 matrizes.`;
     }
   }
 

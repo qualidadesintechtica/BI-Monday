@@ -1,47 +1,9 @@
-# BI-Monday V25.40
+# BI-Monday V25.46.21 — Somente UAs validadas
 
-Base V25.38 preservada com upload protegido de evidências em Projetos da Qualidade.
+Alteração restrita à aba **Certificados**.
 
-## Principais componentes
-- Operações com pesquisa e visão completa de UCs/UAs.
-- Esteira de Produção como universo de materiais.
-- Validação de Materiais como fonte complementar.
-- Sincronização paginada dos boards do Monday.
-- Agendamentos separados/paginados no Supabase.
-- Deduplicação da Qualidade por UA, critério e matriz.
-- Editor versionado de relatórios de projetos.
-- Evidências em PDF, DOC, DOCX, JPG e JPEG, armazenadas em bucket privado.
-
-## SQLs incluídos nesta atualização
-1. `docs/03_CRIAR_EDITOR_RELATORIOS_PQ.sql`
-2. `docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql`
-
-Execute os dois arquivos no SQL Editor do Supabase antes de testar os anexos.
-
-## V25.36 — Qualidade completa
-- Universo dos critérios: `entra_no_calculo = true`.
-- Não conformidade: somente `apontamos_inconformidade = Sim`.
-- Linhas do universo com `Não` ou vazio são contabilizadas como conformes.
-- Detecção da coluna não depende de haver valor preenchido nas primeiras linhas.
-- Mantida paginação integral da view `vw_nq_reuniao_criterios_detalhe`.
-
-## V25.38 — Reconciliação da Qualidade
-- Mantém somente o resultado vigente por UA, critério e matriz.
-- Usa a data de classificação e o `subitem_id` como desempate.
-
-## V25.40 — Evidências dos projetos
-- Aceita PDF, DOC, DOCX, JPG e JPEG, com limite de 20 MB.
-- Mantém o bucket privado e abre o arquivo por link temporário.
-- Preserva os anexos no histórico de versões do relatório.
-
-
-## V25.41 — instalação do editor/anexos
-Execute uma única vez no Supabase > SQL Editor: `docs/00_INSTALAR_PROJETOS_QUALIDADE_V25_41.sql`. O script instala/atualiza o editor versionado e o bucket privado `pq-evidencias`.
-
-
-## V25.46.20 — Universo oficial de UAs em Certificados
-- Certificados usa a base completa do BI, sem ser reduzida pelos filtros globais.
-- Considera somente as matrizes: E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL.
-- O total de UAs segue a mesma regra do Resumo Executivo (`eh_ua` ou categoria Unidade de Aprendizagem), com deduplicação por chave material.
-- UAs sem correspondência em `revisores_ua` continuam visíveis.
-- PDFs/envios são habilitados somente quando a UA está Validada e possui revisor oficial.
+- Considera somente UAs com `Status Validação = Validado` (ou `eh_validada = true`).
+- Mantém apenas as quatro matrizes: E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL.
+- UAs validadas sem revisor continuam aparecendo como diagnóstico.
+- Os quatro KPIs respeitam o filtro de Semestre, Revisor e Pesquisa da própria aba.
+- Geração/envio continua apenas quando há revisor oficial.
