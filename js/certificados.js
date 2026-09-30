@@ -3,7 +3,7 @@
 
   let base = [];
   let filtrados = [];
-  let revisoresPorUC = new Map();
+  let revisoresOficiaisPorUc = new Map();
   let historico = new Set();
   let inicializado = false;
 
@@ -36,15 +36,12 @@
   }
 
   function emailValido(v) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(txt(v));
+    return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(txt(v));
   }
 
   function chave(r) {
-    // Cada item do Monday representa um registro/certificado independente.
-    // Assim, UAs iguais não são consolidadas em uma única linha.
     return [
-      txt(r.mondayItemId),
-      txt(r.mondayUserId) || norm(r.revisor),
+      norm(r.revisor),
       norm(r.name),
       norm(r.titulo),
       norm(r.semestre)
@@ -53,79 +50,68 @@
 
 
   // ============================================================
-  // BASE OFICIAL DE REVISORES — SUPABASE
+  // BASE OFICIAL DE REVISORES — tabela public.revisores_ua
+  // A aba Certificados usa esta tabela para decidir QUEM é revisor.
+  // O Monday/base operacional continua fornecendo UA, UC, status e semestre.
   // ============================================================
 
-  async function carregarBaseRevisores() {
-    revisoresPorUC = new Map();
+  async function carregarRevisoresOficiais() {
+    revisoresOficiaisPorUc = new Map();
 
     const { data, error } = await window.biSupabase
       .from("revisores_ua")
-      .select("id,nq_responsavel,docente_revisor,email,uc,ativo")
+      .select("nq_responsavel,docente_revisor,email,uc,ativo")
       .eq("ativo", true);
 
     if (error) {
-      throw new Error(
-        "Não foi possível carregar a Base Oficial de Revisores: " + error.message
-      );
+      throw new Error(`Não foi possível carregar revisores_ua: ${error.message}`);
     }
 
     (data || []).forEach((r) => {
-      const ucChave = norm(r.uc);
+      const uc = norm(r.uc);
       const revisor = txt(r.docente_revisor);
-      if (!ucChave || !revisor) return;
+      if (!uc || !revisor) return;
 
-      const lista = revisoresPorUC.get(ucChave) || [];
-      lista.push({
-        id: r.id,
-        nqResponsavel: txt(r.nq_responsavel),
+      if (!revisoresOficiaisPorUc.has(uc)) {
+        revisoresOficiaisPorUc.set(uc, []);
+      }
+
+      revisoresOficiaisPorUc.get(uc).push({
         revisor,
         email: emailDoTexto(r.email),
+        nqResponsavel: txt(r.nq_responsavel),
         uc: txt(r.uc)
       });
-      revisoresPorUC.set(ucChave, lista);
     });
+
+    console.info(
+      `Certificados: base oficial carregada (${data?.length || 0} vínculos / ${revisoresOficiaisPorUc.size} UCs).`
+    );
   }
 
-  async function importarBaseRevisores(arquivo) {
-    if (!arquivo) return;
-    if (!window.XLSX) throw new Error("Biblioteca XLSX não carregada.");
+  function ehUnidadeAprendizagem(v) {
+    return /^UNIDADE\s*0?[1-8]\b/i.test(txt(v));
+  }
 
-    const buffer = await arquivo.arrayBuffer();
-    const workbook = window.XLSX.read(buffer, { type: "array", cellDates: false });
-    const nomeAba = workbook.SheetNames[0];
-    const linhas = window.XLSX.utils.sheet_to_json(workbook.Sheets[nomeAba], {
-      defval: "",
-      raw: false
-    });
+  function candidatosUc(x) {
+    return [
+      x.titulo_uc,
+      x.nome_uc,
+      x.unidade_curricular,
+      x.uc,
+      x.titulo,
+      x.id_titulo
+    ]
+      .map(txt)
+      .filter(Boolean);
+  }
 
-    const registros = linhas.map((r) => ({
-      nq_responsavel: txt(r["NQ RESPONSÁVEL"]),
-      docente_revisor: txt(r["DOCENTE REVISOR"]),
-      email: emailDoTexto(r["E-MAIL"]),
-      uc: txt(r["UC A VALIDAR"]),
-      ativo: true
-    })).filter((r) => r.docente_revisor && r.uc);
-
-    if (!registros.length) {
-      throw new Error("Nenhum revisor encontrado. Confira os cabeçalhos da planilha.");
+  function revisoresDaUc(x) {
+    for (const candidato of candidatosUc(x)) {
+      const encontrados = revisoresOficiaisPorUc.get(norm(candidato));
+      if (encontrados?.length) return encontrados;
     }
-
-    const { error: erroDelete } = await window.biSupabase
-      .from("revisores_ua")
-      .delete()
-      .neq("id", 0);
-    if (erroDelete) throw erroDelete;
-
-    for (let i = 0; i < registros.length; i += 200) {
-      const { error } = await window.biSupabase
-        .from("revisores_ua")
-        .insert(registros.slice(i, i + 200));
-      if (error) throw error;
-    }
-
-    await carregarBaseRevisores();
-    return registros.length;
+    return [];
   }
 
   // ============================================================
@@ -169,45 +155,53 @@
       .filter((x) => norm(x.status_validacao) === "validado")
       .forEach((x) => {
         const name = txt(
-          x.item_name || x.titulo_ua || x.unidade_material || x.id_ua
+          x.item_name ||
+          x.titulo_ua ||
+          x.nome_ua ||
+          x.unidade_material ||
+          x.id_ua
         );
+
+        // Somente UNIDADE 01 a UNIDADE 08.
         if (!ehUnidadeAprendizagem(name)) return;
 
-        // A UC do Monday é a chave de cruzamento com a Base Oficial.
-        const titulo = txt(x.titulo || x.id_titulo);
-        const semestre = txt(x.semestre_oferta);
-        const mondayItemId = txt(x.monday_item_validacao || x.monday_item_id);
-        const revisores = revisoresPorUC.get(norm(titulo)) || [];
+        // A pessoa só entra em Certificados se estiver na base oficial
+        // vinculada à UC deste material.
+        const revisores = revisoresDaUc(x);
+        if (!revisores.length) return;
 
-        // Regra V25.46.14: se a UC não estiver na Base Oficial, ninguém é
-        // incluído na aba Certificados. Pessoas das colunas People do Monday
-        // não são usadas para definir quem é revisor.
-        revisores.forEach((cadastro) => {
+        const titulo = txt(
+          x.titulo_uc ||
+          x.nome_uc ||
+          x.unidade_curricular ||
+          x.uc ||
+          x.titulo ||
+          x.id_titulo
+        );
+
+        const semestre = txt(x.semestre_oferta);
+
+        revisores.forEach((oficial) => {
           const r = {
-            mondayItemId,
-            mondayUserId: "",
-            revisorBaseId: cadastro.id,
-            revisor: cadastro.revisor,
-            email: cadastro.email || "",
-            nqResponsavel: cadastro.nqResponsavel,
-            ucBase: cadastro.uc,
+            revisor: oficial.revisor,
+            email: oficial.email || "",
             name,
-            titulo,
-            semestre
+            titulo: oficial.uc || titulo,
+            semestre,
+            nqResponsavel: oficial.nqResponsavel || ""
           };
-          r.chave = [
-            mondayItemId,
-            txt(cadastro.id) || norm(cadastro.revisor),
-            norm(name),
-            norm(titulo),
-            norm(semestre)
-          ].join("|");
+
+          r.chave = chave(r);
           if (!map.has(r.chave)) map.set(r.chave, r);
         });
       });
 
     base = [...map.values()].sort((a, b) =>
       a.revisor.localeCompare(b.revisor, "pt-BR")
+    );
+
+    console.info(
+      `Certificados: ${base.length} registros elegíveis após cruzamento com revisores_ua.`
     );
   }
 
@@ -300,9 +294,6 @@
     const rev =
       $("certRevisor")?.value || "";
 
-    const emailFiltro =
-      $("certEmail")?.value || "";
-
     const q =
       norm(
         $("certBusca")?.value || ""
@@ -314,9 +305,6 @@
           r.semestre === sem) &&
         (!rev ||
           r.revisor === rev) &&
-        (!emailFiltro ||
-          (emailFiltro === "com" && emailValido(r.email)) ||
-          (emailFiltro === "sem" && !emailValido(r.email))) &&
         (
           !q ||
           norm(
@@ -383,7 +371,7 @@
                   type="checkbox"
                   class="cert-check"
                   data-i="${i}"
-                  ${(!emailValido(r.email) || historico.has(r.chave)) ? "disabled" : ""}
+                  ${!r.email ? "disabled" : ""}
                 >
               </td>
 
@@ -394,18 +382,18 @@
               <td>
                 ${
                   r.email
-                    ? `<span class="cert-email-auto" title="E-mail localizado automaticamente no Monday">${esc(r.email)}</span>`
+                    ? `${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : ''}`
                     : `
+                      <div class="cert-email-missing">Não localizado</div>
                       <input
                         type="email"
                         class="cert-email-manual"
                         data-i="${i}"
-                        value=""
                         placeholder="Digite o e-mail"
-                        autocomplete="email"
-                        aria-label="E-mail de ${esc(r.revisor)}"
-                        style="width:100%;min-width:220px;padding:8px 10px;border:1px solid #d8d1e6;border-radius:8px;background:#fff;"
+                        autocomplete="off"
+                        aria-label="E-mail manual de ${esc(r.revisor)}"
                       >
+                      <div class="cert-email-manual-msg" data-email-msg="${i}"></div>
                     `
                 }
               </td>
@@ -468,7 +456,7 @@
             )
           ]
       )
-      .filter((r) => r && emailValido(r.email) && !historico.has(r.chave));
+      .filter(Boolean);
   }
 
   function atualizarSel() {
@@ -874,14 +862,13 @@
         true;
 
       await Promise.all([
-        carregarBaseRevisores(),
+        carregarRevisoresOficiais(),
         carregarHistorico()
       ]);
 
       [
         "certSemestre",
-        "certRevisor",
-        "certEmail"
+        "certRevisor"
       ].forEach(
         (id) => {
           $(id)
@@ -898,6 +885,44 @@
           render
         );
 
+      // E-mail manual somente quando o Monday não localizar o endereço.
+      document.addEventListener(
+        "input",
+        (e) => {
+          const input = e.target?.closest?.(".cert-email-manual");
+          if (!input) return;
+
+          const indice = Number(input.dataset.i);
+          const registro = filtrados[indice];
+          if (!registro) return;
+
+          const valor = txt(input.value).toLowerCase();
+          const linha = input.closest("tr");
+          const check = linha?.querySelector(".cert-check");
+          const msg = linha?.querySelector(`[data-email-msg="${indice}"]`);
+
+          if (emailValido(valor)) {
+            registro.email = valor;
+            registro.emailManual = true;
+            if (check) check.disabled = false;
+            if (msg) msg.textContent = "E-mail válido — envio liberado";
+          } else {
+            registro.email = "";
+            registro.emailManual = false;
+            if (check) {
+              check.checked = false;
+              check.disabled = true;
+            }
+            if (msg) msg.textContent = valor ? "Informe um e-mail válido" : "";
+          }
+
+          if ($("certSemEmail")) {
+            $("certSemEmail").textContent = filtrados.filter((x) => !x.email).length;
+          }
+          atualizarSel();
+        }
+      );
+
       document.addEventListener(
         "change",
         (e) => {
@@ -912,65 +937,6 @@
           }
         }
       );
-
-      // E-mail manual: disponível somente quando o Monday não localizou um endereço.
-      // Um e-mail válido libera imediatamente a seleção daquele certificado.
-      document.addEventListener(
-        "input",
-        (e) => {
-          const campo = e.target?.closest?.(".cert-email-manual");
-          if (!campo) return;
-
-          const indice = Number(campo.dataset.i);
-          const registro = filtrados[indice];
-          if (!registro) return;
-
-          const valor = txt(campo.value).toLowerCase();
-          const valido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
-
-          registro.email = valido ? valor : "";
-          campo.setCustomValidity(
-            !valor || valido ? "" : "Informe um e-mail válido."
-          );
-
-          const linha = campo.closest("tr");
-          const check = linha?.querySelector(".cert-check");
-          if (check) {
-            check.disabled = !valido || historico.has(registro.chave);
-            if (check.disabled) check.checked = false;
-          }
-
-          if ($("certSemEmail")) {
-            $("certSemEmail").textContent = filtrados.filter((x) => !x.email).length;
-          }
-          atualizarSel();
-
-          // Se o filtro de e-mail estiver ativo, atualiza a lista imediatamente.
-          if ($("certEmail")?.value) {
-            render();
-          }
-        }
-      );
-
-      $("certImportarRevisores")?.addEventListener("change", async (e) => {
-        const arquivo = e.target.files?.[0];
-        if (!arquivo) return;
-        const status = $("certStatus");
-        try {
-          if (status) status.textContent = "Atualizando Base Oficial de Revisores...";
-          const total = await importarBaseRevisores(arquivo);
-          montar(window.__BI_CERT_DADOS || []);
-          popular();
-          render();
-          if (status) status.textContent = `Base de Revisores atualizada: ${total} vínculo(s).`;
-        } catch (erro) {
-          console.error(erro);
-          if (status) status.textContent = `Erro ao importar revisores: ${erro.message}`;
-          alert(`Erro ao importar Base de Revisores: ${erro.message}`);
-        } finally {
-          e.target.value = "";
-        }
-      });
 
       // Selecionar todos
       $("certSelecionarTodos")
@@ -1210,8 +1176,6 @@
         }
       );
     }
-
-    window.__BI_CERT_DADOS = dados || [];
 
     montar(
       dados
