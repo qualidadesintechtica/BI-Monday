@@ -1,0 +1,10 @@
+CERTIFICADOS V25.46.22 — AUTOMÁTICO COM A MONDAY
+
+- Fonte operacional: dados sincronizados da Monday no Supabase.
+- Entra automaticamente toda UA das matrizes-alvo com Status Validação = Validado.
+- Revisor: coluna revisor_validador da Monday.
+- Comparação: nome do revisor Monday x public.revisores_ua.docente_revisor.
+- E-mail: public.revisores_ua.email.
+- UA não é excluída se o revisor/e-mail não for encontrado.
+- Filtros: Semestre, Revisor, E-mail (todos/com/sem) e Pesquisa.
+- As demais abas permanecem inalteradas.

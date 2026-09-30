@@ -1,3 +1,3 @@
-V25.46.21
+V25.46.22
 2026-09-30
-Certificados: somente UAs validadas das quatro matrizes-alvo. KPIs passam a respeitar os filtros da própria aba, inclusive Semestre. UAs validadas sem revisor permanecem visíveis para diagnóstico.
+Certificados automático com a Monday. Entram UAs validadas das matrizes-alvo; o revisor vem de revisor_validador da Monday e é comparado por nome com revisores_ua para localizar o e-mail. Filtros: semestre, revisor, com/sem e-mail e pesquisa. A Base Oficial não exclui UAs.

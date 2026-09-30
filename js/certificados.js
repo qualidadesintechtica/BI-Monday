@@ -2,14 +2,19 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.21
-  // Universo oficial da aba: somente UAs VALIDADAS das quatro matrizes abaixo.
-  // A UA validada NÃO desaparece quando não encontra revisor.
+  // CERTIFICADOS V25.46.22 — AUTOMÁTICO COM A MONDAY
+  //
+  // Regra:
+  // 1. A Monday/Supabase define o universo da aba.
+  // 2. Entram automaticamente UAs das matrizes-alvo com Status = Validado.
+  // 3. O revisor vem da coluna revisor_validador da Monday.
+  // 4. O nome do revisor é comparado com public.revisores_ua.
+  // 5. A tabela revisores_ua complementa o e-mail; ela NÃO exclui a UA.
   // ============================================================
 
   let base = [];
   let filtrados = [];
-  let revisoresOficiaisPorUc = new Map();
+  let revisoresOficiaisPorNome = new Map();
   let historico = new Set();
   let inicializado = false;
 
@@ -43,7 +48,6 @@
     return MATRIZES_ALVO.has(normMatriz(item?.matriz_oferta));
   }
 
-  // Mesma regra usada no Resumo Executivo para identificar UAs.
   function ehUA(item) {
     return (
       item?.eh_ua === true ||
@@ -51,29 +55,28 @@
     );
   }
 
-  // Mesma lógica de consolidação do Resumo Executivo.
+  function estaValidada(item) {
+    return item?.eh_validada === true || norm(item?.status_validacao) === "validado";
+  }
+
   function chaveMaterial(item, indice) {
+    const mondayId = txt(item?.monday_item_validacao || item?.monday_item_id);
+    if (mondayId) return `monday:${mondayId}`;
     if (txt(item?.chave_material)) return txt(item.chave_material);
     if (txt(item?.chave_ua)) return txt(item.chave_ua);
 
-    const idTitulo = txt(item?.id_titulo);
-    const idUa = txt(item?.id_ua);
-    const categoria = txt(item?.categoria_material);
-
-    if (idTitulo || idUa || categoria) {
-      return [
-        idTitulo,
-        idUa,
-        categoria,
-        txt(item?.monday_item_esteira || item?.monday_item_validacao || indice)
-      ].join("|");
-    }
-
-    return `linha:${indice}`;
+    return [
+      txt(item?.id_titulo),
+      txt(item?.id_ua),
+      txt(item?.categoria_material),
+      indice
+    ].join("|");
   }
 
-  function chaveUC(valor) {
-    return norm(valor)
+  function chavePessoa(v) {
+    return norm(v)
+      .replace(/[<>()[\]{}]/g, " ")
+      .replace(/[._-]+/g, " ")
       .replace(/[^a-z0-9]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -97,103 +100,15 @@
     return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(txt(v));
   }
 
-  function estaValidada(item) {
-    return item?.eh_validada === true || norm(item?.status_validacao) === "validado";
-  }
-
-  function candidatosUc(x) {
-    return [
-      x?.titulo_uc,
-      x?.nome_uc,
-      x?.unidade_curricular,
-      x?.uc,
-      x?.titulo,
-      x?.id_titulo
-    ]
-      .map(txt)
-      .filter(Boolean);
-  }
-
-  function revisoresDaUC(valor) {
-    const ucNormalizada = chaveUC(valor);
-    if (!ucNormalizada) return [];
-
-    const exatos = revisoresOficiaisPorUc.get(ucNormalizada);
-    if (exatos?.length) return exatos;
-
-    const candidatos = [];
-
-    for (const [ucBase, lista] of revisoresOficiaisPorUc.entries()) {
-      if (ucNormalizada.includes(ucBase) || ucBase.includes(ucNormalizada)) {
-        candidatos.push([ucBase, lista]);
-      }
-    }
-
-    // Só usa aproximação quando existe UMA única UC possível.
-    if (candidatos.length === 1) return candidatos[0][1];
-    return [];
-  }
-
-  function revisoresDaUa(x) {
-    for (const candidato of candidatosUc(x)) {
-      const encontrados = revisoresDaUC(candidato);
-      if (encontrados?.length) return encontrados;
-    }
-    return [];
-  }
-
-  async function carregarRevisoresOficiais() {
-    revisoresOficiaisPorUc = new Map();
-
-    const { data, error } = await window.biSupabase
-      .from("revisores_ua")
-      .select("nq_responsavel,docente_revisor,email,uc,ativo")
-      .eq("ativo", true);
-
-    if (error) {
-      throw new Error(`Não foi possível carregar revisores_ua: ${error.message}`);
-    }
-
-    (data || []).forEach((r) => {
-      const uc = chaveUC(r.uc);
-      const revisor = txt(r.docente_revisor);
-      if (!uc || !revisor) return;
-
-      if (!revisoresOficiaisPorUc.has(uc)) {
-        revisoresOficiaisPorUc.set(uc, []);
-      }
-
-      revisoresOficiaisPorUc.get(uc).push({
-        revisor,
-        email: emailDoTexto(r.email),
-        nqResponsavel: txt(r.nq_responsavel),
-        uc: txt(r.uc)
-      });
-    });
-
-    console.info(
-      `Certificados: base oficial carregada (${data?.length || 0} vínculos / ${revisoresOficiaisPorUc.size} UCs).`
-    );
-  }
-
-  async function carregarHistorico() {
-    try {
-      const { data, error } = await window.biSupabase
-        .from("certificados_envios")
-        .select("chave_certificado,status")
-        .eq("status", "enviado");
-
-      if (error) throw error;
-
-      historico = new Set((data || []).map((x) => x.chave_certificado));
-    } catch (e) {
-      console.warn("Histórico de certificados ainda não instalado.", e);
-    }
-  }
-
   function tituloDaUa(x) {
-    const candidatos = candidatosUc(x);
-    return txt(candidatos[0] || x?.titulo || x?.id_titulo);
+    return txt(
+      x?.titulo_uc ||
+      x?.nome_uc ||
+      x?.unidade_curricular ||
+      x?.uc ||
+      x?.titulo ||
+      x?.id_titulo
+    );
   }
 
   function nomeDaUa(x) {
@@ -206,36 +121,191 @@
     );
   }
 
-  function chaveCertificado(ua, oficial) {
+  // ============================================================
+  // BASE OFICIAL DE REVISORES — comparação por NOME
+  // ============================================================
+
+  async function carregarRevisoresOficiais() {
+    revisoresOficiaisPorNome = new Map();
+
+    const { data, error } = await window.biSupabase
+      .from("revisores_ua")
+      .select("nq_responsavel,docente_revisor,email,uc,ativo")
+      .eq("ativo", true);
+
+    if (error) {
+      throw new Error(`Não foi possível carregar revisores_ua: ${error.message}`);
+    }
+
+    (data || []).forEach((r) => {
+      const nome = txt(r.docente_revisor);
+      const chave = chavePessoa(nome);
+      if (!chave || !nome) return;
+
+      const email = emailDoTexto(r.email);
+      const existente = revisoresOficiaisPorNome.get(chave);
+
+      if (!existente) {
+        revisoresOficiaisPorNome.set(chave, {
+          revisor: nome,
+          email,
+          nqResponsavel: txt(r.nq_responsavel),
+          ucs: new Set(txt(r.uc) ? [txt(r.uc)] : [])
+        });
+        return;
+      }
+
+      if (!existente.email && email) existente.email = email;
+      if (txt(r.uc)) existente.ucs.add(txt(r.uc));
+    });
+
+    console.info(
+      `Certificados: ${revisoresOficiaisPorNome.size} revisores oficiais carregados para comparação com a Monday.`
+    );
+  }
+
+  function localizarRevisorOficial(nomeMonday) {
+    const original = txt(nomeMonday);
+    const chave = chavePessoa(original);
+    if (!chave) return null;
+
+    const exato = revisoresOficiaisPorNome.get(chave);
+    if (exato) return exato;
+
+    // Aproximação conservadora: só aceita quando existe um único candidato.
+    const candidatos = [];
+    for (const [chaveBase, cadastro] of revisoresOficiaisPorNome.entries()) {
+      if (chave.includes(chaveBase) || chaveBase.includes(chave)) {
+        candidatos.push(cadastro);
+      }
+    }
+
+    return candidatos.length === 1 ? candidatos[0] : null;
+  }
+
+  function nomesRevisorMonday(valor) {
+    if (Array.isArray(valor)) {
+      return [...new Set(valor.flatMap(nomesRevisorMonday).filter(Boolean))];
+    }
+
+    if (valor && typeof valor === "object") {
+      if (Array.isArray(valor.personsAndTeams)) {
+        return [...new Set(
+          valor.personsAndTeams
+            .map((p) => txt(p?.name || p?.text || p?.display_name))
+            .filter(Boolean)
+        )];
+      }
+      return nomesRevisorMonday(valor.name || valor.text || valor.label || "");
+    }
+
+    const bruto = txt(valor);
+    if (!bruto) return [];
+
+    // Se o valor inteiro já corresponde a um revisor, não divide o nome.
+    if (localizarRevisorOficial(bruto)) return [bruto];
+
+    let partes = bruto
+      .split(/\s*(?:\||;|\n|\r|\/+)\s*/)
+      .map((v) => txt(v))
+      .filter(Boolean);
+
+    // Alguns campos People chegam separados por vírgula. Só dividimos por
+    // vírgula se TODOS os pedaços resultarem em revisores reconhecíveis.
+    if (partes.length === 1 && bruto.includes(",")) {
+      const porVirgula = bruto.split(",").map((v) => txt(v)).filter(Boolean);
+      if (
+        porVirgula.length > 1 &&
+        porVirgula.every((nome) => localizarRevisorOficial(nome))
+      ) {
+        partes = porVirgula;
+      }
+    }
+
+    return [...new Set(partes)];
+  }
+
+  function revisoresDaMonday(item) {
+    const nomes = nomesRevisorMonday(
+      item?.revisor_validador ||
+      item?.revisor ||
+      item?.revisor_validacao
+    );
+
+    return nomes.map((nomeMonday) => {
+      const oficial = localizarRevisorOficial(nomeMonday);
+
+      if (oficial) {
+        return {
+          revisor: oficial.revisor,
+          revisorMonday: nomeMonday,
+          email: oficial.email || "",
+          localizado: true,
+          nqResponsavel: oficial.nqResponsavel || ""
+        };
+      }
+
+      return {
+        revisor: nomeMonday,
+        revisorMonday: nomeMonday,
+        email: "",
+        localizado: false,
+        nqResponsavel: ""
+      };
+    });
+  }
+
+  // ============================================================
+  // HISTÓRICO
+  // ============================================================
+
+  async function carregarHistorico() {
+    try {
+      const { data, error } = await window.biSupabase
+        .from("certificados_envios")
+        .select("chave_certificado,status")
+        .eq("status", "enviado");
+
+      if (error) throw error;
+      historico = new Set((data || []).map((x) => x.chave_certificado));
+    } catch (e) {
+      console.warn("Histórico de certificados ainda não instalado.", e);
+    }
+  }
+
+  function chaveCertificado(ua, revisor) {
     return [
       ua.idEnvio || ua.chaveUa,
-      norm(oficial.revisor),
+      norm(revisor.revisor),
       norm(ua.name),
       norm(ua.titulo),
       norm(ua.semestre)
     ].join("|");
   }
 
-  function registroCertificado(ua, oficial) {
+  function registroCertificado(ua, revisor) {
     return {
-      revisor: oficial.revisor,
-      email: oficial.email || "",
+      revisor: revisor.revisor,
+      email: revisor.email || "",
       name: ua.name,
-      titulo: oficial.uc || ua.titulo,
+      titulo: ua.titulo,
       semestre: ua.semestre,
-      nqResponsavel: oficial.nqResponsavel || "",
-      chave: chaveCertificado(ua, oficial)
+      nqResponsavel: revisor.nqResponsavel || "",
+      chave: chaveCertificado(ua, revisor)
     };
   }
 
   function certificadosDaUa(ua) {
     if (!ua.validado || !ua.revisores.length) return [];
-    return ua.revisores.map((oficial) => registroCertificado(ua, oficial));
+    return ua.revisores
+      .filter((r) => txt(r.revisor))
+      .map((r) => registroCertificado(ua, r));
   }
 
   function estadoCertificado(ua) {
-    if (!ua.validado) return "Aguardando validação";
-    if (!ua.revisores.length) return "Sem revisor";
+    if (!ua.revisores.length) return "Revisor não informado na Monday";
+    if (ua.revisores.some((r) => !r.localizado)) return "Revisor não localizado na base";
+    if (ua.revisores.some((r) => !emailValido(r.email))) return "Sem e-mail";
 
     const certs = certificadosDaUa(ua);
     const enviados = certs.filter((r) => historico.has(r.chave)).length;
@@ -245,8 +315,12 @@
     return "Pendente";
   }
 
+  function uaComEmail(ua) {
+    return ua.revisores.length > 0 && ua.revisores.every((r) => emailValido(r.email));
+  }
+
   // ============================================================
-  // MONTA O UNIVERSO DAS UAs
+  // MONTA A ABA A PARTIR DOS DADOS SINCRONIZADOS DA MONDAY
   // ============================================================
 
   function montar(dados) {
@@ -255,73 +329,53 @@
     (dados || []).forEach((item, indice) => {
       if (!matrizAlvo(item)) return;
       if (!ehUA(item)) return;
-      // V25.46.21: Certificados trabalha SOMENTE com UAs já validadas.
       if (!estaValidada(item)) return;
 
       const chaveUa = chaveMaterial(item, indice);
       if (mapa.has(chaveUa)) return;
 
-      const titulo = tituloDaUa(item);
-      const name = nomeDaUa(item);
-      const revisores = revisoresDaUa(item).map((r) => ({ ...r }));
+      const revisores = revisoresDaMonday(item);
 
       mapa.set(chaveUa, {
         chaveUa,
         idEnvio: txt(item?.monday_item_validacao || item?.monday_item_id || chaveUa),
-        name,
-        titulo,
+        name: nomeDaUa(item),
+        titulo: tituloDaUa(item),
         matriz: txt(item?.matriz_oferta),
         semestre: txt(item?.semestre_oferta),
-        statusValidacao: txt(item?.status_validacao),
+        statusValidacao: txt(item?.status_validacao) || "Validado",
         validado: true,
         revisores,
+        revisorMondayBruto: txt(item?.revisor_validador),
         origem: item
       });
     });
 
     base = [...mapa.values()].sort((a, b) => {
-      const matriz = a.matriz.localeCompare(b.matriz, "pt-BR");
-      if (matriz !== 0) return matriz;
-      const titulo = a.titulo.localeCompare(b.titulo, "pt-BR");
-      if (titulo !== 0) return titulo;
+      const sem = a.semestre.localeCompare(b.semestre, "pt-BR");
+      if (sem !== 0) return sem;
+      const revA = a.revisores[0]?.revisor || "";
+      const revB = b.revisores[0]?.revisor || "";
+      const rev = revA.localeCompare(revB, "pt-BR");
+      if (rev !== 0) return rev;
       return a.name.localeCompare(b.name, "pt-BR");
     });
 
-    const comRevisor = base.filter((x) => x.revisores.length > 0).length;
-    const semRevisor = base.length - comRevisor;
-    const certificadosGeraveis = base.reduce(
-      (total, ua) => total + certificadosDaUa(ua).length,
-      0
+    const revisores = new Set(
+      base.flatMap((ua) => ua.revisores.map((r) => norm(r.revisor))).filter(Boolean)
     );
-    const validadas = base.length;
+    const comEmail = base.filter(uaComEmail).length;
+    const semEmail = base.length - comEmail;
 
     window.__BI_CERT_DIAGNOSTICO = {
-      totalUAs: base.length,
-      validadas,
-      comRevisor,
-      semRevisor,
-      certificadosGeraveis,
-      matrizes: [...MATRIZES_ALVO]
+      uasValidadas: base.length,
+      revisores: revisores.size,
+      comEmail,
+      semEmail,
+      fonte: "Monday → Supabase → Certificados"
     };
 
-    console.info("[Certificados] Universo VALIDADO das quatro matrizes:", {
-      totalUAs: base.length,
-      validadas,
-      comRevisor,
-      semRevisor,
-      certificadosGeraveis
-    });
-
-    const semCorrespondencia = base
-      .filter((x) => !x.revisores.length)
-      .map((x) => ({ matriz: x.matriz, titulo: x.titulo, ua: x.name }));
-
-    if (semCorrespondencia.length) {
-      console.warn(
-        `[Certificados] ${semCorrespondencia.length} UA(s) sem revisor na Base Oficial:`,
-        semCorrespondencia
-      );
-    }
+    console.info("[Certificados] Sincronização automática da Monday:", window.__BI_CERT_DIAGNOSTICO);
   }
 
   // ============================================================
@@ -349,7 +403,7 @@
 
     rev.innerHTML =
       '<option value="">Todos os revisores</option>' +
-      '<option value="__sem_revisor__">Sem revisor na Base Oficial</option>' +
+      '<option value="__sem_revisor__">Sem revisor informado</option>' +
       revisores.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
     if (semestres.includes(semestreAtual)) sem.value = semestreAtual;
@@ -360,19 +414,22 @@
 
   function atualizarKPIs(lista = base) {
     const universo = Array.isArray(lista) ? lista : [];
-    const comRevisor = universo.filter((x) => x.revisores.length > 0).length;
-    const semRevisor = universo.length - comRevisor;
-    const geraveis = universo.reduce((n, ua) => n + certificadosDaUa(ua).length, 0);
+    const revisores = new Set(
+      universo.flatMap((ua) => ua.revisores.map((r) => norm(r.revisor))).filter(Boolean)
+    );
+    const comEmail = universo.filter(uaComEmail).length;
+    const semEmail = universo.length - comEmail;
 
     if ($("certTotalUAs")) $("certTotalUAs").textContent = universo.length;
-    if ($("certComRevisor")) $("certComRevisor").textContent = comRevisor;
-    if ($("certSemRevisor")) $("certSemRevisor").textContent = semRevisor;
-    if ($("certGeraveis")) $("certGeraveis").textContent = geraveis;
+    if ($("certRevisores")) $("certRevisores").textContent = revisores.size;
+    if ($("certComEmail")) $("certComEmail").textContent = comEmail;
+    if ($("certSemEmail")) $("certSemEmail").textContent = semEmail;
   }
 
   function render() {
     const sem = $("certSemestre")?.value || "";
     const rev = $("certRevisor")?.value || "";
+    const filtroEmail = $("certEmail")?.value || "";
     const q = norm($("certBusca")?.value || "");
 
     filtrados = base.filter((ua) => {
@@ -385,6 +442,10 @@
         !ua.revisores.some((r) => r.revisor === rev)
       ) return false;
 
+      const temEmail = uaComEmail(ua);
+      if (filtroEmail === "com" && !temEmail) return false;
+      if (filtroEmail === "sem" && temEmail) return false;
+
       if (q) {
         const texto = norm([
           ua.name,
@@ -392,7 +453,8 @@
           ua.matriz,
           ua.semestre,
           ua.statusValidacao,
-          ...ua.revisores.flatMap((r) => [r.revisor, r.email])
+          ua.revisorMondayBruto,
+          ...ua.revisores.flatMap((r) => [r.revisor, r.revisorMonday, r.email])
         ].join(" "));
         if (!texto.includes(q)) return false;
       }
@@ -408,22 +470,27 @@
     if (!filtrados.length) {
       tb.innerHTML = `
         <tr>
-          <td colspan="9" class="empty-table">Nenhuma UA encontrada.</td>
+          <td colspan="9" class="empty-table">Nenhuma UA validada encontrada.</td>
         </tr>`;
       atualizarSel();
       return;
     }
 
     tb.innerHTML = filtrados.map((ua, i) => {
-      const podeGerar = ua.validado && ua.revisores.length > 0;
+      const podeGerar = ua.revisores.some((r) => txt(r.revisor));
 
       const revisoresHtml = ua.revisores.length
-        ? ua.revisores.map((r) => `<div>${esc(r.revisor)}</div>`).join("")
-        : '<div class="cert-email-missing">Não localizado na Base Oficial</div>';
+        ? ua.revisores.map((r) => {
+            const origem = r.localizado
+              ? '<small class="cert-email-manual-tag">Base oficial</small>'
+              : '<small class="cert-email-missing">Não localizado na base</small>';
+            return `<div>${esc(r.revisor)}${origem}</div>`;
+          }).join("")
+        : '<div class="cert-email-missing">Não informado na Monday</div>';
 
       const emailsHtml = ua.revisores.length
         ? ua.revisores.map((r, ri) => {
-            if (r.email) {
+            if (emailValido(r.email)) {
               return `<div>${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : ''}</div>`;
             }
 
@@ -442,9 +509,6 @@
           }).join("")
         : '<span class="cert-email-missing">—</span>';
 
-      const estado = estadoCertificado(ua);
-      const statusReal = ua.statusValidacao || "Sem status";
-
       return `
         <tr>
           <td>
@@ -462,8 +526,8 @@
           <td>${esc(ua.matriz || "--")}</td>
           <td>${esc(ua.semestre || "--")}</td>
           <td>
-            <div>${esc(statusReal)}</div>
-            <small class="cert-pill">${esc(estado)}</small>
+            <div>${esc(ua.statusValidacao || "Validado")}</div>
+            <small class="cert-pill">${esc(estadoCertificado(ua))}</small>
           </td>
           <td>
             <button
@@ -493,11 +557,10 @@
     if (!status) return;
 
     if (arr.length) {
-      status.textContent =
-        `${arr.length} UA(s) selecionada(s) · ${qtdCertificados} certificado(s).`;
+      status.textContent = `${arr.length} UA(s) selecionada(s) · ${qtdCertificados} certificado(s).`;
     } else {
       status.textContent =
-        `Exibindo ${filtrados.length} de ${base.length} UAs validadas das 4 matrizes.`;
+        `Exibindo ${filtrados.length} de ${base.length} UAs validadas sincronizadas da Monday.`;
     }
   }
 
@@ -680,7 +743,7 @@
         carregarHistorico()
       ]);
 
-      ["certSemestre", "certRevisor"].forEach((id) => {
+      ["certSemestre", "certRevisor", "certEmail"].forEach((id) => {
         $(id)?.addEventListener("change", render);
       });
 
@@ -710,6 +773,9 @@
           revisor.emailManual = false;
           if (msg) msg.textContent = valor ? "Informe um e-mail válido" : "";
         }
+
+        atualizarKPIs(filtrados);
+        atualizarSel();
       });
 
       document.addEventListener("change", (e) => {
@@ -728,7 +794,7 @@
         const arr = uas.flatMap(certificadosDaUa);
 
         if (!arr.length) {
-          alert("Selecione ao menos uma UA validada com revisor localizado.");
+          alert("Selecione ao menos uma UA validada com revisor informado na Monday.");
           return;
         }
 
@@ -739,8 +805,7 @@
         try {
           for (let i = 0; i < arr.length; i++) {
             if (status) {
-              status.textContent =
-                `Gerando ${i + 1} de ${arr.length}: ${arr[i].revisor}`;
+              status.textContent = `Gerando ${i + 1} de ${arr.length}: ${arr[i].revisor}`;
             }
             await pdf(arr[i], true);
           }
@@ -760,7 +825,7 @@
         const arr = uas.flatMap(certificadosDaUa);
 
         if (!arr.length) {
-          alert("Selecione ao menos uma UA validada com revisor localizado.");
+          alert("Selecione ao menos uma UA validada com revisor informado na Monday.");
           return;
         }
 
@@ -789,8 +854,7 @@
 
         for (const r of arr) {
           if (status) {
-            status.textContent =
-              `Enviando ${ok + erros + 1} de ${arr.length}: ${r.revisor}`;
+            status.textContent = `Enviando ${ok + erros + 1} de ${arr.length}: ${r.revisor}`;
           }
 
           try {
@@ -817,16 +881,14 @@
 
         const arr = certificadosDaUa(ua);
         if (!arr.length) {
-          alert("Esta UA ainda não possui certificado elegível.");
+          alert("Esta UA ainda não possui revisor informado na Monday.");
           return;
         }
 
         botao.disabled = true;
 
         try {
-          for (const r of arr) {
-            await pdf(r, true);
-          }
+          for (const r of arr) await pdf(r, true);
         } catch (erro) {
           console.error(erro);
           alert(`Erro ao gerar certificado: ${erro.message}`);

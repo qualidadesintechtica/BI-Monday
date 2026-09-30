@@ -1375,7 +1375,7 @@
         <div class="section-heading">
           <div>
             <h2>Certificados de Revisores</h2>
-            <p>Somente UAs com Status Validação = Validado das matrizes E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL.</p>
+            <p>Automático com a Monday: toda UA das matrizes definidas com Status Validação = Validado entra nesta aba após a sincronização. O revisor da Monday é comparado com a Base Oficial para localizar o e-mail.</p>
           </div>
         </div>
 
@@ -1386,6 +1386,13 @@
           <label>Revisor
             <select id="certRevisor"><option value="">Todos os revisores</option></select>
           </label>
+          <label>E-mail
+            <select id="certEmail">
+              <option value="">Com e sem e-mail</option>
+              <option value="com">Com e-mail</option>
+              <option value="sem">Sem e-mail</option>
+            </select>
+          </label>
           <label class="cert-search">Pesquisar
             <input id="certBusca" type="search" placeholder="UA, UC, matriz, revisor ou e-mail">
           </label>
@@ -1393,9 +1400,9 @@
 
         <section class="mini-kpis four">
           <article class="mini-kpi"><span>UAs validadas</span><strong id="certTotalUAs">0</strong></article>
-          <article class="mini-kpi"><span>UAs com revisor</span><strong id="certComRevisor">0</strong></article>
-          <article class="mini-kpi"><span>UAs sem revisor</span><strong id="certSemRevisor">0</strong></article>
-          <article class="mini-kpi"><span>Certificados a gerar</span><strong id="certGeraveis">0</strong></article>
+          <article class="mini-kpi"><span>Revisores</span><strong id="certRevisores">0</strong></article>
+          <article class="mini-kpi"><span>Com e-mail</span><strong id="certComEmail">0</strong></article>
+          <article class="mini-kpi"><span>Sem e-mail</span><strong id="certSemEmail">0</strong></article>
         </section>
 
         <div class="cert-actions">
@@ -1422,7 +1429,7 @@
                 </tr>
               </thead>
               <tbody id="certTbody">
-                <tr><td colspan="9" class="empty-table">Carregando UAs...</td></tr>
+                <tr><td colspan="9" class="empty-table">Carregando UAs validadas da Monday...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1507,7 +1514,7 @@
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="js/certificados.js?v=20260930-v25-46-21-somente-validados"></script>
+  <script src="js/certificados.js?v=20260930-v25-46-22-auto-monday"></script>
   <script src="js/dashboard.js?v=20260930-v25-46-21-certificados"></script>
 
 
