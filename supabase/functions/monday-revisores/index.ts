@@ -44,56 +44,38 @@ Deno.serve(async (req) => {
     const boardId = Number(body?.board_id || BOARD_VALIDACAO);
     if (boardId !== BOARD_VALIDACAO) throw new Error("Board não autorizado para esta consulta.");
 
-    const q = `query ($board:[ID!]) { boards(ids:$board) { items_page(limit:500) { cursor items { id column_values(ids:["${COLUNA_REVISOR}"]) { id text value } } } } }`;
+    const q = `query ($board:[ID!]) { boards(ids:$board) { items_page(limit:500) { cursor items { column_values(ids:["${COLUNA_REVISOR}"]) { id text value } } } } }`;
     let data = await monday(token, q, { board: [String(boardId)] });
     let page = data?.boards?.[0]?.items_page;
-    const itens = new Map<string, number[]>();
-    const idsPessoas = new Set<number>();
-
+    const pessoas = new Map<number,string>();
     const consumir = (items:any[]) => (items || []).forEach((item:any) => {
       const cv = item?.column_values?.[0];
-      const ids = idsDoValor(cv?.value || null);
-      itens.set(String(item?.id || ""), ids);
-      ids.forEach((id) => idsPessoas.add(id));
+      const texto = String(cv?.text || "").trim();
+      idsDoValor(cv?.value || null).forEach(id => { if (!pessoas.has(id)) pessoas.set(id, texto); });
     });
-
     consumir(page?.items || []);
     let cursor = page?.cursor || null;
     while (cursor) {
-      const nq = `query ($cursor:String!) { next_items_page(limit:500,cursor:$cursor) { cursor items { id column_values(ids:["${COLUNA_REVISOR}"]) { id text value } } } }`;
+      const nq = `query ($cursor:String!) { next_items_page(limit:500,cursor:$cursor) { cursor items { column_values(ids:["${COLUNA_REVISOR}"]) { id text value } } } }`;
       data = await monday(token, nq, { cursor });
       page = data?.next_items_page;
       consumir(page?.items || []);
       cursor = page?.cursor || null;
     }
 
-    const usuarios = new Map<number, any>();
-    const ids = [...idsPessoas];
-    for (let i = 0; i < ids.length; i += 100) {
-      const lote = ids.slice(i, i + 100).map(String);
+    const ids = [...pessoas.keys()];
+    if (!ids.length) return json({ success: true, fonte: "Monday", revisores: [] });
+    const revisores:any[] = [];
+    for (let i=0; i<ids.length; i+=100) {
+      const lote = ids.slice(i,i+100).map(String);
       const uq = `query ($ids:[ID!]) { users(ids:$ids) { id name email enabled } }`;
       const ud = await monday(token, uq, { ids: lote });
-      (ud?.users || []).forEach((u:any) => usuarios.set(Number(u.id), {
-        monday_user_id: Number(u.id),
-        nome: u.name || "",
-        email: u.email || "",
-        ativo: u.enabled !== false
+      (ud?.users || []).forEach((u:any) => revisores.push({
+        monday_user_id: Number(u.id), nome: u.name || pessoas.get(Number(u.id)) || "", email: u.email || "", ativo: u.enabled !== false,
+        aliases: [pessoas.get(Number(u.id))].filter(Boolean)
       }));
     }
-
-    const saida = [...itens.entries()].map(([monday_item_id, pessoaIds]) => ({
-      monday_item_id,
-      pessoas: pessoaIds.map((id) => usuarios.get(id)).filter(Boolean)
-    }));
-
-    return json({
-      success: true,
-      fonte: "Monday",
-      board_id: boardId,
-      regra: "item_id -> person_id -> user_id -> email",
-      total_itens: saida.length,
-      itens: saida
-    });
+    return json({ success: true, fonte: "Monday", board_id: boardId, total: revisores.length, revisores });
   } catch (e) {
     return json({ success: false, error: e instanceof Error ? e.message : String(e) }, 500);
   }
