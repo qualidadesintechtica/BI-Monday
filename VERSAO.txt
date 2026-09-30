@@ -1,3 +1,3 @@
-V25.46.22
+V25.46.23
 2026-09-30
-Certificados automático com a Monday. Entram UAs validadas das matrizes-alvo; o revisor vem de revisor_validador da Monday e é comparado por nome com revisores_ua para localizar o e-mail. Filtros: semestre, revisor, com/sem e-mail e pesquisa. A Base Oficial não exclui UAs.
+Certificados automáticos pela Monday com comparação pela planilha oficial de revisores. A planilha foi convertida para data/revisores_planilha.json (50 revisores, 48 com e-mail e 2 sem e-mail). Nome não localizado e e-mail ausente ficam editáveis na própria tabela. Edições manuais são preservadas no navegador.

@@ -1,0 +1,9 @@
+V25.46.23 — CERTIFICADOS: MONDAY + PLANILHA DE REVISORES + EDIÇÃO
+
+- A Monday/Supabase continua definindo quais UAs entram: somente Status Validação = Validado.
+- O revisor informado na Monday é comparado com a planilha oficial fornecida.
+- A planilha contém 50 revisores; 48 têm e-mail e 2 estão sem e-mail.
+- Quando o nome não é localizado, o campo Revisor fica editável e oferece a lista oficial.
+- Quando o e-mail não é localizado, o campo E-mail fica editável.
+- Edições manuais ficam preservadas no navegador (localStorage).
+- Filtros mantidos: Semestre, Revisor, Com/Sem e-mail e Pesquisa.

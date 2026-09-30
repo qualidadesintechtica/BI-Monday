@@ -1,9 +1,11 @@
-# BI-Monday V25.46.21 — Somente UAs validadas
+# BI-Monday V25.46.23
 
-Alteração restrita à aba **Certificados**.
+Aba Certificados automatizada pela Monday e comparada com a planilha oficial de revisores enviada em 30/09/2026.
 
-- Considera somente UAs com `Status Validação = Validado` (ou `eh_validada = true`).
-- Mantém apenas as quatro matrizes: E2A LATO SENSU, E2A MANDALA (EXPRESS), E2A MANDALA (REALIZE) e E2A RADIAL.
-- UAs validadas sem revisor continuam aparecendo como diagnóstico.
-- Os quatro KPIs respeitam o filtro de Semestre, Revisor e Pesquisa da própria aba.
-- Geração/envio continua apenas quando há revisor oficial.
+- Entram automaticamente UAs com Status Validação = Validado.
+- Filtros: Semestre, Revisor, Com/Sem e-mail e Pesquisa.
+- Comparação de revisor por nome com `data/revisores_planilha.json`.
+- Base da planilha: 50 revisores; 48 com e-mail; 2 sem e-mail.
+- Se o nome não for encontrado, o campo Revisor fica editável com sugestões da planilha.
+- Se o e-mail não for encontrado, o campo E-mail fica editável.
+- Edições manuais ficam preservadas no navegador via localStorage.

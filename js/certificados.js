@@ -2,19 +2,21 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.22 — AUTOMÁTICO COM A MONDAY
+  // CERTIFICADOS V25.46.23 — MONDAY + PLANILHA DE REVISORES + EDIÇÃO
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
   // 2. Entram automaticamente UAs das matrizes-alvo com Status = Validado.
   // 3. O revisor vem da coluna revisor_validador da Monday.
-  // 4. O nome do revisor é comparado com public.revisores_ua.
-  // 5. A tabela revisores_ua complementa o e-mail; ela NÃO exclui a UA.
+  // 4. O nome do revisor é comparado com data/revisores_planilha.json, gerado da planilha oficial.
+  // 5. Quando nome ou e-mail não forem encontrados, a própria tabela permite edição manual.
   // ============================================================
 
   let base = [];
   let filtrados = [];
-  let revisoresOficiaisPorNome = new Map();
+  let revisoresPlanilhaPorNome = new Map();
+  let edicoesManuais = {};
+  const STORAGE_KEY = "bi_certificados_edicoes_v25_46_23";
   let historico = new Set();
   let inicializado = false;
 
@@ -122,59 +124,88 @@
   }
 
   // ============================================================
-  // BASE OFICIAL DE REVISORES — comparação por NOME
+  // PLANILHA OFICIAL DE REVISORES — comparação por NOME
+  // Fonte empacotada: data/revisores_planilha.json
   // ============================================================
 
-  async function carregarRevisoresOficiais() {
-    revisoresOficiaisPorNome = new Map();
-
-    const { data, error } = await window.biSupabase
-      .from("revisores_ua")
-      .select("nq_responsavel,docente_revisor,email,uc,ativo")
-      .eq("ativo", true);
-
-    if (error) {
-      throw new Error(`Não foi possível carregar revisores_ua: ${error.message}`);
-    }
-
-    (data || []).forEach((r) => {
-      const nome = txt(r.docente_revisor);
-      const chave = chavePessoa(nome);
-      if (!chave || !nome) return;
-
-      const email = emailDoTexto(r.email);
-      const existente = revisoresOficiaisPorNome.get(chave);
-
-      if (!existente) {
-        revisoresOficiaisPorNome.set(chave, {
-          revisor: nome,
-          email,
-          nqResponsavel: txt(r.nq_responsavel),
-          ucs: new Set(txt(r.uc) ? [txt(r.uc)] : [])
-        });
-        return;
-      }
-
-      if (!existente.email && email) existente.email = email;
-      if (txt(r.uc)) existente.ucs.add(txt(r.uc));
-    });
-
-    console.info(
-      `Certificados: ${revisoresOficiaisPorNome.size} revisores oficiais carregados para comparação com a Monday.`
-    );
+  function chavePessoaCompacta(v) {
+    const ignorar = new Set(["de", "da", "do", "das", "dos", "e"]);
+    return chavePessoa(v)
+      .split(" ")
+      .filter((p) => p && !ignorar.has(p))
+      .join(" ");
   }
 
-  function localizarRevisorOficial(nomeMonday) {
+  async function carregarRevisoresPlanilha() {
+    revisoresPlanilhaPorNome = new Map();
+
+    try {
+      const resp = await fetch(
+        "data/revisores_planilha.json?v=20260930-v25-46-23",
+        { cache: "no-store" }
+      );
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+
+      const payload = await resp.json();
+      const lista = Array.isArray(payload?.revisores) ? payload.revisores : [];
+
+      lista.forEach((r) => {
+        const nome = txt(r.nome);
+        const chave = chavePessoa(nome);
+        if (!nome || !chave) return;
+
+        revisoresPlanilhaPorNome.set(chave, {
+          revisor: nome,
+          email: emailDoTexto(r.email),
+          fonte: "planilha"
+        });
+      });
+
+      window.__BI_CERT_REVISORES_PLANILHA = {
+        total: lista.length,
+        comEmail: lista.filter((r) => emailValido(r.email)).length,
+        semEmail: lista.filter((r) => !emailValido(r.email)).length
+      };
+
+      console.info(
+        `Certificados: planilha oficial carregada (${lista.length} revisores; ` +
+        `${window.__BI_CERT_REVISORES_PLANILHA.comEmail} com e-mail; ` +
+        `${window.__BI_CERT_REVISORES_PLANILHA.semEmail} sem e-mail).`
+      );
+    } catch (error) {
+      console.error(
+        "Certificados: não foi possível carregar data/revisores_planilha.json. " +
+        "As UAs continuarão visíveis e poderão ser editadas manualmente.",
+        error
+      );
+    }
+  }
+
+  function localizarRevisorPlanilha(nomeMonday) {
     const original = txt(nomeMonday);
     const chave = chavePessoa(original);
     if (!chave) return null;
 
-    const exato = revisoresOficiaisPorNome.get(chave);
+    const exato = revisoresPlanilhaPorNome.get(chave);
     if (exato) return exato;
+
+    const compacta = chavePessoaCompacta(original);
+    if (compacta) {
+      const candidatosCompactos = [];
+      for (const cadastro of revisoresPlanilhaPorNome.values()) {
+        if (chavePessoaCompacta(cadastro.revisor) === compacta) {
+          candidatosCompactos.push(cadastro);
+        }
+      }
+      if (candidatosCompactos.length === 1) return candidatosCompactos[0];
+    }
 
     // Aproximação conservadora: só aceita quando existe um único candidato.
     const candidatos = [];
-    for (const [chaveBase, cadastro] of revisoresOficiaisPorNome.entries()) {
+    for (const [chaveBase, cadastro] of revisoresPlanilhaPorNome.entries()) {
       if (chave.includes(chaveBase) || chaveBase.includes(chave)) {
         candidatos.push(cadastro);
       }
@@ -202,21 +233,18 @@
     const bruto = txt(valor);
     if (!bruto) return [];
 
-    // Se o valor inteiro já corresponde a um revisor, não divide o nome.
-    if (localizarRevisorOficial(bruto)) return [bruto];
+    if (localizarRevisorPlanilha(bruto)) return [bruto];
 
     let partes = bruto
-      .split(/\s*(?:\||;|\n|\r|\/+)\s*/)
+      .split(/\s*(?:\||;|\n|\r|\/{1,})\s*/)
       .map((v) => txt(v))
       .filter(Boolean);
 
-    // Alguns campos People chegam separados por vírgula. Só dividimos por
-    // vírgula se TODOS os pedaços resultarem em revisores reconhecíveis.
     if (partes.length === 1 && bruto.includes(",")) {
       const porVirgula = bruto.split(",").map((v) => txt(v)).filter(Boolean);
       if (
         porVirgula.length > 1 &&
-        porVirgula.every((nome) => localizarRevisorOficial(nome))
+        porVirgula.every((nome) => localizarRevisorPlanilha(nome))
       ) {
         partes = porVirgula;
       }
@@ -233,7 +261,7 @@
     );
 
     return nomes.map((nomeMonday) => {
-      const oficial = localizarRevisorOficial(nomeMonday);
+      const oficial = localizarRevisorPlanilha(nomeMonday);
 
       if (oficial) {
         return {
@@ -241,7 +269,7 @@
           revisorMonday: nomeMonday,
           email: oficial.email || "",
           localizado: true,
-          nqResponsavel: oficial.nqResponsavel || ""
+          fonte: "planilha"
         };
       }
 
@@ -250,9 +278,61 @@
         revisorMonday: nomeMonday,
         email: "",
         localizado: false,
-        nqResponsavel: ""
+        fonte: "manual"
       };
     });
+  }
+
+  function carregarEdicoesManuais() {
+    try {
+      edicoesManuais = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+    } catch (_) {
+      edicoesManuais = {};
+    }
+  }
+
+  function chaveEdicao(ua, revisor, indice) {
+    const original = norm(revisor?.revisorMonday);
+    return `${ua.chaveUa}|${original || `manual-${indice}`}`;
+  }
+
+  function salvarEdicaoManual(ua, revisor, indice) {
+    const chave = chaveEdicao(ua, revisor, indice);
+    edicoesManuais[chave] = {
+      revisor: txt(revisor.revisor),
+      email: txt(revisor.email)
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(edicoesManuais));
+    } catch (e) {
+      console.warn("Não foi possível persistir a edição manual do certificado.", e);
+    }
+  }
+
+  function aplicarEdicaoManual(ua, revisor, indice) {
+    const edicao = edicoesManuais[chaveEdicao(ua, revisor, indice)];
+    if (!edicao) return;
+
+    if (txt(edicao.revisor)) {
+      const oficial = localizarRevisorPlanilha(edicao.revisor);
+      if (oficial) {
+        revisor.revisor = oficial.revisor;
+        revisor.localizado = true;
+        revisor.fonte = "planilha";
+        if (emailValido(oficial.email)) revisor.email = oficial.email;
+      } else {
+        revisor.revisor = txt(edicao.revisor);
+        revisor.localizado = false;
+        revisor.fonte = "manual";
+      }
+      revisor.nomeManual = true;
+    }
+
+    if (emailValido(edicao.email)) {
+      revisor.email = txt(edicao.email).toLowerCase();
+      revisor.emailManual = true;
+    }
   }
 
   // ============================================================
@@ -303,8 +383,8 @@
   }
 
   function estadoCertificado(ua) {
-    if (!ua.revisores.length) return "Revisor não informado na Monday";
-    if (ua.revisores.some((r) => !r.localizado)) return "Revisor não localizado na base";
+    if (!ua.revisores.some((r) => txt(r.revisor))) return "Revisor não informado na Monday";
+    if (ua.revisores.some((r) => txt(r.revisor) && !r.localizado)) return "Revisor não localizado na planilha";
     if (ua.revisores.some((r) => !emailValido(r.email))) return "Sem e-mail";
 
     const certs = certificadosDaUa(ua);
@@ -334,9 +414,20 @@
       const chaveUa = chaveMaterial(item, indice);
       if (mapa.has(chaveUa)) return;
 
-      const revisores = revisoresDaMonday(item);
+      let revisores = revisoresDaMonday(item);
 
-      mapa.set(chaveUa, {
+      // Mesmo sem revisor informado na Monday, a UA permanece visível e editável.
+      if (!revisores.length) {
+        revisores = [{
+          revisor: "",
+          revisorMonday: "",
+          email: "",
+          localizado: false,
+          fonte: "manual"
+        }];
+      }
+
+      const ua = {
         chaveUa,
         idEnvio: txt(item?.monday_item_validacao || item?.monday_item_id || chaveUa),
         name: nomeDaUa(item),
@@ -348,7 +439,10 @@
         revisores,
         revisorMondayBruto: txt(item?.revisor_validador),
         origem: item
-      });
+      };
+
+      ua.revisores.forEach((revisor, ri) => aplicarEdicaoManual(ua, revisor, ri));
+      mapa.set(chaveUa, ua);
     });
 
     base = [...mapa.values()].sort((a, b) => {
@@ -372,7 +466,7 @@
       revisores: revisores.size,
       comEmail,
       semEmail,
-      fonte: "Monday → Supabase → Certificados"
+      fonte: "Monday → Supabase + Planilha de Revisores → Certificados"
     };
 
     console.info("[Certificados] Sincronização automática da Monday:", window.__BI_CERT_DIAGNOSTICO);
@@ -409,6 +503,14 @@
     if (semestres.includes(semestreAtual)) sem.value = semestreAtual;
     if (revisorAtual === "__sem_revisor__" || revisores.includes(revisorAtual)) {
       rev.value = revisorAtual;
+    }
+
+    const lista = $("certRevisoresLista");
+    if (lista) {
+      lista.innerHTML = [...revisoresPlanilhaPorNome.values()]
+        .sort((a, b) => a.revisor.localeCompare(b.revisor, "pt-BR"))
+        .map((r) => `<option value="${esc(r.revisor)}">${esc(r.email || "Sem e-mail na planilha")}</option>`)
+        .join("");
     }
   }
 
@@ -479,35 +581,54 @@
     tb.innerHTML = filtrados.map((ua, i) => {
       const podeGerar = ua.revisores.some((r) => txt(r.revisor));
 
-      const revisoresHtml = ua.revisores.length
-        ? ua.revisores.map((r) => {
-            const origem = r.localizado
-              ? '<small class="cert-email-manual-tag">Base oficial</small>'
-              : '<small class="cert-email-missing">Não localizado na base</small>';
-            return `<div>${esc(r.revisor)}${origem}</div>`;
-          }).join("")
-        : '<div class="cert-email-missing">Não informado na Monday</div>';
+      const revisoresHtml = ua.revisores.map((r, ri) => {
+        if (r.localizado && txt(r.revisor)) {
+          return `
+            <div>
+              ${esc(r.revisor)}
+              <small class="cert-email-manual-tag">Planilha oficial</small>
+            </div>`;
+        }
 
-      const emailsHtml = ua.revisores.length
-        ? ua.revisores.map((r, ri) => {
-            if (emailValido(r.email)) {
-              return `<div>${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : ''}</div>`;
-            }
+        return `
+          <div class="cert-edit-field">
+            <input
+              type="text"
+              class="cert-revisor-manual"
+              data-i="${i}"
+              data-ri="${ri}"
+              value="${esc(r.revisor)}"
+              list="certRevisoresLista"
+              placeholder="Selecione ou digite o revisor"
+              autocomplete="off"
+              aria-label="Editar revisor da UA ${esc(ua.name)}"
+            >
+            <small class="cert-email-missing">
+              ${txt(r.revisor) ? "Nome não localizado — edite ou selecione" : "Revisor não informado — edite ou selecione"}
+            </small>
+          </div>`;
+      }).join("");
 
-            return `
-              <div class="cert-email-missing">Não localizado</div>
-              <input
-                type="email"
-                class="cert-email-manual"
-                data-i="${i}"
-                data-ri="${ri}"
-                placeholder="Digite o e-mail de ${esc(r.revisor)}"
-                autocomplete="off"
-                aria-label="E-mail manual de ${esc(r.revisor)}"
-              >
-              <div class="cert-email-manual-msg" data-email-msg="${i}-${ri}"></div>`;
-          }).join("")
-        : '<span class="cert-email-missing">—</span>';
+      const emailsHtml = ua.revisores.map((r, ri) => {
+        if (emailValido(r.email)) {
+          return `<div>${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : '<div class="cert-email-manual-tag">Planilha oficial</div>'}</div>`;
+        }
+
+        return `
+          <div class="cert-edit-field">
+            <input
+              type="email"
+              class="cert-email-manual"
+              data-i="${i}"
+              data-ri="${ri}"
+              value="${esc(r.email)}"
+              placeholder="Digite o e-mail"
+              autocomplete="off"
+              aria-label="Editar e-mail de ${esc(r.revisor || "revisor")}" 
+            >
+            <div class="cert-email-manual-msg" data-email-msg="${i}-${ri}">E-mail não localizado — edição liberada</div>
+          </div>`;
+      }).join("");
 
       return `
         <tr>
@@ -738,8 +859,10 @@
     if (!inicializado) {
       inicializado = true;
 
+      carregarEdicoesManuais();
+
       await Promise.all([
-        carregarRevisoresOficiais(),
+        carregarRevisoresPlanilha(),
         carregarHistorico()
       ]);
 
@@ -774,11 +897,46 @@
           if (msg) msg.textContent = valor ? "Informe um e-mail válido" : "";
         }
 
+        salvarEdicaoManual(ua, revisor, revisorIndice);
         atualizarKPIs(filtrados);
         atualizarSel();
       });
 
       document.addEventListener("change", (e) => {
+        const inputRevisor = e.target?.closest?.(".cert-revisor-manual");
+        if (inputRevisor) {
+          const indice = Number(inputRevisor.dataset.i);
+          const revisorIndice = Number(inputRevisor.dataset.ri);
+          const ua = filtrados[indice];
+          const revisor = ua?.revisores?.[revisorIndice];
+          if (!ua || !revisor) return;
+
+          const valor = txt(inputRevisor.value);
+          const oficial = localizarRevisorPlanilha(valor);
+
+          if (oficial) {
+            revisor.revisor = oficial.revisor;
+            revisor.localizado = true;
+            revisor.fonte = "planilha";
+            revisor.nomeManual = true;
+            if (emailValido(oficial.email)) {
+              revisor.email = oficial.email;
+              revisor.emailManual = false;
+            }
+          } else {
+            revisor.revisor = valor;
+            revisor.localizado = false;
+            revisor.fonte = "manual";
+            revisor.nomeManual = true;
+            if (!revisor.emailManual) revisor.email = "";
+          }
+
+          salvarEdicaoManual(ua, revisor, revisorIndice);
+          popular();
+          render();
+          return;
+        }
+
         if (e.target?.classList?.contains("cert-check")) atualizarSel();
       });
 

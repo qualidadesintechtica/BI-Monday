@@ -24,7 +24,7 @@
 
   <link
     rel="stylesheet"
-    href="css/dashboard.css?v=20260924-v25-44-2"
+    href="css/dashboard.css?v=20260930-v25-46-23"
   >
 
 
@@ -54,7 +54,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.7 · Certificados UA</small>
+        <small class="build-badge">v25.46.23 · Certificados Monday</small>
 
       </div>
 
@@ -1375,7 +1375,7 @@
         <div class="section-heading">
           <div>
             <h2>Certificados de Revisores</h2>
-            <p>Automático com a Monday: toda UA das matrizes definidas com Status Validação = Validado entra nesta aba após a sincronização. O revisor da Monday é comparado com a Base Oficial para localizar o e-mail.</p>
+            <p>Automático com a Monday: toda UA das matrizes definidas com Status Validação = Validado entra nesta aba após a sincronização. O revisor da Monday é comparado com a planilha oficial de revisores para localizar nome e e-mail. Quando não houver correspondência, os campos ficam editáveis.</p>
           </div>
         </div>
 
@@ -1397,6 +1397,8 @@
             <input id="certBusca" type="search" placeholder="UA, UC, matriz, revisor ou e-mail">
           </label>
         </div>
+
+        <datalist id="certRevisoresLista"></datalist>
 
         <section class="mini-kpis four">
           <article class="mini-kpi"><span>UAs validadas</span><strong id="certTotalUAs">0</strong></article>
@@ -1514,7 +1516,7 @@
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20260908-v24-12-importacao-restaurada"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="js/certificados.js?v=20260930-v25-46-22-auto-monday"></script>
+  <script src="js/certificados.js?v=20260930-v25-46-23-auto-monday"></script>
   <script src="js/dashboard.js?v=20260930-v25-46-21-certificados"></script>
 
 
