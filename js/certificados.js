@@ -1,5 +1,6 @@
-(function () {
-  "use strict";
+function revisoresDaUC(valor) {
+  const chave = chaveUC(valor);
+  if (!chave) return [];
 
   let base = [];
   let filtrados = [];
@@ -359,10 +360,10 @@
         )
         .join("");
 
+  for (const [ucBase, lista] of revisoresOficiaisPorUc.entries()) {
     if (
-      semestres.includes(
-        semestreAtual
-      )
+      chave.includes(ucBase) ||
+      ucBase.includes(chave)
     ) {
       sem.value =
         semestreAtual;
@@ -1271,21 +1272,11 @@
         }
       );
     }
-
-    montar(
-      dados
-    );
-
-    popular();
-
-    render();
   }
 
-  // ============================================================
-  // FUNÇÃO EXPOSTA PARA O DASHBOARD
-  // ============================================================
+  if (candidatos.length === 1) {
+    return candidatos[0][1];
+  }
 
-  window.atualizarCertificados =
-    init;
-
-})();
+  return [];
+}
