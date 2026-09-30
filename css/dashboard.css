@@ -2287,3 +2287,18 @@
     width: 100%;
   }
 }
+
+/* V25.46.7 — e-mail manual para certificado sem endereço localizado */
+.cert-email-manual {
+  width: 100%;
+  min-width: 210px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid #cfc7dc;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.cert-email-manual:focus { outline: 2px solid rgba(45,21,83,.18); border-color: #2d1553; }
+.cert-email-manual-msg { margin-top: 4px; font-size: 11px; color: #6b6277; }
+.cert-email-manual-tag { margin-top: 3px; font-size: 11px; color: #6b6277; }
