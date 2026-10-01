@@ -1,28 +1,34 @@
-# BI-Monday V25.46.23
+# BI-Monday V25.46.32 — Universo completo + múltiplos revisores
 
-Aba Certificados automatizada pela Monday e comparada com a planilha oficial de revisores enviada em 30/09/2026.
+Correções específicas da aba **Certificados**:
 
-- Entram automaticamente UAs com Status Validação = Validado.
-- Filtros: Semestre, Revisor, Com/Sem e-mail e Pesquisa.
-- Comparação de revisor por nome com `data/revisores_planilha.json`.
-- Base da planilha: 50 revisores; 48 com e-mail; 2 sem e-mail.
-- Se o nome não for encontrado, o campo Revisor fica editável com sugestões da planilha.
-- Se o e-mail não for encontrado, o campo E-mail fica editável.
-- Edições manuais ficam preservadas no navegador via localStorage.
+1. **Nenhuma UA validada é descartada apenas porque a matriz veio vazia no registro direto da Monday.**
+2. O identificador de UA agora é procurado em todos os campos possíveis (`item_name`, `titulo_ua`, `unidade_material`, `id_ua`, `tipo_unidade` e `tipo_material`). Isso cobre casos como **UNIDADE 02** e **UA05** mesmo quando `item_name` contém o título da UC.
+3. A identificação das matrizes aceita variações de **RADIAL**, **LATO SENSU**, **MANDALA EXPRESS** e **MANDALA REALIZE**, inclusive esteiras/descrições complementares.
+4. O universo de Certificados passa a unir:
+   - leitura ao vivo do board Monday;
+   - `monday_validacao_materiais`;
+   - `vw_materiais_bi_consolidada`.
+5. O cruzamento de metadados usa primeiro `monday_item_id` e, se necessário, também `id_titulo + id_ua` ou `título + UA`.
+6. A Edge Function `monday-revisores` agora devolve também, **por item**, todos os `person_id` da coluna People. Assim, quando uma UA possui 2 revisores, os dois são lidos diretamente da Monday e geram **2 certificados separados**.
+7. O histórico continua separado por `UA + revisor`.
 
+## Importante — Supabase
 
-## V25.46.24 — Certificados automáticos com base oficial da planilha
+Para a correção dos **segundos revisores** funcionar pela leitura ao vivo, publique também a função:
 
-A aba Certificados é alimentada automaticamente pelos dados sincronizados da Monday. UAs com Status Validação = Validado entram automaticamente; o revisor da Monday é comparado com a base oficial de 50 revisores gerada da planilha fornecida. Os nomes são exibidos em CAIXA ALTA. Quando nome ou e-mail não são encontrados, a própria tabela permite edição manual.
+`supabase/functions/monday-revisores/index.ts`
 
-## V25.46.27 — Revisor correto diretamente da Monday
+A função usa o secret já existente `MONDAY_API_TOKEN`.
 
-Correção estrutural da aba Certificados:
+Depois, publique os arquivos do site e faça `Ctrl + F5`.
 
-- `monday_validacao_materiais` passa a ser a fonte autoritativa para **Status Validação** e **Revisor**.
-- O revisor é lido da coluna People `multiple_person_mkx6ryhs`, inclusive por `person_id` armazenado em `dados_originais`/`dados_colunas`.
-- A Edge Function `monday-revisores` resolve `person_id -> nome + e-mail` diretamente na Monday.
-- `vw_materiais_bi_consolidada` é usada apenas para completar **UC, Matriz e Semestre**.
-- `revisores_cadastro`, `revisores_ua` e a planilha empacotada continuam servindo para padronizar o cadastro oficial.
-- Se a pessoa existe na Monday mas não na base oficial, ela continua visível com os dados da Monday e pode ser editada.
-- Nenhuma UA validada é excluída por ausência de cadastro oficial.
+## Casos informados para conferência
+
+- RADIAL / esteira antecipada: IA e Sociedade, Neurociência, Marketing Digital e Ciência da Felicidade.
+- Lato Sensu: UNIDADE 02.
+- RADIAL: Direito do Consumidor UA05.
+- Segundo revisor:
+  - Antonio — Empreendedorismo em Hospitalidade — UA01 e UA02.
+  - Patricia — Voz — UA04 e UA06.
+  - Stefane — Reabilitação auditiva — UA02 e UA03.

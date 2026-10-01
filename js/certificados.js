@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.31 — FILTROS CORRIGIDOS + UM CERTIFICADO POR REVISOR
+  // CERTIFICADOS V25.46.32 — UNIVERSO COMPLETO + MÚLTIPLOS REVISORES AO VIVO
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -24,6 +24,12 @@
   let mondayUsuariosPorId = new Map();
   let mondayUsuariosPorEmail = new Map();
   let mondayUsuariosPorNome = new Map();
+
+  // V25.46.32: leitura ao vivo do board.
+  // Garante que UAs ainda não refletidas na tabela sincronizada e segundos revisores
+  // da coluna People também entrem na aba Certificados.
+  let mondayRevisoresPorItem = new Map();
+  let mondayItensLive = [];
 
   const BOARD_VALIDACAO = 9433297929;
   const COLUNA_REVISOR_MONDAY = "multiple_person_mkx6ryhs";
@@ -64,24 +70,66 @@
   }
 
   function matrizAlvo(item) {
-    return MATRIZES_ALVO.has(normMatriz(item?.matriz_oferta));
-  }
-
-  function ehUA(item) {
-    const nome = norm(
-      item?.item_name ||
-      item?.titulo_ua ||
-      item?.unidade_material ||
-      item?.name ||
-      item?.id_ua ||
+    const matriz = normMatriz(
+      item?.matriz_oferta ||
+      item?.matriz ||
+      item?.matriz_de_oferta ||
       ""
     );
 
-    return (
-      item?.eh_ua === true ||
-      norm(item?.categoria_material) === "unidade de aprendizagem" ||
-      /^(?:ua|unidade|unidade de aprendizagem)\s*0?[1-8](?:\b|\s|$)/i.test(nome)
+    // Regra de segurança V25.46.32:
+    // se a matriz ainda não veio no registro da Monday, NÃO eliminamos a UA.
+    // O cruzamento com a base consolidada tenta completar essa informação depois.
+    if (!matriz) return true;
+
+    if (MATRIZES_ALVO.has(matriz)) return true;
+    if (matriz.includes("radial")) return true;
+    if (matriz.includes("lato") && matriz.includes("sensu")) return true;
+    if (
+      matriz.includes("mandala") &&
+      (matriz.includes("express") || matriz.includes("realize"))
+    ) return true;
+
+    return false;
+  }
+
+  function ehUA(item) {
+    if (item?.eh_ua === true) return true;
+
+    const categoria = norm(
+      item?.categoria_material ||
+      item?.tipo_material ||
+      item?.tipo_unidade ||
+      ""
     );
+
+    if (
+      categoria === "unidade de aprendizagem" ||
+      categoria === "ua" ||
+      categoria.includes("unidade de aprendizagem")
+    ) {
+      return true;
+    }
+
+    // Não usa somente o primeiro campo preenchido. Alguns registros da Monday
+    // trazem o título da UC em item_name e a identificação UNIDADE 02 / UA02
+    // em outro campo. Todos os candidatos precisam ser avaliados.
+    const candidatos = [
+      item?.item_name,
+      item?.titulo_ua,
+      item?.unidade_material,
+      item?.name,
+      item?.id_ua,
+      item?.tipo_unidade,
+      item?.tipo_material
+    ]
+      .map((v) => norm(v))
+      .filter(Boolean);
+
+    const padraoUa =
+      /^(?:ua|unidade|unidade de aprendizagem)\s*0?(?:[1-9]|1[0-9])(?:\b|\s|$)/i;
+
+    return candidatos.some((valor) => padraoUa.test(valor));
   }
 
   function estaValidada(item) {
@@ -196,13 +244,26 @@
         ? colunasMapeadas[COLUNA_REVISOR_MONDAY]
         : null;
 
-    return {
-      ids: [
-        ...idsPessoasDoValor(colunaOriginal?.value),
-        ...idsPessoasDoValor(colunaMapeada?.value)
-      ].filter((v, i, a) => a.indexOf(v) === i),
+    const mondayId = txt(
+      item?.monday_item_validacao ||
+      item?.monday_item_id ||
+      item?.id
+    );
 
+    const live = mondayId ? mondayRevisoresPorItem.get(mondayId) : null;
+
+    const ids = [
+      ...idsPessoasDoValor(colunaOriginal?.value),
+      ...idsPessoasDoValor(colunaMapeada?.value),
+      ...(Array.isArray(live?.person_ids)
+        ? live.person_ids.map((id) => String(id))
+        : [])
+    ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+    return {
+      ids,
       texto: txt(
+        live?.revisor_texto ||
         item?.revisor_validador ||
         colunaOriginal?.text ||
         colunaMapeada?.text ||
@@ -244,6 +305,8 @@
     mondayUsuariosPorId = new Map();
     mondayUsuariosPorEmail = new Map();
     mondayUsuariosPorNome = new Map();
+    mondayRevisoresPorItem = new Map();
+    mondayItensLive = [];
 
     try {
       const { data, error } = await window.biSupabase.functions.invoke(
@@ -263,13 +326,44 @@
       const lista = Array.isArray(data?.revisores) ? data.revisores : [];
       lista.forEach(registrarUsuarioMonday);
 
+      const itens = Array.isArray(data?.itens) ? data.itens : [];
+      mondayItensLive = itens.map((item) => ({
+        ...item,
+        monday_item_id: txt(item?.monday_item_id || item?.id),
+        monday_item_validacao: txt(item?.monday_item_id || item?.id),
+        item_name: txt(item?.item_name || item?.name),
+        titulo: txt(item?.titulo),
+        status_validacao: txt(item?.status_validacao || item?.status),
+        revisor_validador: txt(item?.revisor_texto || item?.revisor_validador),
+        id_titulo: txt(item?.id_titulo),
+        id_ua: txt(item?.id_ua),
+        bloco: txt(item?.bloco),
+        tipo_material: txt(item?.tipo_material),
+        tipo_unidade: txt(item?.tipo_unidade),
+        categoria_material: txt(item?.tipo_material),
+        esteira: txt(item?.esteira),
+        esteira_producao: txt(item?.esteira),
+        __fonte_certificado: "monday_live"
+      }));
+
+      itens.forEach((item) => {
+        const id = txt(item?.monday_item_id || item?.id);
+        if (!id) return;
+        mondayRevisoresPorItem.set(id, {
+          person_ids: Array.isArray(item?.person_ids)
+            ? item.person_ids.map((v) => String(v))
+            : [],
+          revisor_texto: txt(item?.revisor_texto)
+        });
+      });
+
       console.info(
-        `Certificados: ${lista.length} usuários da coluna Revisor carregados diretamente da Monday.`
+        `Certificados: ${lista.length} usuários e ${itens.length} itens lidos diretamente da Monday.`
       );
     } catch (error) {
       console.warn(
-        "Certificados: não foi possível carregar o diretório de revisores da Monday. " +
-        "Será usado o texto sincronizado como fallback.",
+        "Certificados: não foi possível carregar o diretório/itens ao vivo da Monday. " +
+        "Será usado o conteúdo sincronizado como fallback.",
         error
       );
     }
@@ -726,7 +820,7 @@
   }
 
   function chaveCertificado(ua, revisor) {
-    // V25.46.31: cada revisor da mesma UA possui sua própria chave.
+    // V25.46.32: cada revisor da mesma UA possui sua própria chave.
     // Prioridade: person_id da Monday -> e-mail -> nome normalizado.
     const chaveRevisor =
       txt(revisor?.mondayUserId) ||
@@ -985,6 +1079,60 @@
     return mapa;
   }
 
+
+  function chaveIdTituloUa(item) {
+    const idTitulo = norm(item?.id_titulo || item?.codigo_uc || "");
+    const idUa = norm(item?.id_ua || item?.codigo_ua || item?.codigo_pp || "");
+    if (!idTitulo || !idUa) return "";
+    return `${idTitulo}|${idUa}`;
+  }
+
+  function chaveTituloUa(item) {
+    const titulo = norm(tituloDaUa(item));
+    const ua = norm(nomeDaUa(item));
+    if (!titulo || !ua) return "";
+    return `${titulo}|${ua}`;
+  }
+
+  function indicesConsolidadosAlternativos(dadosConsolidados) {
+    const porIdTituloUa = new Map();
+    const porTituloUa = new Map();
+
+    (dadosConsolidados || []).forEach((item) => {
+      const a = chaveIdTituloUa(item);
+      if (a && !porIdTituloUa.has(a)) porIdTituloUa.set(a, item);
+
+      const b = chaveTituloUa(item);
+      if (b && !porTituloUa.has(b)) porTituloUa.set(b, item);
+    });
+
+    return { porIdTituloUa, porTituloUa };
+  }
+
+  function localizarMetadado(item, porMondayId, alternativos) {
+    const mondayId = txt(
+      item?.monday_item_validacao ||
+      item?.monday_item_id ||
+      item?.id
+    );
+
+    if (mondayId && porMondayId.has(mondayId)) {
+      return porMondayId.get(mondayId);
+    }
+
+    const a = chaveIdTituloUa(item);
+    if (a && alternativos.porIdTituloUa.has(a)) {
+      return alternativos.porIdTituloUa.get(a);
+    }
+
+    const b = chaveTituloUa(item);
+    if (b && alternativos.porTituloUa.has(b)) {
+      return alternativos.porTituloUa.get(b);
+    }
+
+    return null;
+  }
+
   function combinarMondayComMetadados(itemMonday, metadado) {
     const m = metadado || {};
 
@@ -1037,9 +1185,38 @@
         txt(
           itemMonday?.categoria_material ||
           itemMonday?.categoria ||
-          itemMonday?.tipo_material
+          itemMonday?.tipo_material ||
+          itemMonday?.tipo_unidade
         ) ||
         txt(m?.categoria_material),
+
+      tipo_material:
+        txt(itemMonday?.tipo_material) ||
+        txt(m?.tipo_material),
+
+      tipo_unidade:
+        txt(itemMonday?.tipo_unidade) ||
+        txt(m?.tipo_unidade),
+
+      id_titulo:
+        txt(itemMonday?.id_titulo || itemMonday?.codigo_uc) ||
+        txt(m?.id_titulo),
+
+      id_ua:
+        txt(itemMonday?.id_ua || itemMonday?.codigo_ua || itemMonday?.codigo_pp) ||
+        txt(m?.id_ua),
+
+      esteira_producao:
+        txt(itemMonday?.esteira_producao || itemMonday?.esteira) ||
+        txt(m?.esteira_producao),
+
+      bloco:
+        txt(itemMonday?.bloco) ||
+        txt(m?.bloco),
+
+      gestor_validacao_nq:
+        txt(itemMonday?.gestor_validacao_nq || itemMonday?.gestor) ||
+        txt(m?.gestor_validacao_nq),
 
       eh_ua:
         itemMonday?.eh_ua === true ||
@@ -1050,31 +1227,79 @@
   function montar(dadosConsolidados, dadosMondayDiretos) {
     const mapa = new Map();
     const metadataPorId = indiceConsolidadoPorMondayId(dadosConsolidados);
+    const metadataAlternativa = indicesConsolidadosAlternativos(dadosConsolidados);
 
-    const fonteMonday =
-      Array.isArray(dadosMondayDiretos) && dadosMondayDiretos.length
-        ? dadosMondayDiretos
-        : dadosConsolidados || [];
+    // V25.46.32: união das três fontes.
+    // 1) consolidada (fallback histórico)
+    // 2) tabela monday_validacao_materiais
+    // 3) leitura ao vivo do board via monday-revisores
+    //
+    // A leitura ao vivo tem prioridade para status/People e a consolidada
+    // continua sendo usada para completar matriz, semestre, UC e demais metadados.
+    const porId = new Map();
+    const semId = [];
+
+    const adicionarFonte = (lista, prioridade) => {
+      (Array.isArray(lista) ? lista : []).forEach((item, indice) => {
+        const id = txt(
+          item?.monday_item_validacao ||
+          item?.monday_item_id ||
+          item?.id
+        );
+
+        if (!id) {
+          semId.push({ item, prioridade, indice });
+          return;
+        }
+
+        const atual = porId.get(id);
+        if (!atual || prioridade >= atual.prioridade) {
+          porId.set(id, { item, prioridade });
+        }
+      });
+    };
+
+    adicionarFonte(dadosConsolidados || [], 1);
+    adicionarFonte(dadosMondayDiretos || [], 2);
+    adicionarFonte(mondayItensLive || [], 3);
+
+    const fonteUnificada = [
+      ...[...porId.values()].map((x) => x.item),
+      ...semId.map((x) => x.item)
+    ];
 
     let totalValidadoMonday = 0;
     let totalComIdsPeople = 0;
     let totalSemRevisor = 0;
+    let totalSemMatriz = 0;
+    let totalRecuperadoLive = 0;
 
-    fonteMonday.forEach((itemMonday, indice) => {
+    fonteUnificada.forEach((itemMonday, indice) => {
       const mondayId = txt(
         itemMonday?.monday_item_validacao ||
         itemMonday?.monday_item_id ||
         itemMonday?.id
       );
 
-      const metadado = mondayId ? metadataPorId.get(mondayId) : null;
+      const metadado = localizarMetadado(
+        itemMonday,
+        metadataPorId,
+        metadataAlternativa
+      );
+
       const item = combinarMondayComMetadados(itemMonday, metadado);
 
-      if (!matrizAlvo(item)) return;
+      // Primeiro identificamos UA + Validado. A ausência temporária de matriz
+      // não pode eliminar uma UA válida.
       if (!ehUA(item)) return;
       if (!estaValidada(item)) return;
+      if (!matrizAlvo(item)) return;
 
       totalValidadoMonday += 1;
+      if (!txt(item?.matriz_oferta)) totalSemMatriz += 1;
+      if (itemMonday?.__fonte_certificado === "monday_live") {
+        totalRecuperadoLive += 1;
+      }
 
       const colunaRevisor = dadosColunaRevisor(itemMonday);
       if (colunaRevisor.ids.length) totalComIdsPeople += 1;
@@ -1084,9 +1309,13 @@
           ? `monday:${mondayId}`
           : chaveMaterial(item, indice);
 
-      if (mapa.has(chaveUa)) return;
-
+      // Se a mesma UA aparecer por mais de uma fonte, preserva a versão
+      // que trouxe mais pessoas na coluna People.
       let revisores = revisoresDaMonday(itemMonday);
+
+      if (!revisores.length && metadado && metadado !== itemMonday) {
+        revisores = revisoresDaMonday(metadado);
+      }
 
       if (!revisores.length) {
         totalSemRevisor += 1;
@@ -1124,7 +1353,62 @@
         aplicarEdicaoManual(ua, revisor, ri);
       });
 
-      mapa.set(chaveUa, ua);
+      const anterior = mapa.get(chaveUa);
+
+      if (!anterior) {
+        mapa.set(chaveUa, ua);
+        return;
+      }
+
+      // Mescla revisores de fontes diferentes sem juntar pessoas no mesmo certificado.
+      const revisoresMesclados = new Map();
+
+      [...(anterior.revisores || []), ...(ua.revisores || [])].forEach((r) => {
+        const chave =
+          txt(r?.mondayUserId) ||
+          emailDoTexto(r?.email) ||
+          norm(r?.revisor || r?.revisorMonday);
+
+        if (!chave) return;
+
+        const existente = revisoresMesclados.get(chave);
+        if (!existente) {
+          revisoresMesclados.set(chave, r);
+          return;
+        }
+
+        // Prefere o registro mais completo.
+        const pontosAtual =
+          (txt(existente.revisor) ? 1 : 0) +
+          (emailValido(existente.email) ? 1 : 0) +
+          (existente.localizado ? 1 : 0);
+
+        const pontosNovo =
+          (txt(r.revisor) ? 1 : 0) +
+          (emailValido(r.email) ? 1 : 0) +
+          (r.localizado ? 1 : 0);
+
+        if (pontosNovo > pontosAtual) revisoresMesclados.set(chave, r);
+      });
+
+      anterior.revisores = [...revisoresMesclados.values()];
+      anterior.revisorMondayBruto =
+        txt(ua.revisorMondayBruto) || txt(anterior.revisorMondayBruto);
+
+      // Completa metadados que eventualmente estavam vazios.
+      [
+        "name",
+        "titulo",
+        "matriz",
+        "semestre",
+        "esteira",
+        "bloco",
+        "categoria",
+        "gestor",
+        "statusValidacao"
+      ].forEach((campo) => {
+        if (!txt(anterior[campo]) && txt(ua[campo])) anterior[campo] = ua[campo];
+      });
     });
 
     base = [...mapa.values()].sort((a, b) => {
@@ -1156,20 +1440,21 @@
       totalValidadoMonday,
       totalComIdsPeople,
       totalSemRevisor,
+      totalSemMatriz,
+      totalRecuperadoLive,
+      itensLiveMonday: mondayItensLive.length,
       fonte:
-        "monday_validacao_materiais (status + People) → " +
-        "vw_materiais_bi_consolidada (UC/matriz/semestre) → " +
-        "revisores_cadastro/planilha (padronização)"
+        "Monday ao vivo + monday_validacao_materiais + vw_materiais_bi_consolidada"
     };
 
     console.info(
-      "[Certificados] Fonte corrigida — Monday direta:",
+      "[Certificados] V25.46.32 — universo completo + múltiplos revisores:",
       window.__BI_CERT_DIAGNOSTICO
     );
   }
 
   // ============================================================
-  // FILTROS GLOBAIS + FILTROS DA ABA — V25.46.29
+  // FILTROS GLOBAIS + FILTROS DA ABA — V25.46.32
   // A aba Certificados participa do MESMO ciclo de atualização do BI.
   // Os filtros globais são aplicados primeiro e, em seguida, os filtros
   // próprios da aba (Semestre, Revisor, E-mail e Pesquisa).
