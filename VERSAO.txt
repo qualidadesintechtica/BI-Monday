@@ -1,3 +1,3 @@
-V25.46.24
+V25.46.25
 2026-10-01
-Certificados automáticos pela Monday com base oficial de 50 revisores da planilha anexada. Somente UAs com Status Validação = Validado entram na aba; a base de revisores apenas compara/complementa o cadastro e nunca exclui uma UA validada. Filtros: Semestre, Revisor, E-mail e Pesquisa. Nomes de revisores padronizados em CAIXA ALTA. Quando nome ou e-mail não forem localizados, os campos ficam editáveis.
+Certificados automáticos: cruzamento do revisor da Monday por NOME ou E-MAIL com revisores_cadastro, fallback da planilha e complemento revisores_ua. Nomes oficiais em caixa alta. Corrige casos em que o e-mail da Monday era exibido como nome do revisor. Edições manuais usam armazenamento novo para não reaproveitar associações incorretas antigas.

@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.24 — MONDAY AUTOMÁTICA + BASE OFICIAL DA PLANILHA
+  // CERTIFICADOS V25.46.25 — MONDAY AUTOMÁTICA + BASE DINÂMICA NOME/E-MAIL
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -17,9 +17,10 @@
   let base = [];
   let filtrados = [];
   let revisoresPlanilhaPorNome = new Map();
+  let revisoresPlanilhaPorEmail = new Map();
+  let revisoresPlanilhaPorLocalEmail = new Map();
   let edicoesManuais = {};
-  const STORAGE_KEY = "bi_certificados_edicoes_v25_46_24";
-  const STORAGE_KEY_ANTERIOR = "bi_certificados_edicoes_v25_46_23";
+  const STORAGE_KEY = "bi_certificados_edicoes_v25_46_25";
   let historico = new Set();
   let inicializado = false;
 
@@ -130,8 +131,13 @@
   }
 
   // ============================================================
-  // PLANILHA OFICIAL DE REVISORES — comparação por NOME
-  // Fonte empacotada: data/revisores_planilha.json
+  // BASE OFICIAL DE REVISORES
+  // Prioridade:
+  // 1. public.revisores_cadastro (Supabase)
+  // 2. data/revisores_planilha.json (fallback empacotado)
+  // 3. public.revisores_ua (complemento legado)
+  //
+  // O cruzamento aceita NOME ou E-MAIL vindo da Monday.
   // ============================================================
 
   function chavePessoaCompacta(v) {
@@ -142,62 +148,164 @@
       .join(" ");
   }
 
+  function localEmail(v) {
+    const email = emailDoTexto(v);
+    if (!email) return "";
+    return email.split("@")[0].toLowerCase().trim();
+  }
+
+  function registrarRevisorBase(nomeValor, emailValor, fonte = "base") {
+    const nome = nomeCaixaAlta(nomeValor);
+    const chaveNome = chavePessoa(nome);
+    const email = emailDoTexto(emailValor);
+
+    if (!nome || !chaveNome) return null;
+
+    const atual = revisoresPlanilhaPorNome.get(chaveNome);
+    const cadastro = atual || {
+      revisor: nome,
+      email: "",
+      fonte
+    };
+
+    // Preserva o nome padronizado e aproveita o melhor e-mail disponível.
+    cadastro.revisor = nome;
+    if (emailValido(email)) cadastro.email = email;
+    cadastro.fonte = atual?.fonte === "revisores_cadastro" ? atual.fonte : fonte;
+
+    revisoresPlanilhaPorNome.set(chaveNome, cadastro);
+
+    if (emailValido(cadastro.email)) {
+      revisoresPlanilhaPorEmail.set(cadastro.email.toLowerCase(), cadastro);
+
+      const local = localEmail(cadastro.email);
+      if (local) {
+        const existente = revisoresPlanilhaPorLocalEmail.get(local);
+        if (!existente) {
+          revisoresPlanilhaPorLocalEmail.set(local, cadastro);
+        } else if (existente.revisor !== cadastro.revisor) {
+          // Local-part duplicado: marca como ambíguo para não associar errado.
+          revisoresPlanilhaPorLocalEmail.set(local, null);
+        }
+      }
+    }
+
+    return cadastro;
+  }
+
   async function carregarRevisoresPlanilha() {
     revisoresPlanilhaPorNome = new Map();
+    revisoresPlanilhaPorEmail = new Map();
+    revisoresPlanilhaPorLocalEmail = new Map();
 
+    let totalJson = 0;
+    let totalCadastro = 0;
+    let totalUa = 0;
+
+    // Fallback local: garante que a base anexada continue disponível
+    // mesmo se a tabela nova ainda não estiver instalada.
     try {
       const resp = await fetch(
-        "data/revisores_planilha.json?v=20261001-v25-46-24",
+        "data/revisores_planilha.json?v=20261001-v25-46-25",
         { cache: "no-store" }
       );
 
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}`);
-      }
+      if (resp.ok) {
+        const payload = await resp.json();
+        const lista = Array.isArray(payload?.revisores) ? payload.revisores : [];
+        totalJson = lista.length;
 
-      const payload = await resp.json();
-      const lista = Array.isArray(payload?.revisores) ? payload.revisores : [];
-
-      lista.forEach((r) => {
-        const nome = nomeCaixaAlta(r.nome);
-        const chave = chavePessoa(nome);
-        if (!nome || !chave) return;
-
-        revisoresPlanilhaPorNome.set(chave, {
-          revisor: nome,
-          email: emailDoTexto(r.email),
-          fonte: "planilha"
+        lista.forEach((r) => {
+          registrarRevisorBase(r.nome, r.email, "planilha");
         });
-      });
-
-      window.__BI_CERT_REVISORES_PLANILHA = {
-        total: lista.length,
-        comEmail: lista.filter((r) => emailValido(r.email)).length,
-        semEmail: lista.filter((r) => !emailValido(r.email)).length
-      };
-
-      console.info(
-        `Certificados: planilha oficial carregada (${lista.length} revisores; ` +
-        `${window.__BI_CERT_REVISORES_PLANILHA.comEmail} com e-mail; ` +
-        `${window.__BI_CERT_REVISORES_PLANILHA.semEmail} sem e-mail).`
-      );
+      }
     } catch (error) {
-      console.error(
-        "Certificados: não foi possível carregar data/revisores_planilha.json. " +
-        "As UAs continuarão visíveis e poderão ser editadas manualmente.",
+      console.warn("Certificados: fallback local de revisores não carregado.", error);
+    }
+
+    // Fonte principal: cadastro geral no Supabase.
+    try {
+      const { data, error } = await window.biSupabase
+        .from("revisores_cadastro")
+        .select("docente_revisor,email,ativo")
+        .eq("ativo", true);
+
+      if (error) throw error;
+
+      totalCadastro = (data || []).length;
+      (data || []).forEach((r) => {
+        registrarRevisorBase(r.docente_revisor, r.email, "revisores_cadastro");
+      });
+    } catch (error) {
+      console.warn(
+        "Certificados: tabela revisores_cadastro indisponível; usando fallback da planilha.",
         error
       );
     }
+
+    // Complemento legado: adiciona nomes/e-mails que existam em revisores_ua.
+    try {
+      const { data, error } = await window.biSupabase
+        .from("revisores_ua")
+        .select("docente_revisor,email,ativo")
+        .eq("ativo", true);
+
+      if (error) throw error;
+
+      totalUa = (data || []).length;
+      (data || []).forEach((r) => {
+        registrarRevisorBase(r.docente_revisor, r.email, "revisores_ua");
+      });
+    } catch (error) {
+      console.warn("Certificados: complemento revisores_ua não carregado.", error);
+    }
+
+    const listaFinal = [...revisoresPlanilhaPorNome.values()];
+    const comEmail = listaFinal.filter((r) => emailValido(r.email)).length;
+    const semEmail = listaFinal.length - comEmail;
+
+    window.__BI_CERT_REVISORES_PLANILHA = {
+      total: listaFinal.length,
+      comEmail,
+      semEmail,
+      totalJson,
+      totalCadastro,
+      totalUa
+    };
+
+    console.info(
+      `Certificados: base oficial carregada (${listaFinal.length} revisores únicos; ` +
+      `${comEmail} com e-mail; ${semEmail} sem e-mail).`,
+      window.__BI_CERT_REVISORES_PLANILHA
+    );
   }
 
-  function localizarRevisorPlanilha(nomeMonday) {
-    const original = txt(nomeMonday);
+  function localizarRevisorPlanilha(valorMonday) {
+    const original = txt(valorMonday);
+    if (!original) return null;
+
+    // 1. Se a Monday trouxe e-mail (inclusive "NOME <email>"),
+    // tenta pelo e-mail completo.
+    const email = emailDoTexto(original);
+    if (email) {
+      const porEmail = revisoresPlanilhaPorEmail.get(email.toLowerCase());
+      if (porEmail) return porEmail;
+
+      // 2. Se o domínio veio diferente/truncado, usa o local-part somente
+      // quando ele é único na base oficial.
+      const local = localEmail(email);
+      const porLocal = local ? revisoresPlanilhaPorLocalEmail.get(local) : null;
+      if (porLocal) return porLocal;
+    }
+
+    // 3. Correspondência exata pelo nome.
     const chave = chavePessoa(original);
-    if (!chave) return null;
+    if (chave) {
+      const exato = revisoresPlanilhaPorNome.get(chave);
+      if (exato) return exato;
+    }
 
-    const exato = revisoresPlanilhaPorNome.get(chave);
-    if (exato) return exato;
-
+    // 4. Nome sem conectores (DE, DA, DOS...).
     const compacta = chavePessoaCompacta(original);
     if (compacta) {
       const candidatosCompactos = [];
@@ -209,15 +317,19 @@
       if (candidatosCompactos.length === 1) return candidatosCompactos[0];
     }
 
-    // Aproximação conservadora: só aceita quando existe um único candidato.
-    const candidatos = [];
-    for (const [chaveBase, cadastro] of revisoresPlanilhaPorNome.entries()) {
-      if (chave.includes(chaveBase) || chaveBase.includes(chave)) {
-        candidatos.push(cadastro);
+    // 5. Aproximação conservadora por inclusão de nome: aceita apenas
+    // quando existe exatamente um candidato.
+    if (chave) {
+      const candidatos = [];
+      for (const [chaveBase, cadastro] of revisoresPlanilhaPorNome.entries()) {
+        if (chave.includes(chaveBase) || chaveBase.includes(chave)) {
+          candidatos.push(cadastro);
+        }
       }
+      if (candidatos.length === 1) return candidatos[0];
     }
 
-    return candidatos.length === 1 ? candidatos[0] : null;
+    return null;
   }
 
   function nomesRevisorMonday(valor) {
@@ -229,16 +341,29 @@
       if (Array.isArray(valor.personsAndTeams)) {
         return [...new Set(
           valor.personsAndTeams
-            .map((p) => txt(p?.name || p?.text || p?.display_name))
+            .flatMap((p) => {
+              const candidato =
+                p?.email ||
+                p?.name ||
+                p?.text ||
+                p?.display_name ||
+                p?.label ||
+                "";
+              return nomesRevisorMonday(candidato);
+            })
             .filter(Boolean)
         )];
       }
-      return nomesRevisorMonday(valor.name || valor.text || valor.label || "");
+
+      return nomesRevisorMonday(
+        valor.email || valor.name || valor.text || valor.label || ""
+      );
     }
 
     const bruto = txt(valor);
     if (!bruto) return [];
 
+    // Se o conteúdo completo já identifica um único revisor, não divide.
     if (localizarRevisorPlanilha(bruto)) return [bruto];
 
     let partes = bruto
@@ -246,11 +371,16 @@
       .map((v) => txt(v))
       .filter(Boolean);
 
+    // Monday/Supabase pode consolidar múltiplas pessoas por vírgula.
     if (partes.length === 1 && bruto.includes(",")) {
-      const porVirgula = bruto.split(",").map((v) => txt(v)).filter(Boolean);
+      const porVirgula = bruto
+        .split(",")
+        .map((v) => txt(v))
+        .filter(Boolean);
+
       if (
         porVirgula.length > 1 &&
-        porVirgula.every((nome) => localizarRevisorPlanilha(nome))
+        porVirgula.every((item) => localizarRevisorPlanilha(item))
       ) {
         partes = porVirgula;
       }
@@ -260,29 +390,37 @@
   }
 
   function revisoresDaMonday(item) {
-    const nomes = nomesRevisorMonday(
+    const fonteMonday =
       item?.revisor_validador ||
       item?.revisor ||
-      item?.revisor_validacao
-    );
+      item?.revisor_validacao ||
+      item?.email_revisor ||
+      item?.revisor_email ||
+      "";
 
-    return nomes.map((nomeMonday) => {
-      const oficial = localizarRevisorPlanilha(nomeMonday);
+    const nomes = nomesRevisorMonday(fonteMonday);
+
+    return nomes.map((valorMonday) => {
+      const oficial = localizarRevisorPlanilha(valorMonday);
 
       if (oficial) {
         return {
           revisor: oficial.revisor,
-          revisorMonday: nomeMonday,
-          email: oficial.email || "",
+          revisorMonday: valorMonday,
+          email: oficial.email || emailDoTexto(valorMonday) || "",
           localizado: true,
-          fonte: "planilha"
+          fonte: oficial.fonte || "base_oficial"
         };
       }
 
+      const emailMonday = emailDoTexto(valorMonday);
+
       return {
-        revisor: nomeCaixaAlta(nomeMonday),
-        revisorMonday: nomeMonday,
-        email: "",
+        // Se a Monday trouxe apenas e-mail e ele não foi reconhecido,
+        // não mostramos o e-mail como se fosse o nome do revisor.
+        revisor: emailMonday ? "" : nomeCaixaAlta(valorMonday),
+        revisorMonday: valorMonday,
+        email: emailMonday || "",
         localizado: false,
         fonte: "manual"
       };
@@ -291,10 +429,7 @@
 
   function carregarEdicoesManuais() {
     try {
-      const salvo =
-        localStorage.getItem(STORAGE_KEY) ||
-        localStorage.getItem(STORAGE_KEY_ANTERIOR) ||
-        "{}";
+      const salvo = localStorage.getItem(STORAGE_KEY) || "{}";
       edicoesManuais = JSON.parse(salvo) || {};
     } catch (_) {
       edicoesManuais = {};
@@ -330,7 +465,7 @@
       if (oficial) {
         revisor.revisor = oficial.revisor;
         revisor.localizado = true;
-        revisor.fonte = "planilha";
+        revisor.fonte = oficial.fonte || "base_oficial";
         if (emailValido(oficial.email)) revisor.email = oficial.email;
       } else {
         revisor.revisor = nomeEditado;
@@ -477,7 +612,7 @@
       revisores: revisores.size,
       comEmail,
       semEmail,
-      fonte: "Monday → Supabase → Base oficial da planilha → Certificados"
+      fonte: "Monday → Supabase → Base oficial (nome/e-mail) → Certificados"
     };
 
     console.info("[Certificados] Sincronização automática da Monday:", window.__BI_CERT_DIAGNOSTICO);
@@ -928,7 +1063,7 @@
           if (oficial) {
             revisor.revisor = oficial.revisor;
             revisor.localizado = true;
-            revisor.fonte = "planilha";
+            revisor.fonte = oficial.fonte || "base_oficial";
             revisor.nomeManual = true;
             if (emailValido(oficial.email)) {
               revisor.email = oficial.email;
