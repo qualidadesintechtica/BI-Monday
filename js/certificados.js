@@ -2,21 +2,24 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.23 — MONDAY + PLANILHA DE REVISORES + EDIÇÃO
+  // CERTIFICADOS V25.46.24 — MONDAY AUTOMÁTICA + BASE OFICIAL DA PLANILHA
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
   // 2. Entram automaticamente UAs das matrizes-alvo com Status = Validado.
   // 3. O revisor vem da coluna revisor_validador da Monday.
-  // 4. O nome do revisor é comparado com data/revisores_planilha.json, gerado da planilha oficial.
-  // 5. Quando nome ou e-mail não forem encontrados, a própria tabela permite edição manual.
+  // 4. O nome do revisor é comparado com a base oficial gerada da planilha anexada.
+  // 5. Os nomes de revisores são padronizados em CAIXA ALTA.
+  // 6. Quando nome ou e-mail não forem encontrados, a própria tabela permite edição manual.
+  // 7. A base de revisores nunca exclui uma UA validada; ela apenas complementa/valida o cadastro.
   // ============================================================
 
   let base = [];
   let filtrados = [];
   let revisoresPlanilhaPorNome = new Map();
   let edicoesManuais = {};
-  const STORAGE_KEY = "bi_certificados_edicoes_v25_46_23";
+  const STORAGE_KEY = "bi_certificados_edicoes_v25_46_24";
+  const STORAGE_KEY_ANTERIOR = "bi_certificados_edicoes_v25_46_23";
   let historico = new Set();
   let inicializado = false;
 
@@ -29,6 +32,9 @@
 
   const $ = (id) => document.getElementById(id);
   const txt = (v) => String(v ?? "").trim();
+
+  const nomeCaixaAlta = (v) =>
+    txt(v).toLocaleUpperCase("pt-BR");
 
   const norm = (v) =>
     txt(v)
@@ -141,7 +147,7 @@
 
     try {
       const resp = await fetch(
-        "data/revisores_planilha.json?v=20260930-v25-46-23",
+        "data/revisores_planilha.json?v=20261001-v25-46-24",
         { cache: "no-store" }
       );
 
@@ -153,7 +159,7 @@
       const lista = Array.isArray(payload?.revisores) ? payload.revisores : [];
 
       lista.forEach((r) => {
-        const nome = txt(r.nome);
+        const nome = nomeCaixaAlta(r.nome);
         const chave = chavePessoa(nome);
         if (!nome || !chave) return;
 
@@ -274,7 +280,7 @@
       }
 
       return {
-        revisor: nomeMonday,
+        revisor: nomeCaixaAlta(nomeMonday),
         revisorMonday: nomeMonday,
         email: "",
         localizado: false,
@@ -285,7 +291,11 @@
 
   function carregarEdicoesManuais() {
     try {
-      edicoesManuais = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+      const salvo =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem(STORAGE_KEY_ANTERIOR) ||
+        "{}";
+      edicoesManuais = JSON.parse(salvo) || {};
     } catch (_) {
       edicoesManuais = {};
     }
@@ -315,14 +325,15 @@
     if (!edicao) return;
 
     if (txt(edicao.revisor)) {
-      const oficial = localizarRevisorPlanilha(edicao.revisor);
+      const nomeEditado = nomeCaixaAlta(edicao.revisor);
+      const oficial = localizarRevisorPlanilha(nomeEditado);
       if (oficial) {
         revisor.revisor = oficial.revisor;
         revisor.localizado = true;
         revisor.fonte = "planilha";
         if (emailValido(oficial.email)) revisor.email = oficial.email;
       } else {
-        revisor.revisor = txt(edicao.revisor);
+        revisor.revisor = nomeEditado;
         revisor.localizado = false;
         revisor.fonte = "manual";
       }
@@ -365,7 +376,7 @@
 
   function registroCertificado(ua, revisor) {
     return {
-      revisor: revisor.revisor,
+      revisor: nomeCaixaAlta(revisor.revisor),
       email: revisor.email || "",
       name: ua.name,
       titulo: ua.titulo,
@@ -384,7 +395,7 @@
 
   function estadoCertificado(ua) {
     if (!ua.revisores.some((r) => txt(r.revisor))) return "Revisor não informado na Monday";
-    if (ua.revisores.some((r) => txt(r.revisor) && !r.localizado)) return "Revisor não localizado na planilha";
+    if (ua.revisores.some((r) => txt(r.revisor) && !r.localizado)) return "Revisor não localizado na base oficial";
     if (ua.revisores.some((r) => !emailValido(r.email))) return "Sem e-mail";
 
     const certs = certificadosDaUa(ua);
@@ -466,7 +477,7 @@
       revisores: revisores.size,
       comEmail,
       semEmail,
-      fonte: "Monday → Supabase + Planilha de Revisores → Certificados"
+      fonte: "Monday → Supabase → Base oficial da planilha → Certificados"
     };
 
     console.info("[Certificados] Sincronização automática da Monday:", window.__BI_CERT_DIAGNOSTICO);
@@ -537,7 +548,8 @@
     filtrados = base.filter((ua) => {
       if (sem && ua.semestre !== sem) return false;
 
-      if (rev === "__sem_revisor__" && ua.revisores.length) return false;
+      const temRevisor = ua.revisores.some((r) => txt(r.revisor));
+      if (rev === "__sem_revisor__" && temRevisor) return false;
       if (
         rev &&
         rev !== "__sem_revisor__" &&
@@ -572,7 +584,7 @@
     if (!filtrados.length) {
       tb.innerHTML = `
         <tr>
-          <td colspan="9" class="empty-table">Nenhuma UA validada encontrada.</td>
+          <td colspan="10" class="empty-table">Nenhuma UA validada encontrada.</td>
         </tr>`;
       atualizarSel();
       return;
@@ -586,7 +598,7 @@
           return `
             <div>
               ${esc(r.revisor)}
-              <small class="cert-email-manual-tag">Planilha oficial</small>
+              <small class="cert-email-manual-tag">Base oficial</small>
             </div>`;
         }
 
@@ -611,7 +623,7 @@
 
       const emailsHtml = ua.revisores.map((r, ri) => {
         if (emailValido(r.email)) {
-          return `<div>${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : '<div class="cert-email-manual-tag">Planilha oficial</div>'}</div>`;
+          return `<div>${esc(r.email)}${r.emailManual ? '<div class="cert-email-manual-tag">Informado manualmente</div>' : '<div class="cert-email-manual-tag">Base oficial</div>'}</div>`;
         }
 
         return `
@@ -646,10 +658,8 @@
           <td>${esc(ua.titulo || "--")}</td>
           <td>${esc(ua.matriz || "--")}</td>
           <td>${esc(ua.semestre || "--")}</td>
-          <td>
-            <div>${esc(ua.statusValidacao || "Validado")}</div>
-            <small class="cert-pill">${esc(estadoCertificado(ua))}</small>
-          </td>
+          <td>${esc(ua.statusValidacao || "Validado")}</td>
+          <td><small class="cert-pill">${esc(estadoCertificado(ua))}</small></td>
           <td>
             <button
               class="cert-btn cert-one"
@@ -911,7 +921,8 @@
           const revisor = ua?.revisores?.[revisorIndice];
           if (!ua || !revisor) return;
 
-          const valor = txt(inputRevisor.value);
+          const valor = nomeCaixaAlta(inputRevisor.value);
+          inputRevisor.value = valor;
           const oficial = localizarRevisorPlanilha(valor);
 
           if (oficial) {
@@ -924,7 +935,7 @@
               revisor.emailManual = false;
             }
           } else {
-            revisor.revisor = valor;
+            revisor.revisor = nomeCaixaAlta(valor);
             revisor.localizado = false;
             revisor.fonte = "manual";
             revisor.nomeManual = true;

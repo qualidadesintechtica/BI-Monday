@@ -1,112 +1,113 @@
 {
-  "versao": "2026-09-30",
-  "fonte": "Formulário - Acompanhamento NQ x Revisor_com e-mail(1).xlsx",
+  "versao": "2026-10-01",
+  "fonte": "Formulário - Acompanhamento NQ x Revisor_com e-mail(2).xlsx",
   "total_revisores": 50,
   "com_email": 48,
   "sem_email": 2,
+  "padronizacao_nomes": "CAIXA ALTA",
   "revisores": [
     {
-      "nome": "Amandio Luis Barbosa Furtado",
+      "nome": "AMANDIO LUIS BARBOSA FURTADO",
       "email": "amandio.furtado@ulife.com.br"
     },
     {
-      "nome": "Ana Alice Miranda Duarte",
+      "nome": "ANA ALICE MIRANDA DUARTE",
       "email": "ana.alice@ulife.com.br"
     },
     {
-      "nome": "Bruno Perez Felix",
+      "nome": "BRUNO PEREZ FELIX",
       "email": "bruno.felix@ulife.com.br"
     },
     {
-      "nome": "Caroline Mendes Ferreira",
+      "nome": "CAROLINE MENDES FERREIRA",
       "email": "caroline.mendes@ulife.com.br"
     },
     {
-      "nome": "Cristiane Ribeiro Pereira Bastos",
+      "nome": "CRISTIANE RIBEIRO PEREIRA BASTOS",
       "email": "cristiane.r.bastos@ulife.com.br"
     },
     {
-      "nome": "Demetrius De Castro Do Amaral",
+      "nome": "DEMETRIUS DE CASTRO DO AMARAL",
       "email": "demetrius.amaral@ulife.com.br"
     },
     {
-      "nome": "Erivelton Xavier De Lima",
+      "nome": "ERIVELTON XAVIER DE LIMA",
       "email": "erivelton.lima@ulife.com.br"
     },
     {
-      "nome": "Fabio da Silva Santos",
+      "nome": "FABIO DA SILVA SANTOS",
       "email": "fabio.s.santos@ulife.com.br"
     },
     {
-      "nome": "Fernanda Mendes De Vuono Santos",
+      "nome": "FERNANDA MENDES DE VUONO SANTOS",
       "email": "fernanda.vuono@ulife.com.br"
     },
     {
-      "nome": "Flavia Elaine Aliotti Rodrigues Nogueira",
+      "nome": "FLAVIA ELAINE ALIOTTI RODRIGUES NOGUEIRA",
       "email": "flavia.aliotti@ulife.com.br"
     },
     {
-      "nome": "Francisco Jose Rodrigues Da Silva Junior",
+      "nome": "FRANCISCO JOSE RODRIGUES DA SILVA JUNIOR",
       "email": "francisco.j.junior@ulife.com.br"
     },
     {
-      "nome": "Gabriela Rezende Yanagihara",
+      "nome": "GABRIELA REZENDE YANAGIHARA",
       "email": "gabriela.yanagihara@ulife.com.br"
     },
     {
-      "nome": "Gilmara Camargo de Freitas",
+      "nome": "GILMARA CAMARGO DE FREITAS",
       "email": "gilmara.freitas@ulife.com.br"
     },
     {
-      "nome": "Giovanni Gropello Sandoval",
+      "nome": "GIOVANNI GROPELLO SANDOVAL",
       "email": "giovanni.sandoval@ulife.com.br"
     },
     {
-      "nome": "Ipojucan Pereira Da Silva",
+      "nome": "IPOJUCAN PEREIRA DA SILVA",
       "email": "ipojucan.silva@ulife.com.br"
     },
     {
-      "nome": "Itacio Queiroz De Mello Padilha",
+      "nome": "ITACIO QUEIROZ DE MELLO PADILHA",
       "email": "itacio.padilha@ulife.com.br"
     },
     {
-      "nome": "Luciana Freire Murgel",
+      "nome": "LUCIANA FREIRE MURGEL",
       "email": "luciana.murgel@ulife.com.br"
     },
     {
-      "nome": "Marcella De Avelar Sampaio",
+      "nome": "MARCELLA DE AVELAR SAMPAIO",
       "email": "marcella.lagden@ulife.com.br"
     },
     {
-      "nome": "Marcus Andre Ferreira As",
+      "nome": "MARCUS ANDRE FERREIRA AS",
       "email": "marcus.sa@ulife.com.br"
     },
     {
-      "nome": "Mayara Kelly Martins De Medeiros Dias",
+      "nome": "MAYARA KELLY MARTINS DE MEDEIROS DIAS",
       "email": "mayara.kelly@ulife.com.br"
     },
     {
-      "nome": "Moises Conde Silva De Oliveira",
+      "nome": "MOISES CONDE SILVA DE OLIVEIRA",
       "email": "moises.conde@ulife.com.br"
     },
     {
-      "nome": "Patricia Campos Kickinger",
+      "nome": "PATRICIA CAMPOS KICKINGER",
       "email": "patricia.kickinger@ulife.com.br"
     },
     {
-      "nome": "Priscila Borges de Morais",
+      "nome": "PRISCILA BORGES DE MORAIS",
       "email": "priscila.morais@ulife.com.br"
     },
     {
-      "nome": "Raquel Senna Telhado",
+      "nome": "RAQUEL SENNA TELHADO",
       "email": "raquel.telhado@ulife.com.br"
     },
     {
-      "nome": "Ricardo Jose Brandao Velloso",
+      "nome": "RICARDO JOSE BRANDAO VELLOSO",
       "email": "ricardo.velloso@ulife.com.br"
     },
     {
-      "nome": "Rosanne Azevedo De Albuquerque",
+      "nome": "ROSANNE AZEVEDO DE ALBUQUERQUE",
       "email": "rosanne.albuquerque@ulife.com.br"
     },
     {
@@ -114,31 +115,31 @@
       "email": "prof.sergioignacio@ulife.com.br"
     },
     {
-      "nome": "Sergio Sampaio Spinola",
+      "nome": "SERGIO SAMPAIO SPINOLA",
       "email": "sergio.spinola@ulife.com.br"
     },
     {
-      "nome": "Stefane Maria De Lima Campos",
+      "nome": "STEFANE MARIA DE LIMA CAMPOS",
       "email": "stefane.campos@ulife.com.br"
     },
     {
-      "nome": "Tania Barbosa Tomaz",
+      "nome": "TANIA BARBOSA TOMAZ",
       "email": "tania.tomaz@ulife.com.br"
     },
     {
-      "nome": "Tatiana de Andrade Spinola",
+      "nome": "TATIANA DE ANDRADE SPINOLA",
       "email": "tatiana.spinola@ulife.com.br"
     },
     {
-      "nome": "Tito Livio Cavalcanti Ramalho",
+      "nome": "TITO LIVIO CAVALCANTI RAMALHO",
       "email": "tito.ramalho@ulife.com.br"
     },
     {
-      "nome": "Vicente Celeste De Oliveira Junior",
+      "nome": "VICENTE CELESTE DE OLIVEIRA JUNIOR",
       "email": "vicente.celeste@ulife.com.br"
     },
     {
-      "nome": "Vinicius Carlos De Oliveira",
+      "nome": "VINICIUS CARLOS DE OLIVEIRA",
       "email": "vinicius.c.oliveira@ulife.com.br"
     },
     {
@@ -202,7 +203,7 @@
       "email": ""
     },
     {
-      "nome": "Marcos Donizete",
+      "nome": "MARCOS DONIZETE",
       "email": ""
     }
   ]
