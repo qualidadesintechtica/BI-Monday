@@ -1,3 +1,3 @@
-V25.46.27
+V25.46.30
 2026-10-01
-Correção da origem do revisor na aba Certificados. A aba passa a usar diretamente monday_validacao_materiais para Status e coluna People do Revisor, incluindo person_id quando disponível. A view consolidada fica apenas como complemento de UC, Matriz e Semestre. O revisor real da Monday é comparado com revisores_cadastro/planilha para padronização em caixa alta e e-mail; quando não houver cadastro oficial, o nome/e-mail vindos da Monday permanecem visíveis e editáveis. Filtros locais preservados.
+Certificados: quando uma mesma UA possui dois ou mais revisores na coluna People da Monday, o sistema gera um certificado separado para cada revisor. A chave de histórico diferencia os certificados por monday_item_id + person_id/e-mail/nome do revisor. Filtros, relatório, envio e atualização sincronizada foram preservados.

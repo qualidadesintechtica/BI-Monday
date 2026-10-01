@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.27 — MONDAY DIRETA + REVISOR PEOPLE CORRETO
+  // CERTIFICADOS V25.46.30 — UM CERTIFICADO POR REVISOR DA UA
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -31,6 +31,7 @@
   let edicoesManuais = {};
   const STORAGE_KEY = "bi_certificados_edicoes_v25_46_27";
   let historico = new Set();
+  let historicoDetalhes = new Map();
   let inicializado = false;
 
   const MATRIZES_ALVO = new Set([
@@ -705,20 +706,36 @@
     try {
       const { data, error } = await window.biSupabase
         .from("certificados_envios")
-        .select("chave_certificado,status")
+        .select("chave_certificado,status,revisor,email,name_ua,titulo,semestre_oferta,enviado_em")
         .eq("status", "enviado");
 
       if (error) throw error;
-      historico = new Set((data || []).map((x) => x.chave_certificado));
+
+      const registros = data || [];
+      historico = new Set(registros.map((x) => x.chave_certificado));
+      historicoDetalhes = new Map(
+        registros
+          .filter((x) => txt(x.chave_certificado))
+          .map((x) => [x.chave_certificado, x])
+      );
     } catch (e) {
       console.warn("Histórico de certificados ainda não instalado.", e);
+      historico = new Set();
+      historicoDetalhes = new Map();
     }
   }
 
   function chaveCertificado(ua, revisor) {
+    // V25.46.30: cada revisor da mesma UA possui sua própria chave.
+    // Prioridade: person_id da Monday -> e-mail -> nome normalizado.
+    const chaveRevisor =
+      txt(revisor?.mondayUserId) ||
+      emailDoTexto(revisor?.email) ||
+      norm(revisor?.revisor);
+
     return [
       ua.idEnvio || ua.chaveUa,
-      norm(revisor.revisor),
+      chaveRevisor,
       norm(ua.name),
       norm(ua.titulo),
       norm(ua.semestre)
@@ -733,15 +750,33 @@
       titulo: ua.titulo,
       semestre: ua.semestre,
       nqResponsavel: revisor.nqResponsavel || "",
+      mondayUserId: txt(revisor.mondayUserId),
       chave: chaveCertificado(ua, revisor)
     };
   }
 
   function certificadosDaUa(ua) {
-    if (!ua.validado || !ua.revisores.length) return [];
-    return ua.revisores
-      .filter((r) => txt(r.revisor))
-      .map((r) => registroCertificado(ua, r));
+    if (!ua.validado || !Array.isArray(ua.revisores) || !ua.revisores.length) {
+      return [];
+    }
+
+    // Uma UA pode ter 1, 2 ou mais revisores. Cada pessoa gera um
+    // certificado independente, sem juntar nomes no mesmo PDF.
+    const unicos = new Map();
+
+    ua.revisores
+      .filter((r) => txt(r?.revisor))
+      .forEach((r) => {
+        const chaveRevisor =
+          txt(r.mondayUserId) ||
+          emailDoTexto(r.email) ||
+          norm(r.revisor);
+
+        if (!chaveRevisor || unicos.has(chaveRevisor)) return;
+        unicos.set(chaveRevisor, registroCertificado(ua, r));
+      });
+
+    return [...unicos.values()];
   }
 
   function estadoCertificado(ua) {
@@ -759,6 +794,176 @@
 
   function uaComEmail(ua) {
     return ua.revisores.length > 0 && ua.revisores.every((r) => emailValido(r.email));
+  }
+
+  // ============================================================
+  // RELATÓRIO DE CERTIFICADOS — V25.46.28
+  // Gera Excel com Resumo, Pendentes e Enviados usando os filtros atuais.
+  // ============================================================
+
+  function formatarDataHora(valor) {
+    if (!valor) return "";
+    const data = new Date(valor);
+    if (Number.isNaN(data.getTime())) return txt(valor);
+    return data.toLocaleString("pt-BR");
+  }
+
+  function situacaoCadastroRelatorio(revisor) {
+    if (!txt(revisor?.revisor)) return "REVISOR NÃO INFORMADO";
+    if (!revisor?.localizado) return "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
+    if (!emailValido(revisor?.email)) return "SEM E-MAIL";
+    return "CADASTRO OK";
+  }
+
+  function linhasRelatorioCertificados(lista) {
+    const linhas = [];
+
+    (Array.isArray(lista) ? lista : []).forEach((ua) => {
+      const revisores = Array.isArray(ua?.revisores)
+        ? ua.revisores.filter((r) => txt(r?.revisor))
+        : [];
+
+      if (!revisores.length) {
+        linhas.push({
+          Status: "PENDENTE",
+          Motivo: "REVISOR NÃO INFORMADO",
+          Revisor: "",
+          "E-mail": "",
+          UA: txt(ua?.name),
+          UC: txt(ua?.titulo),
+          Matriz: txt(ua?.matriz),
+          Semestre: txt(ua?.semestre),
+          "Status Validação": txt(ua?.statusValidacao || "Validado"),
+          "Situação do cadastro": "REVISOR NÃO INFORMADO",
+          "ID Monday": txt(ua?.idEnvio),
+          "Data de envio": ""
+        });
+        return;
+      }
+
+      revisores.forEach((revisor) => {
+        const cert = registroCertificado(ua, revisor);
+        const enviado = historico.has(cert.chave);
+        const detalhe = historicoDetalhes.get(cert.chave) || {};
+
+        let motivo = "";
+        if (!enviado) {
+          if (!emailValido(revisor.email)) motivo = "SEM E-MAIL";
+          else if (!revisor.localizado) motivo = "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
+          else motivo = "AGUARDANDO ENVIO";
+        }
+
+        linhas.push({
+          Status: enviado ? "ENVIADO" : "PENDENTE",
+          Motivo: motivo,
+          Revisor: nomeCaixaAlta(revisor.revisor),
+          "E-mail": txt(revisor.email).toLowerCase(),
+          UA: txt(ua.name),
+          UC: txt(ua.titulo),
+          Matriz: txt(ua.matriz),
+          Semestre: txt(ua.semestre),
+          "Status Validação": txt(ua.statusValidacao || "Validado"),
+          "Situação do cadastro": situacaoCadastroRelatorio(revisor),
+          "ID Monday": txt(ua.idEnvio),
+          "Data de envio": enviado ? formatarDataHora(detalhe.enviado_em) : ""
+        });
+      });
+    });
+
+    return linhas;
+  }
+
+  function planilhaRelatorio(linhas) {
+    const colunas = [
+      "Status",
+      "Motivo",
+      "Revisor",
+      "E-mail",
+      "UA",
+      "UC",
+      "Matriz",
+      "Semestre",
+      "Status Validação",
+      "Situação do cadastro",
+      "ID Monday",
+      "Data de envio"
+    ];
+
+    const ws = linhas.length
+      ? window.XLSX.utils.json_to_sheet(linhas, { header: colunas })
+      : window.XLSX.utils.aoa_to_sheet([colunas]);
+
+    const larguras = colunas.map((coluna) => {
+      const maior = Math.max(
+        coluna.length,
+        ...linhas.map((linha) => txt(linha[coluna]).length)
+      );
+      return { wch: Math.min(Math.max(maior + 2, 12), 48) };
+    });
+
+    ws["!cols"] = larguras;
+    ws["!autofilter"] = { ref: `A1:L${Math.max(linhas.length + 1, 1)}` };
+    return ws;
+  }
+
+  function exportarRelatorioCertificados() {
+    if (!window.XLSX) {
+      alert("Biblioteca XLSX não carregada. Atualize a página e tente novamente.");
+      return;
+    }
+
+    const universo = aplicarFiltrosCertificados(base);
+    const linhas = linhasRelatorioCertificados(universo);
+    const pendentes = linhas.filter((x) => x.Status === "PENDENTE");
+    const enviados = linhas.filter((x) => x.Status === "ENVIADO");
+
+    const revisores = new Set(linhas.map((x) => norm(x.Revisor)).filter(Boolean));
+    const semEmail = pendentes.filter((x) => x.Motivo === "SEM E-MAIL").length;
+    const semRevisor = pendentes.filter((x) => x.Motivo === "REVISOR NÃO INFORMADO").length;
+
+    const resumo = [
+      { Indicador: "UAs validadas no filtro", Valor: universo.length },
+      { Indicador: "Registros de certificados", Valor: linhas.length },
+      { Indicador: "Certificados enviados", Valor: enviados.length },
+      { Indicador: "Certificados pendentes", Valor: pendentes.length },
+      { Indicador: "Pendentes sem e-mail", Valor: semEmail },
+      { Indicador: "Pendentes sem revisor", Valor: semRevisor },
+      { Indicador: "Revisores distintos", Valor: revisores.size },
+      { Indicador: "Filtro - Semestre", Valor: txt($("certSemestre")?.value) || "Todos" },
+      { Indicador: "Filtro - Revisor", Valor: txt($("certRevisor")?.value) || "Todos" },
+      { Indicador: "Filtro - E-mail", Valor: txt($("certEmail")?.value) || "Com e sem e-mail" },
+      { Indicador: "Filtro - Pesquisa", Valor: txt($("certBusca")?.value) || "Sem pesquisa" },
+      { Indicador: "Global - Esteira", Valor: selecionadosFiltroGlobal("filtroEsteira").join(" | ") || "Todas" },
+      { Indicador: "Global - Matriz", Valor: selecionadosFiltroGlobal("filtroMatriz").join(" | ") || "Todas" },
+      { Indicador: "Global - Bloco", Valor: selecionadosFiltroGlobal("filtroBloco").join(" | ") || "Todos" },
+      { Indicador: "Global - Status", Valor: selecionadosFiltroGlobal("filtroStatus").join(" | ") || "Todos" },
+      { Indicador: "Global - Categoria", Valor: selecionadosFiltroGlobal("filtroCategoria").join(" | ") || "Todas" },
+      { Indicador: "Global - Gestor", Valor: selecionadosFiltroGlobal("filtroGestor").join(" | ") || "Todos" },
+      { Indicador: "Global - Revisor", Valor: selecionadosFiltroGlobal("filtroRevisor").join(" | ") || "Todos" }
+    ];
+
+    const wb = window.XLSX.utils.book_new();
+    const wsResumo = window.XLSX.utils.json_to_sheet(resumo);
+    wsResumo["!cols"] = [{ wch: 30 }, { wch: 32 }];
+
+    window.XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
+    window.XLSX.utils.book_append_sheet(wb, planilhaRelatorio(pendentes), "Pendentes");
+    window.XLSX.utils.book_append_sheet(wb, planilhaRelatorio(enviados), "Enviados");
+
+    const agora = new Date();
+    const data = [
+      agora.getFullYear(),
+      String(agora.getMonth() + 1).padStart(2, "0"),
+      String(agora.getDate()).padStart(2, "0")
+    ].join("-");
+    const hora = `${String(agora.getHours()).padStart(2, "0")}${String(agora.getMinutes()).padStart(2, "0")}`;
+
+    window.XLSX.writeFile(wb, `Relatorio_Certificados_${data}_${hora}.xlsx`);
+
+    const status = $("certStatus");
+    if (status) {
+      status.textContent = `Relatório gerado: ${pendentes.length} pendente(s) · ${enviados.length} enviado(s).`;
+    }
   }
 
   // ============================================================
@@ -903,6 +1108,10 @@
         titulo: tituloDaUa(item),
         matriz: txt(item?.matriz_oferta),
         semestre: txt(item?.semestre_oferta),
+        esteira: txt(item?.esteira_producao),
+        bloco: txt(item?.bloco),
+        categoria: txt(item?.categoria_material),
+        gestor: txt(item?.gestor_validacao_nq),
         statusValidacao: txt(item?.status_validacao) || "Validado",
         validado: true,
         revisores,
@@ -960,8 +1169,109 @@
   }
 
   // ============================================================
-  // FILTROS E KPIs — V25.46.26
+  // FILTROS GLOBAIS + FILTROS DA ABA — V25.46.29
+  // A aba Certificados participa do MESMO ciclo de atualização do BI.
+  // Os filtros globais são aplicados primeiro e, em seguida, os filtros
+  // próprios da aba (Semestre, Revisor, E-mail e Pesquisa).
   // ============================================================
+
+  const EM_BRANCO_GLOBAL = "__EM_BRANCO__";
+
+  function selecionadosFiltroGlobal(id) {
+    if (typeof window.obterSelecionados !== "function") return [];
+    return window.obterSelecionados(id) || [];
+  }
+
+  function partesPessoa(valor) {
+    return txt(valor)
+      .split(/\s*,\s*|\s*;\s*|\s*\|\s*|\r?\n+/)
+      .map((v) => txt(v))
+      .filter(Boolean);
+  }
+
+  function valorPassaFiltroGlobal(valor, selecionados) {
+    if (!Array.isArray(selecionados) || !selecionados.length) return true;
+
+    const vazio = !txt(valor);
+    return selecionados.some((selecionado) => {
+      if (selecionado === EM_BRANCO_GLOBAL) return vazio;
+      return norm(valor) === norm(selecionado);
+    });
+  }
+
+  function pessoaOficialNQ(tipo, valor) {
+    const cadastro = window.BI_RESPONSAVEIS_NQ;
+    const mapa = tipo === "gestor" ? cadastro?.gestores : cadastro?.revisores;
+    if (!mapa || !(mapa instanceof Map)) return "";
+    return txt(mapa.get(norm(valor)));
+  }
+
+  function pessoaPassaFiltroGlobal(valores, selecionados, tipo) {
+    if (!Array.isArray(selecionados) || !selecionados.length) return true;
+
+    const candidatos = (Array.isArray(valores) ? valores : [valores])
+      .flatMap(partesPessoa)
+      .filter(Boolean);
+
+    return selecionados.some((selecionado) => {
+      if (selecionado === EM_BRANCO_GLOBAL) return candidatos.length === 0;
+
+      const selecionadoNorm = norm(selecionado);
+      const selecionadoOficial = pessoaOficialNQ(tipo, selecionado);
+
+      return candidatos.some((candidato) => {
+        if (norm(candidato) === selecionadoNorm) return true;
+
+        const candidatoOficial = pessoaOficialNQ(tipo, candidato);
+        if (candidatoOficial && norm(candidatoOficial) === selecionadoNorm) return true;
+        if (selecionadoOficial && norm(candidato) === norm(selecionadoOficial)) return true;
+        if (selecionadoOficial && candidatoOficial && norm(candidatoOficial) === norm(selecionadoOficial)) return true;
+
+        if (tipo === "revisor") {
+          const a = localizarRevisorPlanilha(candidato);
+          const b = localizarRevisorPlanilha(selecionado);
+          if (a && b && norm(a.revisor) === norm(b.revisor)) return true;
+          if (a && norm(a.revisor) === selecionadoNorm) return true;
+        }
+
+        return false;
+      });
+    });
+  }
+
+  function aplicarFiltrosGlobaisCertificados(lista = base) {
+    const filtrosGlobais = {
+      esteira: selecionadosFiltroGlobal("filtroEsteira"),
+      matriz: selecionadosFiltroGlobal("filtroMatriz"),
+      bloco: selecionadosFiltroGlobal("filtroBloco"),
+      status: selecionadosFiltroGlobal("filtroStatus"),
+      categoria: selecionadosFiltroGlobal("filtroCategoria"),
+      gestor: selecionadosFiltroGlobal("filtroGestor"),
+      revisor: selecionadosFiltroGlobal("filtroRevisor")
+    };
+
+    return listaComGlobais.filter((ua) => {
+      if (!valorPassaFiltroGlobal(ua.esteira, filtrosGlobais.esteira)) return false;
+      if (!valorPassaFiltroGlobal(ua.matriz, filtrosGlobais.matriz)) return false;
+      if (!valorPassaFiltroGlobal(ua.bloco, filtrosGlobais.bloco)) return false;
+      if (!valorPassaFiltroGlobal(ua.statusValidacao, filtrosGlobais.status)) return false;
+      if (!valorPassaFiltroGlobal(ua.categoria, filtrosGlobais.categoria)) return false;
+
+      if (!pessoaPassaFiltroGlobal(ua.gestor, filtrosGlobais.gestor, "gestor")) return false;
+
+      const revisoresGlobais = [
+        ua.revisorMondayBruto,
+        ...(Array.isArray(ua.revisores)
+          ? ua.revisores.flatMap((r) => [r.revisor, r.revisorMonday, r.email])
+          : [])
+      ];
+
+      if (!pessoaPassaFiltroGlobal(revisoresGlobais, filtrosGlobais.revisor, "revisor")) return false;
+
+      return true;
+    });
+  }
+
 
   function popular() {
     const sem = $("certSemestre");
@@ -974,7 +1284,9 @@
     const revisorAtual = rev.value;
     const emailAtual = email.value;
 
-    const semestres = [...new Set(base.map((x) => txt(x.semestre)).filter(Boolean))]
+    const universoGlobal = aplicarFiltrosGlobaisCertificados(base);
+
+    const semestres = [...new Set(universoGlobal.map((x) => txt(x.semestre)).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
 
     sem.innerHTML =
@@ -982,7 +1294,7 @@
       semestres.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
     const revisores = [...new Set(
-      base
+      universoGlobal
         .flatMap((ua) => ua.revisores.map((r) => nomeCaixaAlta(r.revisor)))
         .filter(Boolean)
     )].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -1044,6 +1356,7 @@
   }
 
   function aplicarFiltrosCertificados(lista = base) {
+    const listaComGlobais = aplicarFiltrosGlobaisCertificados(lista);
     const sem = txt($("certSemestre")?.value);
     const rev = txt($("certRevisor")?.value);
     const filtroEmail = txt($("certEmail")?.value);
@@ -1105,7 +1418,8 @@
     }
 
     tb.innerHTML = filtrados.map((ua, i) => {
-      const podeGerar = ua.revisores.some((r) => txt(r.revisor));
+      const qtdCertificadosUa = certificadosDaUa(ua).length;
+      const podeGerar = qtdCertificadosUa > 0;
 
       const revisoresHtml = ua.revisores.map((r, ri) => {
         if (r.localizado && txt(r.revisor)) {
@@ -1187,7 +1501,7 @@
               data-i="${i}"
               type="button"
               ${podeGerar ? "" : "disabled"}
-            >PDF</button>
+            >${qtdCertificadosUa > 1 ? `${qtdCertificadosUa} PDFs` : "PDF"}</button>
           </td>
         </tr>`;
     }).join("");
@@ -1211,12 +1525,15 @@
     if (arr.length) {
       status.textContent = `${arr.length} UA(s) selecionada(s) · ${qtdCertificados} certificado(s).`;
     } else {
+      const universoGlobal = aplicarFiltrosGlobaisCertificados(base);
       status.textContent =
-        `Exibindo ${filtrados.length} de ${base.length} UAs validadas sincronizadas da Monday.`;
+        `Exibindo ${filtrados.length} de ${universoGlobal.length} UAs após filtros globais · ` +
+        `${base.length} UAs validadas sincronizadas da Monday.`;
     }
   }
 
   // Exposto apenas para diagnóstico no console do navegador.
+  window.__BI_CERT_APLICAR_FILTROS_GLOBAIS = aplicarFiltrosGlobaisCertificados;
   window.__BI_CERT_APLICAR_FILTROS = aplicarFiltrosCertificados;
 
   // ============================================================
@@ -1494,6 +1811,8 @@
           .forEach((x) => { x.checked = true; });
         atualizarSel();
       });
+
+      $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
 
       $("certGerar")?.addEventListener("click", async () => {
         const uas = selecionados();
