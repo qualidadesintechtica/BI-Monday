@@ -1,3 +1,3 @@
-V25.46.25
+V25.46.27
 2026-10-01
-Certificados automáticos: cruzamento do revisor da Monday por NOME ou E-MAIL com revisores_cadastro, fallback da planilha e complemento revisores_ua. Nomes oficiais em caixa alta. Corrige casos em que o e-mail da Monday era exibido como nome do revisor. Edições manuais usam armazenamento novo para não reaproveitar associações incorretas antigas.
+Correção da origem do revisor na aba Certificados. A aba passa a usar diretamente monday_validacao_materiais para Status e coluna People do Revisor, incluindo person_id quando disponível. A view consolidada fica apenas como complemento de UC, Matriz e Semestre. O revisor real da Monday é comparado com revisores_cadastro/planilha para padronização em caixa alta e e-mail; quando não houver cadastro oficial, o nome/e-mail vindos da Monday permanecem visíveis e editáveis. Filtros locais preservados.

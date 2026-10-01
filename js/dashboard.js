@@ -103,6 +103,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   let dadosOperacaoCompletos = [];
 
+  // Fonte direta do board Validação de Materiais para Certificados.
+  let dadosValidacaoMonday = [];
+
   let paginaAtual =
     "resumo";
 
@@ -663,7 +666,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       // --------------------------------------------------------
 
       window.atualizarCertificados?.(
-        dadosCompletos
+        dadosCompletos,
+        dadosValidacaoMonday
       );
 
 
@@ -1060,6 +1064,41 @@ document.addEventListener("DOMContentLoaded", async function () {
       console.log(
         "Total de registros:",
         dadosCompletos.length
+      );
+
+
+      // --------------------------------------------------------
+      // FONTE DIRETA DA MONDAY PARA CERTIFICADOS
+      // --------------------------------------------------------
+
+      if (
+        typeof window.carregarDadosOperacaoMonday ===
+        "function"
+      ) {
+
+        try {
+
+          dadosValidacaoMonday =
+            await window.carregarDadosOperacaoMonday();
+
+        } catch (error) {
+
+          console.warn(
+            "Não foi possível carregar o board Validação de Materiais diretamente. " +
+            "Certificados usará a base consolidada como fallback.",
+            error
+          );
+
+          dadosValidacaoMonday = [];
+
+        }
+
+      }
+
+
+      console.log(
+        "Itens diretos do board para Certificados:",
+        dadosValidacaoMonday.length
       );
 
 
