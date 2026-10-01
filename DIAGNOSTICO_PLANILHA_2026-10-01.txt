@@ -1,0 +1,20 @@
+Conferência da planilha PROJETOS_QUALIDADE (2)(2).xlsx
+
+Abas atuais de status:
+- Em Progresso_09_09: 65 linhas
+- Não Iniciado: 17 linhas
+- Pausado: 31 linhas
+- Finalizados: 254 linhas
+
+Total correto a importar: 367 linhas
+- Projetos: 74
+- Tarefas: 293
+
+Erro encontrado na versão anterior:
+1. O importador procurava a aba fixa "Em Progresso_14_08"; a planilha atual possui "Em Progresso_09_09". Assim, as 65 linhas dessa aba não eram importadas.
+2. Valores de ID "NOVO"/"Novo" eram tratados como um mesmo ID real, descartando linhas diferentes.
+
+V25.46.35:
+- Detecta dinamicamente a aba Em Progresso, independentemente do sufixo de data.
+- Trata NOVO/Novo como marcador sem ID e preserva projeto/tarefa pelo conteúdo.
+- Não altera Certificados, filtros, autenticação ou demais áreas do BI.

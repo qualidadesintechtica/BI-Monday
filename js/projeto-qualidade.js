@@ -486,26 +486,32 @@
           cellText: false
         });
 
-        const abasPrioritarias = [
-          "Em Progresso_14_08",
-          "Não Iniciado",
-          "Pausado",
-          "Finalizados"
-        ];
-
         const normalizarAba = (v) => String(v || "")
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .trim()
           .toLowerCase();
 
-        const mapaAbas = new Map(
-          workbook.SheetNames.map(nome => [normalizarAba(nome), nome])
-        );
+        // As abas de status podem mudar o sufixo de data (ex.: Em Progresso_09_09).
+        // Por isso, localizamos cada aba pelo status e não por um nome/data fixos.
+        const encontrarAbaStatus = (statusBase) => {
+          const alvo = normalizarAba(statusBase);
 
-        const abasEncontradas = abasPrioritarias
-          .map(nome => mapaAbas.get(normalizarAba(nome)))
-          .filter(Boolean);
+          return workbook.SheetNames.find(nome => {
+            const atual = normalizarAba(nome);
+            return atual === alvo ||
+              atual.startsWith(`${alvo}_`) ||
+              atual.startsWith(`${alvo} `) ||
+              atual.startsWith(`${alvo}-`);
+          }) || null;
+        };
+
+        const abasEncontradas = [
+          encontrarAbaStatus("Em Progresso"),
+          encontrarAbaStatus("Não Iniciado"),
+          encontrarAbaStatus("Pausado"),
+          encontrarAbaStatus("Finalizados")
+        ].filter(Boolean);
 
         const abasParaLer = abasEncontradas.length
           ? [...new Set(abasEncontradas)]
@@ -536,13 +542,45 @@
         }
 
         const rowsPreparadas = prepararLinhasProjetoQualidade(rawRows);
+
+        // Valores como "NOVO" são marcadores da planilha, não IDs reais.
+        // Se forem tratados como ID, projetos/tarefas diferentes acabam sendo descartados.
+        const idEhPlaceholder = (v) => {
+          const n = String(v || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase();
+
+          return [
+            "novo",
+            "nova",
+            "new",
+            "n/a",
+            "na",
+            "sem id",
+            "s/id",
+            "-"
+          ].includes(n);
+        };
+
         const vistos = new Set();
         const rows = rowsPreparadas.filter(row => {
-          const id = String(row["ID Azure"] || row["ID"] || "").trim();
+          const idBruto = String(row["ID Azure"] || row["ID"] || "").trim();
+          const id = idEhPlaceholder(idBruto) ? "" : idBruto;
+
+          // Também enviamos o marcador como nulo para o Supabase gerar a
+          // source_key pelo projeto/ação, preservando todas as linhas.
+          if (!id && idBruto) {
+            if ("ID Azure" in row) row["ID Azure"] = null;
+            row["ID"] = null;
+          }
+
           const projeto = String(row["Projetos"] || row["Projeto"] || "").trim().toLowerCase();
           const acao = String(row["Ações"] || row["Ações / Tarefas"] || row["Tarefa"] || "").trim().toLowerCase();
           const sponsor = String(row["Sponsor"] || row["Responsável"] || row["Responsavel"] || "").trim().toLowerCase();
           const chave = id ? `id:${id}` : `txt:${projeto}|${acao}|${sponsor}`;
+
           if (vistos.has(chave)) return false;
           vistos.add(chave);
           return true;
