@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.30 — UM CERTIFICADO POR REVISOR DA UA
+  // CERTIFICADOS V25.46.31 — FILTROS CORRIGIDOS + UM CERTIFICADO POR REVISOR
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -726,7 +726,7 @@
   }
 
   function chaveCertificado(ua, revisor) {
-    // V25.46.30: cada revisor da mesma UA possui sua própria chave.
+    // V25.46.31: cada revisor da mesma UA possui sua própria chave.
     // Prioridade: person_id da Monday -> e-mail -> nome normalizado.
     const chaveRevisor =
       txt(revisor?.mondayUserId) ||
@@ -1250,7 +1250,7 @@
       revisor: selecionadosFiltroGlobal("filtroRevisor")
     };
 
-    return listaComGlobais.filter((ua) => {
+    return (Array.isArray(lista) ? lista : []).filter((ua) => {
       if (!valorPassaFiltroGlobal(ua.esteira, filtrosGlobais.esteira)) return false;
       if (!valorPassaFiltroGlobal(ua.matriz, filtrosGlobais.matriz)) return false;
       if (!valorPassaFiltroGlobal(ua.bloco, filtrosGlobais.bloco)) return false;
@@ -1365,7 +1365,7 @@
     const semNorm = norm(sem);
     const revNorm = norm(rev);
 
-    return (Array.isArray(lista) ? lista : []).filter((ua) => {
+    return listaComGlobais.filter((ua) => {
       if (semNorm && norm(ua.semestre) !== semNorm) return false;
 
       const revisoresUa = Array.isArray(ua.revisores) ? ua.revisores : [];

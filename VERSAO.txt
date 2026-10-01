@@ -1,3 +1,1 @@
-V25.46.30
-2026-10-01
-Certificados: quando uma mesma UA possui dois ou mais revisores na coluna People da Monday, o sistema gera um certificado separado para cada revisor. A chave de histórico diferencia os certificados por monday_item_id + person_id/e-mail/nome do revisor. Filtros, relatório, envio e atualização sincronizada foram preservados.
+V25.46.31
