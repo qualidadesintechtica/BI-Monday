@@ -1,0 +1,14 @@
+V25.46.34 — UMA LINHA POR REVISOR / CERTIFICADO
+
+Correções:
+- nomes múltiplos da coluna People separados por vírgula agora são sempre tratados como pessoas distintas;
+- uma UA com 2 revisores gera 2 linhas na tabela;
+- cada linha possui seu próprio checkbox e botão PDF;
+- gerar/enviar selecionados atua exatamente nas linhas selecionadas;
+- filtros Revisor, E-mail e Pesquisa atuam por linha de revisor;
+- a UA continua sendo contada uma única vez nos KPIs de UAs.
+
+Exemplo:
+SUELLEN FONSECA, MARÍLIA DANTAS COSTA CARNEIRO
+=> linha 1: SUELLEN FONSECA
+=> linha 2: MARÍLIA DANTAS COSTA CARNEIRO

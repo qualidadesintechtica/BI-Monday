@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.33 — BASE MONOTÔNICA + MÚLTIPLOS REVISORES
+  // CERTIFICADOS V25.46.34 — UMA LINHA POR REVISOR / CERTIFICADO
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -16,6 +16,7 @@
 
   let base = [];
   let filtrados = [];
+  let linhasFiltradas = [];
   let revisoresPlanilhaPorNome = new Map();
   let revisoresPlanilhaPorEmail = new Map();
   let revisoresPlanilhaPorLocalEmail = new Map();
@@ -25,7 +26,7 @@
   let mondayUsuariosPorEmail = new Map();
   let mondayUsuariosPorNome = new Map();
 
-  // V25.46.33: dados ao vivo são ADITIVOS. Nunca substituem a base sincronizada.
+  // V25.46.34: dados ao vivo são ADITIVOS. Nunca substituem a base sincronizada.
   // Isso garante que uma atualização não possa reduzir o universo que já aparecia.
   let mondayRevisoresPorItem = new Map();
   let mondayItensLive = [];
@@ -657,30 +658,22 @@
     const bruto = txt(valor);
     if (!bruto) return [];
 
-    // Se o conteúdo completo já identifica um único revisor, não divide.
-    if (localizarRevisorPlanilha(bruto)) return [bruto];
-
-    let partes = bruto
-      .split(/\s*(?:\||;|\n|\r|\/{1,})\s*/)
+    // V25.46.34:
+    // a coluna People pode chegar consolidada como
+    // "REVISOR 1, REVISOR 2". A vírgula precisa ser tratada COMO
+    // separador de pessoas antes de qualquer tentativa de aproximar o
+    // texto completo a um único nome da base oficial.
+    // Isso evita transformar dois revisores em um único cadastro.
+    const partes = bruto
+      .split(/\s*(?:\||;|\n|\r|\/{1,}|,)\s*/)
       .map((v) => txt(v))
       .filter(Boolean);
 
-    // Monday/Supabase pode consolidar múltiplas pessoas por vírgula.
-    if (partes.length === 1 && bruto.includes(",")) {
-      const porVirgula = bruto
-        .split(",")
-        .map((v) => txt(v))
-        .filter(Boolean);
-
-      if (
-        porVirgula.length > 1 &&
-        porVirgula.every((item) => localizarRevisorPlanilha(item))
-      ) {
-        partes = porVirgula;
-      }
+    if (partes.length > 1) {
+      return [...new Set(partes)];
     }
 
-    return [...new Set(partes)];
+    return [bruto];
   }
 
   function revisoresDaMonday(item) {
@@ -900,15 +893,13 @@
     return "CADASTRO OK";
   }
 
-  function linhasRelatorioCertificados(lista) {
+  function linhasRelatorioCertificados(linhasTabela) {
     const linhas = [];
 
-    (Array.isArray(lista) ? lista : []).forEach((ua) => {
-      const revisores = Array.isArray(ua?.revisores)
-        ? ua.revisores.filter((r) => txt(r?.revisor))
-        : [];
+    (Array.isArray(linhasTabela) ? linhasTabela : []).forEach(({ ua, revisor }) => {
+      if (!ua) return;
 
-      if (!revisores.length) {
+      if (!revisor || !txt(revisor?.revisor)) {
         linhas.push({
           Status: "PENDENTE",
           Motivo: "REVISOR NÃO INFORMADO",
@@ -926,32 +917,30 @@
         return;
       }
 
-      revisores.forEach((revisor) => {
-        const cert = registroCertificado(ua, revisor);
-        const enviado = historico.has(cert.chave);
-        const detalhe = historicoDetalhes.get(cert.chave) || {};
+      const cert = registroCertificado(ua, revisor);
+      const enviado = historico.has(cert.chave);
+      const detalhe = historicoDetalhes.get(cert.chave) || {};
 
-        let motivo = "";
-        if (!enviado) {
-          if (!emailValido(revisor.email)) motivo = "SEM E-MAIL";
-          else if (!revisor.localizado) motivo = "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
-          else motivo = "AGUARDANDO ENVIO";
-        }
+      let motivo = "";
+      if (!enviado) {
+        if (!emailValido(revisor.email)) motivo = "SEM E-MAIL";
+        else if (!revisor.localizado) motivo = "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
+        else motivo = "AGUARDANDO ENVIO";
+      }
 
-        linhas.push({
-          Status: enviado ? "ENVIADO" : "PENDENTE",
-          Motivo: motivo,
-          Revisor: nomeCaixaAlta(revisor.revisor),
-          "E-mail": txt(revisor.email).toLowerCase(),
-          UA: txt(ua.name),
-          UC: txt(ua.titulo),
-          Matriz: txt(ua.matriz),
-          Semestre: txt(ua.semestre),
-          "Status Validação": txt(ua.statusValidacao || "Validado"),
-          "Situação do cadastro": situacaoCadastroRelatorio(revisor),
-          "ID Monday": txt(ua.idEnvio),
-          "Data de envio": enviado ? formatarDataHora(detalhe.enviado_em) : ""
-        });
+      linhas.push({
+        Status: enviado ? "ENVIADO" : "PENDENTE",
+        Motivo: motivo,
+        Revisor: nomeCaixaAlta(revisor.revisor),
+        "E-mail": txt(revisor.email).toLowerCase(),
+        UA: txt(ua.name),
+        UC: txt(ua.titulo),
+        Matriz: txt(ua.matriz),
+        Semestre: txt(ua.semestre),
+        "Status Validação": txt(ua.statusValidacao || "Validado"),
+        "Situação do cadastro": situacaoCadastroRelatorio(revisor),
+        "ID Monday": txt(ua.idEnvio),
+        "Data de envio": enviado ? formatarDataHora(detalhe.enviado_em) : ""
       });
     });
 
@@ -998,7 +987,8 @@
     }
 
     const universo = aplicarFiltrosCertificados(base);
-    const linhas = linhasRelatorioCertificados(universo);
+    const linhasTabela = linhasTabelaCertificados(universo);
+    const linhas = linhasRelatorioCertificados(linhasTabela);
     const pendentes = linhas.filter((x) => x.Status === "PENDENTE");
     const enviados = linhas.filter((x) => x.Status === "ENVIADO");
 
@@ -1007,7 +997,7 @@
     const semRevisor = pendentes.filter((x) => x.Motivo === "REVISOR NÃO INFORMADO").length;
 
     const resumo = [
-      { Indicador: "UAs validadas no filtro", Valor: universo.length },
+      { Indicador: "UAs validadas no filtro", Valor: new Set(linhasTabela.map((x) => x.ua?.chaveUa).filter(Boolean)).size },
       { Indicador: "Registros de certificados", Valor: linhas.length },
       { Indicador: "Certificados enviados", Valor: enviados.length },
       { Indicador: "Certificados pendentes", Valor: pendentes.length },
@@ -1195,7 +1185,7 @@
     const metadataPorId = indiceConsolidadoPorMondayId(dadosConsolidados);
     const metadataAlternativa = indicesConsolidadosAlternativos(dadosConsolidados);
 
-    // REGRA PRINCIPAL V25.46.33:
+    // REGRA PRINCIPAL V25.46.34:
     // a base da versão 25.46.31 é processada primeiro e nunca é substituída.
     // A leitura ao vivo da Monday entra somente como complemento/aditivo.
     const fonteBase =
@@ -1535,10 +1525,10 @@
 
   function emailDaUa(ua) {
     const revisores = Array.isArray(ua?.revisores) ? ua.revisores : [];
-    // Categorias exclusivas para o filtro: uma UA fica em "Com e-mail"
-    // somente quando TODOS os revisores associados possuem e-mail válido.
-    const temComEmail = revisores.length > 0 && revisores.every((r) => emailValido(r.email));
-    const temSemEmail = !temComEmail;
+    const temComEmail = revisores.some((r) => txt(r?.revisor) && emailValido(r?.email));
+    const temSemEmail =
+      !revisores.some((r) => txt(r?.revisor)) ||
+      revisores.some((r) => !txt(r?.revisor) || !emailValido(r?.email));
     return { temComEmail, temSemEmail };
   }
 
@@ -1550,9 +1540,13 @@
         .filter(Boolean)
     );
 
-    // Os KPIs contam UAs. Se uma UA tiver mais de um revisor, ela continua sendo uma UA.
-    const comEmail = universo.filter((ua) => emailDaUa(ua).temComEmail).length;
-    const semEmail = universo.filter((ua) => emailDaUa(ua).temSemEmail).length;
+    // UAs continuam sendo contadas uma única vez nos cards.
+    const comEmail = universo.filter((ua) =>
+      Array.isArray(ua.revisores) &&
+      ua.revisores.some((r) => txt(r?.revisor)) &&
+      ua.revisores.every((r) => !txt(r?.revisor) || emailValido(r?.email))
+    ).length;
+    const semEmail = universo.length - comEmail;
 
     if ($("certTotalUAs")) $("certTotalUAs").textContent = universo.length;
     if ($("certRevisores")) $("certRevisores").textContent = revisores.size;
@@ -1562,30 +1556,32 @@
 
   function aplicarFiltrosCertificados(lista = base) {
     const listaComGlobais = aplicarFiltrosGlobaisCertificados(lista);
-    const sem = txt($("certSemestre")?.value);
+    const sem = norm($("certSemestre")?.value || "");
     const rev = txt($("certRevisor")?.value);
+    const revNorm = norm(rev);
     const filtroEmail = txt($("certEmail")?.value);
     const q = norm($("certBusca")?.value || "");
 
-    const semNorm = norm(sem);
-    const revNorm = norm(rev);
-
+    // Nesta etapa mantemos UAs que POSSUEM pelo menos uma linha compatível.
+    // O filtro final de cada revisor é feito em linhasTabelaCertificados().
     return listaComGlobais.filter((ua) => {
-      if (semNorm && norm(ua.semestre) !== semNorm) return false;
+      if (sem && norm(ua.semestre) !== sem) return false;
 
       const revisoresUa = Array.isArray(ua.revisores) ? ua.revisores : [];
-      const temRevisor = revisoresUa.some((r) => txt(r.revisor));
+      const revisoresComNome = revisoresUa.filter((r) => txt(r?.revisor));
 
       if (rev === "__sem_revisor__") {
-        if (temRevisor) return false;
+        if (revisoresComNome.length) return false;
       } else if (revNorm) {
-        const corresponde = revisoresUa.some((r) => norm(r.revisor) === revNorm);
-        if (!corresponde) return false;
+        if (!revisoresComNome.some((r) => norm(r.revisor) === revNorm)) return false;
       }
 
-      const emailStatus = emailDaUa(ua);
-      if (filtroEmail === "com" && !emailStatus.temComEmail) return false;
-      if (filtroEmail === "sem" && !emailStatus.temSemEmail) return false;
+      if (filtroEmail === "com") {
+        if (!revisoresComNome.some((r) => emailValido(r.email))) return false;
+      }
+      if (filtroEmail === "sem") {
+        if (revisoresComNome.length && !revisoresComNome.some((r) => !emailValido(r.email))) return false;
+      }
 
       if (q) {
         const texto = norm([
@@ -1597,7 +1593,6 @@
           ua.revisorMondayBruto,
           ...revisoresUa.flatMap((r) => [r.revisor, r.revisorMonday, r.email])
         ].join(" "));
-
         if (!texto.includes(q)) return false;
       }
 
@@ -1605,43 +1600,89 @@
     });
   }
 
+  function linhasTabelaCertificados(uas) {
+    const rev = txt($("certRevisor")?.value);
+    const revNorm = norm(rev);
+    const filtroEmail = txt($("certEmail")?.value);
+    const q = norm($("certBusca")?.value || "");
+    const linhas = [];
+
+    (uas || []).forEach((ua) => {
+      const revisoresOriginais = Array.isArray(ua.revisores) ? ua.revisores : [];
+      const revisores = revisoresOriginais.length
+        ? revisoresOriginais
+        : [{ revisor: "", revisorMonday: "", email: "", localizado: false, fonte: "manual", mondayUserId: "" }];
+
+      revisores.forEach((revisor, revisorIndice) => {
+        const temNome = !!txt(revisor?.revisor);
+
+        if (rev === "__sem_revisor__" && temNome) return;
+        if (revNorm && rev !== "__sem_revisor__" && norm(revisor?.revisor) !== revNorm) return;
+
+        if (filtroEmail === "com" && !emailValido(revisor?.email)) return;
+        if (filtroEmail === "sem" && emailValido(revisor?.email)) return;
+
+        if (q) {
+          const textoLinha = norm([
+            ua.name,
+            ua.titulo,
+            ua.matriz,
+            ua.semestre,
+            ua.statusValidacao,
+            revisor?.revisor,
+            revisor?.revisorMonday,
+            revisor?.email
+          ].join(" "));
+          if (!textoLinha.includes(q)) return;
+        }
+
+        linhas.push({ ua, revisor, revisorIndice });
+      });
+    });
+
+    return linhas;
+  }
+
   function render() {
     filtrados = aplicarFiltrosCertificados(base);
+    linhasFiltradas = linhasTabelaCertificados(filtrados);
 
     atualizarKPIs(filtrados);
 
     const tb = $("certTbody");
     if (!tb) return;
 
-    if (!filtrados.length) {
+    if (!linhasFiltradas.length) {
       tb.innerHTML = `
         <tr>
-          <td colspan="10" class="empty-table">Nenhuma UA validada encontrada para os filtros selecionados.</td>
+          <td colspan="10" class="empty-table">Nenhum certificado encontrado para os filtros selecionados.</td>
         </tr>`;
       atualizarSel();
       return;
     }
 
-    tb.innerHTML = filtrados.map((ua, i) => {
-      const qtdCertificadosUa = certificadosDaUa(ua).length;
-      const podeGerar = qtdCertificadosUa > 0;
+    tb.innerHTML = linhasFiltradas.map((linha, li) => {
+      const ua = linha.ua;
+      const r = linha.revisor;
+      const ri = linha.revisorIndice;
+      const podeGerar = !!txt(r?.revisor);
+      const cert = podeGerar ? registroCertificado(ua, r) : null;
+      const enviado = cert ? historico.has(cert.chave) : false;
 
-      const revisoresHtml = ua.revisores.map((r, ri) => {
-        if (r.localizado && txt(r.revisor)) {
-          return `
-            <div>
-              ${esc(r.revisor)}
-              <small class="cert-email-manual-tag">Base oficial</small>
-            </div>`;
-        }
-
-        return `
+      let revisorHtml = "";
+      if (r.localizado && txt(r.revisor)) {
+        revisorHtml = `
+          <div>
+            ${esc(r.revisor)}
+            <small class="cert-email-manual-tag">Base oficial</small>
+          </div>`;
+      } else {
+        revisorHtml = `
           <div class="cert-edit-field">
             <input
               type="text"
               class="cert-revisor-manual"
-              data-i="${i}"
-              data-ri="${ri}"
+              data-li="${li}"
               value="${esc(r.revisor)}"
               list="certRevisoresLista"
               placeholder="Selecione ou digite o revisor"
@@ -1652,35 +1693,39 @@
               ${txt(r.revisor) ? "Nome não localizado — edite ou selecione" : "Revisor não informado — edite ou selecione"}
             </small>
           </div>`;
-      }).join("");
+      }
 
-      const emailsHtml = ua.revisores.map((r, ri) => {
-        if (emailValido(r.email)) {
-          const origemEmail =
-            r.emailManual
-              ? "Informado manualmente"
-              : r.localizado
-                ? "Base oficial"
-                : "Monday";
+      let emailHtml = "";
+      if (emailValido(r.email)) {
+        const origemEmail =
+          r.emailManual
+            ? "Informado manualmente"
+            : r.localizado
+              ? "Base oficial"
+              : "Monday";
 
-          return `<div>${esc(r.email)}<div class="cert-email-manual-tag">${esc(origemEmail)}</div></div>`;
-        }
-
-        return `
+        emailHtml = `<div>${esc(r.email)}<div class="cert-email-manual-tag">${esc(origemEmail)}</div></div>`;
+      } else {
+        emailHtml = `
           <div class="cert-edit-field">
             <input
               type="email"
               class="cert-email-manual"
-              data-i="${i}"
-              data-ri="${ri}"
+              data-li="${li}"
               value="${esc(r.email)}"
               placeholder="Digite o e-mail"
               autocomplete="off"
               aria-label="Editar e-mail de ${esc(r.revisor || "revisor")}" 
             >
-            <div class="cert-email-manual-msg" data-email-msg="${i}-${ri}">E-mail não localizado — edição liberada</div>
+            <div class="cert-email-manual-msg" data-email-msg="${li}">E-mail não localizado — edição liberada</div>
           </div>`;
-      }).join("");
+      }
+
+      let situacao = "Pendente";
+      if (!podeGerar) situacao = "Revisor não informado na Monday";
+      else if (!r.localizado) situacao = "Revisor da Monday não localizado na base oficial";
+      else if (!emailValido(r.email)) situacao = "Sem e-mail";
+      else if (enviado) situacao = "Enviado";
 
       return `
         <tr>
@@ -1688,25 +1733,25 @@
             <input
               type="checkbox"
               class="cert-check"
-              data-i="${i}"
+              data-li="${li}"
               ${podeGerar ? "" : "disabled"}
             >
           </td>
-          <td>${revisoresHtml}</td>
-          <td>${emailsHtml}</td>
+          <td>${revisorHtml}</td>
+          <td>${emailHtml}</td>
           <td>${esc(ua.name || "--")}</td>
           <td>${esc(ua.titulo || "--")}</td>
           <td>${esc(ua.matriz || "--")}</td>
           <td>${esc(ua.semestre || "--")}</td>
           <td>${esc(ua.statusValidacao || "Validado")}</td>
-          <td><small class="cert-pill">${esc(estadoCertificado(ua))}</small></td>
+          <td><small class="cert-pill">${esc(situacao)}</small></td>
           <td>
             <button
               class="cert-btn cert-one"
-              data-i="${i}"
+              data-li="${li}"
               type="button"
               ${podeGerar ? "" : "disabled"}
-            >${qtdCertificadosUa > 1 ? `${qtdCertificadosUa} PDFs` : "PDF"}</button>
+            >PDF</button>
           </td>
         </tr>`;
     }).join("");
@@ -1716,24 +1761,25 @@
 
   function selecionados() {
     return [...document.querySelectorAll(".cert-check:checked")]
-      .map((c) => filtrados[Number(c.dataset.i)])
-      .filter(Boolean);
+      .map((c) => linhasFiltradas[Number(c.dataset.li)])
+      .filter(Boolean)
+      .map(({ ua, revisor }) => registroCertificado(ua, revisor));
   }
 
   function atualizarSel() {
     const arr = selecionados();
-    const qtdCertificados = arr.reduce((n, ua) => n + certificadosDaUa(ua).length, 0);
     const status = $("certStatus");
 
     if (!status) return;
 
     if (arr.length) {
-      status.textContent = `${arr.length} UA(s) selecionada(s) · ${qtdCertificados} certificado(s).`;
+      const uas = new Set(arr.map((r) => [norm(r.name), norm(r.titulo), norm(r.semestre)].join("|")));
+      status.textContent = `${arr.length} certificado(s) selecionado(s) · ${uas.size} UA(s).`;
     } else {
       const universoGlobal = aplicarFiltrosGlobaisCertificados(base);
       status.textContent =
-        `Exibindo ${filtrados.length} de ${universoGlobal.length} UAs após filtros globais · ` +
-        `${base.length} UAs validadas sincronizadas da Monday.`;
+        `Exibindo ${linhasFiltradas.length} linha(s) de certificado em ${filtrados.length} UA(s) · ` +
+        `${universoGlobal.length} UAs após filtros globais · ${base.length} UAs validadas sincronizadas da Monday.`;
     }
   }
 
@@ -1945,15 +1991,16 @@
         const input = e.target?.closest?.(".cert-email-manual");
         if (!input) return;
 
-        const indice = Number(input.dataset.i);
-        const revisorIndice = Number(input.dataset.ri);
-        const ua = filtrados[indice];
-        const revisor = ua?.revisores?.[revisorIndice];
+        const linhaIndice = Number(input.dataset.li);
+        const linha = linhasFiltradas[linhaIndice];
+        const ua = linha?.ua;
+        const revisor = linha?.revisor;
+        const revisorIndice = linha?.revisorIndice;
         if (!ua || !revisor) return;
 
         const valor = txt(input.value).toLowerCase();
         const msg = input.parentElement?.querySelector(
-          `[data-email-msg="${indice}-${revisorIndice}"]`
+          `[data-email-msg="${linhaIndice}"]`
         );
 
         if (emailValido(valor)) {
@@ -1974,10 +2021,11 @@
       document.addEventListener("change", (e) => {
         const inputRevisor = e.target?.closest?.(".cert-revisor-manual");
         if (inputRevisor) {
-          const indice = Number(inputRevisor.dataset.i);
-          const revisorIndice = Number(inputRevisor.dataset.ri);
-          const ua = filtrados[indice];
-          const revisor = ua?.revisores?.[revisorIndice];
+          const linhaIndice = Number(inputRevisor.dataset.li);
+          const linha = linhasFiltradas[linhaIndice];
+          const ua = linha?.ua;
+          const revisor = linha?.revisor;
+          const revisorIndice = linha?.revisorIndice;
           if (!ua || !revisor) return;
 
           const valor = nomeCaixaAlta(inputRevisor.value);
@@ -2020,8 +2068,7 @@
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
 
       $("certGerar")?.addEventListener("click", async () => {
-        const uas = selecionados();
-        const arr = uas.flatMap(certificadosDaUa);
+        const arr = selecionados();
 
         if (!arr.length) {
           alert("Selecione ao menos uma UA validada com revisor informado na Monday.");
@@ -2051,8 +2098,7 @@
       });
 
       $("certEnviar")?.addEventListener("click", async () => {
-        const uas = selecionados();
-        const arr = uas.flatMap(certificadosDaUa);
+        const arr = selecionados();
 
         if (!arr.length) {
           alert("Selecione ao menos uma UA validada com revisor informado na Monday.");
@@ -2105,20 +2151,18 @@
         const botao = e.target?.closest?.(".cert-one");
         if (!botao) return;
 
-        const indice = Number(botao.dataset.i);
-        const ua = filtrados[indice];
-        if (!ua) return;
-
-        const arr = certificadosDaUa(ua);
-        if (!arr.length) {
-          alert("Esta UA ainda não possui revisor informado na Monday.");
+        const linhaIndice = Number(botao.dataset.li);
+        const linha = linhasFiltradas[linhaIndice];
+        if (!linha?.ua || !linha?.revisor || !txt(linha.revisor.revisor)) {
+          alert("Esta linha ainda não possui revisor informado na Monday.");
           return;
         }
 
+        const certificado = registroCertificado(linha.ua, linha.revisor);
         botao.disabled = true;
 
         try {
-          for (const r of arr) await pdf(r, true);
+          await pdf(certificado, true);
         } catch (erro) {
           console.error(erro);
           alert(`Erro ao gerar certificado: ${erro.message}`);
