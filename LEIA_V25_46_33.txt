@@ -1,0 +1,13 @@
+V25.46.33 — BASE MONOTÔNICA + MÚLTIPLOS REVISORES
+
+Correção da regressão da V25.46.32.
+
+Regra principal:
+- a base sincronizada usada na V25.46.31 é preservada integralmente;
+- a leitura ao vivo da Monday nunca substitui uma UA existente;
+- dados ao vivo só podem adicionar UAs e completar revisores;
+- múltiplos revisores da coluna People geram certificados separados;
+- reconhecimento ampliado de RADIAL, LATO SENSU e UNIDADE/UA 01..19;
+- filtros globais e específicos continuam ativos.
+
+Para múltiplos revisores ao vivo, implante também supabase/functions/monday-revisores/index.ts.
