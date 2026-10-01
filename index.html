@@ -1372,43 +1372,78 @@
            CERTIFICADOS
       ============================================== -->
       <section id="viewCertificados" class="page-view" data-page="certificados">
-        <div class="section-heading">
-          <div>
-            <h2>Certificados de Revisores</h2>
-      </div>
 
         <div class="cert-toolbar">
-          <label>Semestre
-            <select id="certSemestre"><option value="">Todos os semestres</option></select>
+          <label>
+            Semestre
+            <select id="certSemestre">
+              <option value="">Todos os semestres</option>
+            </select>
           </label>
-          <label>Revisor
-            <select id="certRevisor"><option value="">Todos os revisores</option></select>
+
+          <label>
+            Revisor
+            <select id="certRevisor">
+              <option value="">Todos os revisores</option>
+            </select>
           </label>
-          <label>E-mail
+
+          <label>
+            E-mail
             <select id="certEmail">
               <option value="">Com e sem e-mail</option>
               <option value="com">Com e-mail</option>
               <option value="sem">Sem e-mail</option>
             </select>
           </label>
-          <label class="cert-search">Pesquisar
-            <input id="certBusca" type="search" placeholder="UA, UC, matriz, revisor ou e-mail">
+
+          <label class="cert-search">
+            Pesquisar
+            <input
+              id="certBusca"
+              type="search"
+              placeholder="UA, UC, matriz, revisor ou e-mail"
+            >
           </label>
         </div>
 
         <datalist id="certRevisoresLista"></datalist>
 
         <section class="mini-kpis four">
-          <article class="mini-kpi"><span>UAs validadas</span><strong id="certTotalUAs">0</strong></article>
-          <article class="mini-kpi"><span>Revisores</span><strong id="certRevisores">0</strong></article>
-          <article class="mini-kpi"><span>Com e-mail</span><strong id="certComEmail">0</strong></article>
-          <article class="mini-kpi"><span>Sem e-mail</span><strong id="certSemEmail">0</strong></article>
+          <article class="mini-kpi">
+            <span>UAs validadas</span>
+            <strong id="certTotalUAs">0</strong>
+          </article>
+
+          <article class="mini-kpi">
+            <span>Revisores</span>
+            <strong id="certRevisores">0</strong>
+          </article>
+
+          <article class="mini-kpi">
+            <span>Com e-mail</span>
+            <strong id="certComEmail">0</strong>
+          </article>
+
+          <article class="mini-kpi">
+            <span>Sem e-mail</span>
+            <strong id="certSemEmail">0</strong>
+          </article>
         </section>
 
         <div class="cert-actions">
-          <button id="certSelecionarTodos" class="cert-btn" type="button">Selecionar elegíveis</button>
-          <button id="certGerar" class="cert-btn" type="button">Gerar PDFs selecionados</button>
-          <button id="certEnviar" class="cert-btn cert-primary" type="button">Enviar selecionados</button>
+          <button id="certSelecionarTodos" class="cert-btn" type="button">
+            Selecionar elegíveis
+          </button>
+
+          <button id="certGerar" class="cert-btn" type="button">
+            Gerar PDFs selecionados
+          </button>
+
+          <button id="certEnviar" class="cert-btn cert-primary" type="button">
+            Enviar selecionados
+          </button>
+
           <span id="certStatus"></span>
         </div>
 
@@ -1429,12 +1464,18 @@
                   <th>Ação</th>
                 </tr>
               </thead>
+
               <tbody id="certTbody">
-                <tr><td colspan="10" class="empty-table">Carregando UAs validadas da Monday...</td></tr>
+                <tr>
+                  <td colspan="10" class="empty-table">
+                    Carregando UAs validadas da Monday...
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
+
       </section>
 
       <!-- =============================================
