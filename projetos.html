@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-38-pdf">
+    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-39-nq-snapshot">
   </head>
 
   <body>
@@ -224,6 +224,24 @@
                       <span>Impacto gerado <b>*</b></span>
                       <textarea id="impactField" rows="4" placeholder="Explique o impacto para pessoas, processos ou indicadores."></textarea>
                     </label>
+                    <fieldset class="nq-indicators-fieldset">
+                      <legend>Indicadores do NQ</legend>
+                      <p>Capture uma fotografia dos indicadores atuais da aba Professores e Especialistas. O snapshot salvo na versão não muda depois.</p>
+                      <div class="nq-indicators-toolbar">
+                        <label>
+                          <span>Situação dos especialistas</span>
+                          <select id="nqSnapshotSituacao">
+                            <option value="">Todos</option>
+                            <option value="ativo">Ativos</option>
+                            <option value="inativo">Inativos</option>
+                          </select>
+                        </label>
+                        <button id="loadNqIndicatorsButton" class="secondary-action strong" type="button">Atualizar indicadores do NQ</button>
+                      </div>
+                      <div id="nqSnapshotStatus" class="nq-snapshot-status">Nenhuma fotografia do NQ incluída nesta versão.</div>
+                      <div id="nqSnapshotPreview" class="nq-snapshot-preview" hidden></div>
+                    </fieldset>
+
                     <label class="field full">
                       <span>Observações</span>
                       <textarea id="notesField" rows="3" placeholder="Inclua ressalvas, próximos passos ou informações adicionais."></textarea>
@@ -300,6 +318,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20261002-v25-46-38-auditoria-pdf"></script>
+    <script src="js/projetos.js?v=20261002-v25-46-39-nq-snapshot"></script>
   </body>
 </html>

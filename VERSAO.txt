@@ -1,3 +1,3 @@
-V25.46.38
+V25.46.39
 2026-10-02
-Projeto Qualidade: auditoria 1:1 da planilha, tipo automático de evidência e PDF direto.
+Projeto Qualidade: snapshot imutável dos indicadores NQ no relatório.

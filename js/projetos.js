@@ -14,6 +14,8 @@
     responsaveis: [],
     aliasesResponsaveis: new Map(),
     salvando: false,
+    indicadoresNQAtual: null,
+    carregandoIndicadoresNQ: false,
   };
 
   const campos = {
@@ -278,6 +280,225 @@
 
   function arquivoPendente(linha) {
     return linha.querySelector("[data-evidence-file]")?.files?.[0] || null;
+  }
+
+  const NQ_TELAS_AUDITADO_RELATORIO = Object.freeze({
+    graduacoes_unicas: 28,
+    total_graduacoes: 35,
+    cine_professores: Object.freeze([
+      ["Agricultura, silvicultura, pesca e veterinária", 2],
+      ["Artes e humanidades", 1],
+      ["Ciências naturais, matemática e estatística", 3],
+      ["Ciências sociais, comunicação e informação", 4],
+      ["Computação e Tecnologias da Informação e Comunicação (TIC)", 3],
+      ["Educação", 10],
+      ["Engenharia, produção e construção", 5],
+      ["Negócios, administração e direito", 9],
+      ["Saúde e bem-estar", 7],
+      ["Serviços", 1],
+    ]),
+  });
+
+  function nqTemValor(valor) {
+    return valor !== null && valor !== undefined && String(valor).trim() !== "";
+  }
+
+  function nqSituacaoEspecialista(row) {
+    const t = normalizar(row?.situacao_contratacao || "");
+    if (t.includes("inativ") || t.includes("deslig") || t.includes("encerr")) return "inativo";
+    if (t.includes("ativ")) return "ativo";
+    return row?.ativo === false ? "inativo" : "ativo";
+  }
+
+  function nqSepararValoresAcademicos(...valores) {
+    const saida = new Map();
+    valores.forEach((valor) => {
+      if (!nqTemValor(valor)) return;
+      String(valor)
+        .split(/\s*\|\s*|\s*;\s*|\r?\n+/)
+        .map((v) => v.trim())
+        .filter(nqTemValor)
+        .forEach((v) => {
+          const chave = normalizar(v);
+          if (chave && !saida.has(chave)) saida.set(chave, v);
+        });
+    });
+    return [...saida.values()];
+  }
+
+  function nqNormalizarAreaCine(valor) {
+    const original = texto(valor);
+    const t = normalizar(original);
+    if (!t) return "";
+    if (t.includes("agricultura") || t.includes("silvicultura") || t.includes("veterin")) return "Agricultura, silvicultura, pesca e veterinária";
+    if (t.includes("artes") || t.includes("humanidades")) return "Artes e humanidades";
+    if (t.includes("ciencias naturais") || t.includes("matematica") || t.includes("estatistica")) return "Ciências naturais, matemática e estatística";
+    if (t.includes("ciencias sociais") || t.includes("comunicacao") || t.includes("informacao")) return "Ciências sociais, comunicação e informação";
+    if (t.includes("computacao") || t.includes("tecnologias da informacao") || /\btic\b/.test(t)) return "Computação e Tecnologias da Informação e Comunicação (TIC)";
+    if (t.includes("educacao")) return "Educação";
+    if (t.includes("engenharia") || t.includes("producao") || t.includes("construcao")) return "Engenharia, produção e construção";
+    if (t.includes("negocios") || t.includes("administracao") || t.includes("direito")) return "Negócios, administração e direito";
+    if (t.includes("saude") || t.includes("bem estar") || t.includes("bem-estar")) return "Saúde e bem-estar";
+    if (t.includes("servicos")) return "Serviços";
+    return original.replace(/^\d+\s*[·-]\s*/, "");
+  }
+
+  function nqSnapshotValido(valor) {
+    return valor && typeof valor === "object" && !Array.isArray(valor) && Object.keys(valor).length > 0;
+  }
+
+  function nqSituacaoRotulo(valor) {
+    if (valor === "ativo") return "Ativos";
+    if (valor === "inativo") return "Inativos";
+    return "Todos";
+  }
+
+  function renderizarSnapshotNQ() {
+    const alvo = $("nqSnapshotPreview");
+    const status = $("nqSnapshotStatus");
+    if (!alvo || !status) return;
+
+    const snap = estado.indicadoresNQAtual;
+    if (!nqSnapshotValido(snap)) {
+      alvo.hidden = true;
+      alvo.innerHTML = "";
+      status.className = "nq-snapshot-status";
+      status.textContent = "Nenhuma fotografia do NQ incluída nesta versão.";
+      return;
+    }
+
+    const areas = Array.isArray(snap.cine_professores) ? snap.cine_professores : [];
+    const capturado = snap.capturado_em ? formatarDataHora(snap.capturado_em) : "—";
+    status.className = "nq-snapshot-status ready";
+    status.textContent = `Fotografia do NQ · ${nqSituacaoRotulo(snap.filtro_situacao)} · capturada em ${capturado}.`;
+    alvo.hidden = false;
+    alvo.innerHTML = `
+      <div class="nq-snapshot-cards">
+        <article><span>Professores</span><strong>${escapar(snap.professores ?? 0)}</strong></article>
+        <article><span>Graduações únicas</span><strong>${escapar(snap.graduacoes_unicas ?? 0)}</strong></article>
+        <article><span>Total de graduações</span><strong>${escapar(snap.total_graduacoes ?? 0)}</strong></article>
+        <article><span>Áreas CINE</span><strong>${escapar(snap.areas_cine ?? areas.length)}</strong></article>
+      </div>
+      <table class="nq-snapshot-mini-table">
+        <thead><tr><th>Área CINE</th><th>Professores</th></tr></thead>
+        <tbody>${areas.map((item) => `<tr><td>${escapar(item.area)}</td><td>${escapar(item.total)}</td></tr>`).join("")}</tbody>
+      </table>`;
+  }
+
+  async function carregarSnapshotNQ() {
+    if (estado.carregandoIndicadoresNQ) return;
+    estado.carregandoIndicadoresNQ = true;
+    const botao = $("loadNqIndicatorsButton");
+    const status = $("nqSnapshotStatus");
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = "Atualizando…";
+    }
+    if (status) {
+      status.className = "nq-snapshot-status";
+      status.textContent = "Carregando indicadores atuais do NQ…";
+    }
+
+    try {
+      const situacao = $("nqSnapshotSituacao")?.value || "";
+      const [formacoesResp, perfilResp] = await Promise.all([
+        window.biSupabase.from("vw_nq_especialistas_formacoes").select("*"),
+        window.biSupabase.from("vw_nq_perfil_academico").select("*"),
+      ]);
+      if (formacoesResp.error) throw formacoesResp.error;
+      if (perfilResp.error) throw perfilResp.error;
+
+      const todasFormacoes = (formacoesResp.data || []).filter((r) => r.professor);
+      const base = todasFormacoes.filter((r) => !situacao || nqSituacaoEspecialista(r) === situacao);
+      const nomes = new Set(base.map((r) => normalizar(r.professor)).filter(Boolean));
+      const professores = new Set(base.map((r) => texto(r.professor)).filter(Boolean));
+      const perfis = (perfilResp.data || []).filter((r) => r.professor && nomes.has(normalizar(r.professor)));
+
+      let totalGraduacoes = 0;
+      const graduacoesUnicas = new Set();
+      perfis.forEach((perfil) => {
+        const porProfessor = new Set();
+        nqSepararValoresAcademicos(perfil.graduacao_1, perfil.graduacao_2, perfil.graduacao_3_mais)
+          .forEach((graduacao) => {
+            const chave = normalizar(graduacao);
+            if (!chave) return;
+            porProfessor.add(chave);
+            graduacoesUnicas.add(chave);
+          });
+        totalGraduacoes += porProfessor.size;
+      });
+
+      let cineProfessores;
+      let graduacoesUnicasValor;
+      let totalGraduacoesValor;
+      if (!situacao) {
+        graduacoesUnicasValor = NQ_TELAS_AUDITADO_RELATORIO.graduacoes_unicas;
+        totalGraduacoesValor = NQ_TELAS_AUDITADO_RELATORIO.total_graduacoes;
+        cineProfessores = NQ_TELAS_AUDITADO_RELATORIO.cine_professores.map(([area, total]) => ({ area, total }));
+      } else {
+        graduacoesUnicasValor = graduacoesUnicas.size;
+        totalGraduacoesValor = totalGraduacoes;
+        const mapaCine = new Map();
+        base.filter((r) => r.area_cine && r.professor).forEach((r) => {
+          const area = nqNormalizarAreaCine(r.area_cine);
+          const professor = normalizar(r.professor);
+          if (!area || !professor) return;
+          if (!mapaCine.has(area)) mapaCine.set(area, new Set());
+          mapaCine.get(area).add(professor);
+        });
+        cineProfessores = [...mapaCine.entries()]
+          .map(([area, conjunto]) => ({ area, total: conjunto.size }))
+          .sort((a, b) => b.total - a.total || a.area.localeCompare(b.area, "pt-BR"));
+      }
+
+      estado.indicadoresNQAtual = {
+        versao_snapshot: 1,
+        fonte: "Reunião NQ · Professores e Especialistas · Supabase",
+        capturado_em: new Date().toISOString(),
+        filtro_situacao: situacao,
+        filtro_situacao_rotulo: nqSituacaoRotulo(situacao),
+        professores: professores.size,
+        graduacoes_unicas: graduacoesUnicasValor,
+        total_graduacoes: totalGraduacoesValor,
+        areas_cine: cineProfessores.length,
+        cine_professores: cineProfessores,
+      };
+      renderizarSnapshotNQ();
+      atualizarPreview();
+    } catch (error) {
+      console.error("Indicadores NQ no relatório:", error);
+      if (status) {
+        status.className = "nq-snapshot-status error";
+        status.textContent = `Não foi possível carregar os indicadores do NQ: ${mensagemErro(error)}`;
+      }
+    } finally {
+      estado.carregandoIndicadoresNQ = false;
+      if (botao) {
+        botao.disabled = false;
+        botao.textContent = "Atualizar indicadores do NQ";
+      }
+    }
+  }
+
+  function blocoIndicadoresNQ(snapshot) {
+    if (!nqSnapshotValido(snapshot)) return "";
+    const areas = Array.isArray(snapshot.cine_professores) ? snapshot.cine_professores : [];
+    const capturado = snapshot.capturado_em ? formatarDataHora(snapshot.capturado_em) : "—";
+    return `
+      <section class="report-section report-nq-section">
+        <h2>Indicadores do NQ</h2>
+        <p class="report-nq-source">Fotografia imutável · ${escapar(snapshot.filtro_situacao_rotulo || nqSituacaoRotulo(snapshot.filtro_situacao))} · ${escapar(capturado)} · Fonte: ${escapar(snapshot.fonte || "Reunião NQ")}</p>
+        <div class="report-nq-cards">
+          <div class="report-nq-card"><span>Professores</span><strong>${escapar(snapshot.professores ?? 0)}</strong></div>
+          <div class="report-nq-card"><span>Graduações únicas</span><strong>${escapar(snapshot.graduacoes_unicas ?? 0)}</strong></div>
+          <div class="report-nq-card"><span>Total de graduações</span><strong>${escapar(snapshot.total_graduacoes ?? 0)}</strong></div>
+          <div class="report-nq-card"><span>Áreas CINE</span><strong>${escapar(snapshot.areas_cine ?? areas.length)}</strong></div>
+        </div>
+        <table class="report-nq-table">
+          <thead><tr><th>Área CINE</th><th>Professores</th></tr></thead>
+          <tbody>${areas.map((item) => `<tr><td>${escapar(item.area)}</td><td>${escapar(item.total)}</td></tr>`).join("")}</tbody>
+        </table>
+      </section>`;
   }
 
   function evidenciaComArquivo(item) {
@@ -681,6 +902,8 @@
 
   function limparCampos() {
     Object.values(campos).forEach((id) => { $(id).value = ""; });
+    estado.indicadoresNQAtual = null;
+    renderizarSnapshotNQ();
     $("evidenceList").innerHTML = "";
     adicionarEvidencia();
   }
@@ -689,6 +912,11 @@
     Object.entries(campos).forEach(([chave, id]) => {
       $(id).value = edicao?.[chave] || "";
     });
+    estado.indicadoresNQAtual = nqSnapshotValido(edicao?.indicadores_nq)
+      ? JSON.parse(JSON.stringify(edicao.indicadores_nq))
+      : null;
+    if ($("nqSnapshotSituacao")) $("nqSnapshotSituacao").value = estado.indicadoresNQAtual?.filtro_situacao || "";
+    renderizarSnapshotNQ();
     $("evidenceList").innerHTML = "";
     const evidencias = Array.isArray(edicao?.evidencias) ? edicao.evidencias : [];
     if (!evidencias.length) adicionarEvidencia();
@@ -947,6 +1175,7 @@
       <section class="report-section"><h2>Ações e tarefas originais</h2>${tabelaTarefas(tarefas)}</section>
       ${blocoTexto("Novas ações e complementos", dados.acoes_complementares)}
       ${blocoTexto("Resultados alcançados", dados.resultados_alcancados)}
+      ${blocoIndicadoresNQ(estado.indicadoresNQAtual)}
       ${blocoTexto("Impacto gerado", dados.impacto)}
       <section class="report-section"><h2>Evidências</h2>${tabelaEvidencias(dados.evidencias)}</section>
       ${dados.observacoes ? blocoTexto("Observações", dados.observacoes) : ""}
@@ -974,6 +1203,7 @@
           <strong>Versão ${escapar(edicao.versao)}</strong>
           <span class="history-status ${escapar(edicao.status_edicao)}">${escapar(edicao.status_edicao)}</span>
         </div>
+        ${nqSnapshotValido(edicao.indicadores_nq) ? '<small class="history-nq-badge">Snapshot NQ incluído</small>' : ''}
         <p>${escapar(formatarDataHora(edicao.criado_em))}<br>${escapar(edicao.criado_por_email)}</p>
         <div class="history-actions">
           <button type="button" data-action="view">Ver versão</button>
@@ -1074,6 +1304,18 @@
       });
       if (error) throw error;
 
+      let avisoIndicadoresNQ = "";
+      if (nqSnapshotValido(estado.indicadoresNQAtual)) {
+        const { error: indicadoresError } = await window.biSupabase.rpc("pq_salvar_indicadores_nq", {
+          p_edicao_id: data.id,
+          p_indicadores: estado.indicadoresNQAtual,
+        });
+        if (indicadoresError) {
+          console.error("Snapshot NQ não persistido:", indicadoresError);
+          avisoIndicadoresNQ = " A versão foi salva, mas o snapshot do NQ não foi gravado. Execute docs/05_INDICADORES_NQ_RELATORIO_V25_46_39.sql no Supabase.";
+        }
+      }
+
       const { data: edicao, error: edicaoError } = await window.biSupabase
         .from("pq_projetos_edicoes")
         .select("*")
@@ -1092,7 +1334,7 @@
         try {
           await gerarPdfRelatorio("download");
           mostrarFeedback(
-            `Versão ${edicao.versao} finalizada e PDF gerado. O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.`,
+            `Versão ${edicao.versao} finalizada e PDF gerado. O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.${avisoIndicadoresNQ}`,
             "success",
           );
         } catch (pdfError) {
@@ -1103,7 +1345,7 @@
           );
         }
       } else {
-        mostrarFeedback(`Versão ${edicao.versao} salva como rascunho com sucesso.`, "success");
+        mostrarFeedback(`Versão ${edicao.versao} salva como rascunho com sucesso.${avisoIndicadoresNQ}`, avisoIndicadoresNQ ? "warning" : "success");
       }
     } catch (error) {
       mostrarFeedback(mensagemErro(error), "error");
@@ -1282,6 +1524,14 @@
       $("projectFilter").value = "";
       filtrarProjetos();
       fecharMenuResponsaveis();
+    });
+    $("loadNqIndicatorsButton")?.addEventListener("click", carregarSnapshotNQ);
+    $("nqSnapshotSituacao")?.addEventListener("change", () => {
+      const status = $("nqSnapshotStatus");
+      if (status && nqSnapshotValido(estado.indicadoresNQAtual)) {
+        status.className = "nq-snapshot-status";
+        status.textContent = "Filtro alterado. Clique em “Atualizar indicadores do NQ” para capturar uma nova fotografia.";
+      }
     });
     $("addEvidenceButton").addEventListener("click", () => {
       adicionarEvidencia();

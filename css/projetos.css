@@ -828,3 +828,149 @@
   break-inside: avoid;
   page-break-inside: avoid;
 }
+
+
+/* ============================================================
+   V25.46.39 · Snapshot dos indicadores do NQ no relatório
+   ============================================================ */
+.nq-indicators-fieldset {
+  margin: 2px 0 0;
+  padding: 17px;
+  border: 1px solid #ded5e7;
+  border-radius: 13px;
+  background: #fcfaff;
+}
+.nq-indicators-fieldset legend {
+  padding: 0 7px;
+  color: var(--purple);
+  font-weight: 900;
+}
+.nq-indicators-fieldset > p {
+  margin: 0 0 13px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.nq-indicators-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.nq-indicators-toolbar label {
+  display: grid;
+  gap: 7px;
+}
+.nq-indicators-toolbar label > span {
+  color: #4e3b64;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+.nq-indicators-toolbar select {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 1px solid #dcd3e6;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+}
+.nq-snapshot-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f5f0f8;
+  color: #6f607a;
+  font-size: 0.78rem;
+}
+.nq-snapshot-status.ready {
+  background: #edf8f1;
+  color: #176536;
+  font-weight: 800;
+}
+.nq-snapshot-status.error {
+  background: #fff1f3;
+  color: #a51f44;
+  font-weight: 800;
+}
+.nq-snapshot-preview {
+  margin-top: 12px;
+}
+.nq-snapshot-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.nq-snapshot-cards article {
+  padding: 10px;
+  border: 1px solid #e7deed;
+  border-radius: 9px;
+  background: #fff;
+}
+.nq-snapshot-cards span {
+  display: block;
+  color: #81738d;
+  font-size: 0.68rem;
+}
+.nq-snapshot-cards strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--purple);
+  font-size: 1.05rem;
+}
+.nq-snapshot-mini-table,
+.report-nq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+.nq-snapshot-mini-table th,
+.nq-snapshot-mini-table td,
+.report-nq-table th,
+.report-nq-table td {
+  padding: 7px 8px;
+  border: 1px solid #e6dfea;
+  text-align: left;
+}
+.nq-snapshot-mini-table th,
+.report-nq-table th {
+  background: #f5f0f8;
+  color: var(--purple);
+}
+.report-nq-source {
+  margin: -4px 0 12px !important;
+  color: #807387 !important;
+  font-size: 0.72rem !important;
+}
+.report-nq-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.report-nq-card {
+  padding: 10px;
+  border: 1px solid #e8e1ec;
+  border-radius: 8px;
+  background: #fbf9fc;
+}
+.report-nq-card span {
+  display: block;
+  color: #8a7d92;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+.report-nq-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--report-purple);
+  font-size: 1rem;
+}
+@media (max-width: 820px) {
+  .nq-indicators-toolbar { grid-template-columns: 1fr; }
+  .nq-snapshot-cards, .report-nq-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media print {
+  .report-nq-cards, .report-nq-table tr { break-inside: avoid; }
+}
