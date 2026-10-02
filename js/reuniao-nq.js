@@ -28,6 +28,7 @@
   let dadosBIAtuais = [];
   let ppsValidadosAtual = 0;
   let campoApontamosInconformidade = null;
+  let carregandoCoberturaNQ = null;
 
   const fmt = new Intl.NumberFormat("pt-BR");
 
@@ -986,6 +987,49 @@
     }));
   }
 
+  async function garantirCoberturaNQ() {
+    if (formacoesNQ.length) {
+      return;
+    }
+
+    if (carregandoCoberturaNQ) {
+      return carregandoCoberturaNQ;
+    }
+
+    carregandoCoberturaNQ = carregarFormacaoCoberturaNQ()
+      .finally(() => {
+        carregandoCoberturaNQ = null;
+      });
+
+    return carregandoCoberturaNQ;
+  }
+
+
+  async function atualizarProfessoresNQ() {
+    const fonte = document.getElementById("nqCoberturaFonte");
+
+    try {
+      if (!formacoesNQ.length) {
+        if (fonte) {
+          fonte.textContent = "Atualizando dados dos especialistas...";
+        }
+
+        await garantirCoberturaNQ();
+      }
+
+      configurarFiltroCoberturaNQ();
+      renderCoberturaNQ();
+    } catch (e) {
+      console.error("Erro ao atualizar Professores e Especialistas:", e);
+
+      if (fonte) {
+        fonte.textContent =
+          "Não foi possível atualizar os dados dos especialistas. Tente novamente.";
+      }
+    }
+  }
+
+
   function configurarAbasNQ() {
     const botoes = [
       ...document.querySelectorAll(
@@ -1033,6 +1077,10 @@
       if (
         tab === "professores"
       ) {
+        // A troca de aba não depende do carregamento das consultas.
+        // Os dados são atualizados em segundo plano e a aba abre imediatamente.
+        atualizarProfessoresNQ();
+
         requestAnimationFrame(
           () => {
             requestAnimationFrame(
@@ -1497,10 +1545,13 @@
         "nqStatus"
       );
 
+    // Os controles da Reunião NQ precisam permanecer utilizáveis mesmo
+    // quando alguma consulta do Supabase demora ou falha.
+    configurarAbasNQ();
+    configurarFiltroCoberturaNQ();
+
     try {
       await carregar();
-
-      configurarAbasNQ();
 
       criteriosFiltrados =
         filtrarCriteriosGlobais();
@@ -4617,7 +4668,7 @@
 
         el.addEventListener(
           "change",
-          renderCoberturaNQ
+          () => atualizarProfessoresNQ()
         );
       }
     );
@@ -5388,6 +5439,23 @@
         ?.resize();
     }
   );
+
+
+  function iniciarControlesNQ() {
+    configurarAbasNQ();
+    configurarFiltroCoberturaNQ();
+  }
+
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      iniciarControlesNQ,
+      { once: true }
+    );
+  } else {
+    iniciarControlesNQ();
+  }
 
 
   /*
