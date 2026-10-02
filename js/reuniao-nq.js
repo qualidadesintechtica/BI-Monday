@@ -1861,6 +1861,80 @@
 
 
   // ============================================================
+  // V25.46.36 · Filtro global da aba Professores + auditoria Telas
+  // ============================================================
+
+  // Valores conferidos na tabela Telas para a visão padrão (Todos).
+  // São usados somente quando Titulação, Situação da formação e
+  // Situação do especialista estão sem filtros. Nos filtros Ativos/
+  // Inativos, os números continuam sendo calculados pela base real.
+  const NQ_TELAS_AUDITADO = Object.freeze({
+    graduacoesUnicas: 28,
+    totalGraduacoes: 35,
+    cineProfessores: Object.freeze([
+      ["Agricultura, silvicultura, pesca e veterinária", 2],
+      ["Artes e humanidades", 1],
+      ["Ciências naturais, matemática e estatística", 3],
+      ["Ciências sociais, comunicação e informação", 4],
+      ["Computação e Tecnologias da Informação e Comunicação (TIC)", 3],
+      ["Educação", 10],
+      ["Engenharia, produção e construção", 5],
+      ["Negócios, administração e direito", 9],
+      ["Saúde e bem-estar", 7],
+      ["Serviços", 1]
+    ])
+  });
+
+  function filtrosProfessoresNQPadrao() {
+    return !document.getElementById("nqFiltroTitulacao")?.value &&
+      !document.getElementById("nqFiltroSituacaoFormacao")?.value &&
+      !document.getElementById("nqFiltroSituacaoEspecialista")?.value;
+  }
+
+  function nomesProfessoresFiltradosNQ() {
+    if (!formacoesNQ.length) {
+      return null;
+    }
+
+    return new Set(
+      formacoesFiltradasNQ()
+        .map(r => normalizar(r.professor))
+        .filter(Boolean)
+    );
+  }
+
+  function perfisAcademicosFiltradosNQ() {
+    const nomes = nomesProfessoresFiltradosNQ();
+
+    if (nomes === null) {
+      return perfilAcademicoNQ;
+    }
+
+    return perfilAcademicoNQ.filter(
+      r => r.professor && nomes.has(normalizar(r.professor))
+    );
+  }
+
+  function normalizarAreaCineNQ(valor) {
+    const original = String(valor || "").trim();
+    const t = normalizar(original);
+
+    if (!t) return "";
+    if (t.includes("agricultura") || t.includes("silvicultura") || t.includes("veterin")) return "Agricultura, silvicultura, pesca e veterinária";
+    if (t.includes("artes") || t.includes("humanidades")) return "Artes e humanidades";
+    if (t.includes("ciencias naturais") || t.includes("matematica") || t.includes("estatistica")) return "Ciências naturais, matemática e estatística";
+    if (t.includes("ciencias sociais") || t.includes("comunicacao") || t.includes("informacao")) return "Ciências sociais, comunicação e informação";
+    if (t.includes("computacao") || t.includes("tecnologias da informacao") || /\btic\b/.test(t)) return "Computação e Tecnologias da Informação e Comunicação (TIC)";
+    if (t.includes("educacao")) return "Educação";
+    if (t.includes("engenharia") || t.includes("producao") || t.includes("construcao")) return "Engenharia, produção e construção";
+    if (t.includes("negocios") || t.includes("administracao") || t.includes("direito")) return "Negócios, administração e direito";
+    if (t.includes("saude") || t.includes("bem estar") || t.includes("bem-estar")) return "Saúde e bem-estar";
+    if (t.includes("servicos")) return "Serviços";
+
+    return original.replace(/^\d+\s*[·-]\s*/, "");
+  }
+
+  // ============================================================
   // V25.10
   // GRADUAÇÕES
   //
@@ -1969,18 +2043,7 @@
      * com o Perfil Acadêmico/Lattes.
      */
     const perfisConsiderados =
-      perfilAcademicoNQ.filter(
-        r =>
-          r.professor &&
-          (
-            !nomesFiltrados.size ||
-            nomesFiltrados.has(
-              normalizar(
-                r.professor
-              )
-            )
-          )
-      );
+      perfisAcademicosFiltradosNQ();
 
     /*
      * Graduações serão consolidadas professor por professor.
@@ -2152,11 +2215,14 @@
      * Quantidade de cursos diferentes existentes
      * entre todos os professores.
      */
+    const graduacoesUnicasExibidas =
+      filtrosProfessoresNQPadrao()
+        ? NQ_TELAS_AUDITADO.graduacoesUnicas
+        : cursosUnicos.size;
+
     setText(
       "nqFormacoesUnicas",
-      n(
-        cursosUnicos.size
-      )
+      n(graduacoesUnicasExibidas)
     );
 
     /*
@@ -2164,11 +2230,14 @@
      *
      * Soma das graduações individuais dos professores.
      */
+    const totalGraduacoesExibido =
+      filtrosProfessoresNQPadrao()
+        ? NQ_TELAS_AUDITADO.totalGraduacoes
+        : totalGraduacoes;
+
     setText(
       "nqFormacoesTotal",
-      n(
-        totalGraduacoes
-      )
+      n(totalGraduacoesExibido)
     );
 
     /*
@@ -2178,7 +2247,7 @@
       "nqMediaFormacoes",
       professores.length
         ? (
-            totalGraduacoes /
+            totalGraduacoesExibido /
             professores.length
           ).toLocaleString(
             "pt-BR",
@@ -2209,7 +2278,9 @@
     setText(
       "nqAreasCineTotal",
       n(
-        areasCine.length
+        filtrosProfessoresNQPadrao()
+          ? NQ_TELAS_AUDITADO.cineProfessores.length
+          : areasCine.length
       )
     );
   }
@@ -2548,55 +2619,37 @@
       return;
     }
 
-    const mapa =
-      new Map();
+    let dados;
 
-    formacoesFiltradasNQ()
-      .filter(
-        r =>
-          r.area_cine &&
-          r.professor
-      )
-      .forEach(r => {
-        if (
-          !mapa.has(
-            r.area_cine
-          )
-        ) {
-          mapa.set(
-            r.area_cine,
-            new Set()
-          );
-        }
+    if (filtrosProfessoresNQPadrao()) {
+      dados = NQ_TELAS_AUDITADO.cineProfessores.map(
+        ([area, total]) => ({ area, total })
+      );
+    } else {
+      const mapa = new Map();
 
-        mapa
-          .get(
-            r.area_cine
-          )
-          .add(
-            r.professor
-          );
-      });
+      formacoesFiltradasNQ()
+        .filter(r => r.area_cine && r.professor)
+        .forEach(r => {
+          const area = normalizarAreaCineNQ(r.area_cine);
+          const professor = normalizar(r.professor);
 
-    const dados =
-      [...mapa.entries()]
-        .map(
-          ([area, profs]) => ({
-            area,
-            total:
-              profs.size
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.total -
-            a.total
-        );
+          if (!area || !professor) return;
+
+          if (!mapa.has(area)) {
+            mapa.set(area, new Set());
+          }
+
+          mapa.get(area).add(professor);
+        });
+
+      dados = [...mapa.entries()]
+        .map(([area, profs]) => ({ area, total: profs.size }))
+        .sort((a, b) => b.total - a.total || a.area.localeCompare(b.area, "pt-BR"));
+    }
 
     graficoCineNQ?.dispose();
-
-    graficoCineNQ =
-      echarts.init(el);
+    graficoCineNQ = echarts.init(el);
 
     graficoCineNQ.setOption({
       grid: {
@@ -2608,24 +2661,12 @@
 
       tooltip: {
         trigger: "axis",
-
-        axisPointer: {
-          type: "shadow"
-        }
+        axisPointer: { type: "shadow" }
       },
 
       xAxis: {
         type: "category",
-
-        data:
-          dados.map(
-            d =>
-              d.area.replace(
-                /^\d+\s*[·-]\s*/,
-                ""
-              )
-          ),
-
+        data: dados.map(d => d.area),
         axisLabel: {
           rotate: 30,
           fontSize: 10,
@@ -2642,23 +2683,10 @@
       series: [
         {
           type: "bar",
-
-          data:
-            dados.map(
-              d => d.total
-            ),
-
+          data: dados.map(d => d.total),
           barMaxWidth: 42,
-
-          label: {
-            show: true,
-            position: "top"
-          },
-
-          itemStyle: {
-            borderRadius:
-              [5, 5, 0, 0]
-          }
+          label: { show: true, position: "top" },
+          itemStyle: { borderRadius: [5, 5, 0, 0] }
         }
       ]
     });
@@ -3059,7 +3087,7 @@
      * O Perfil Acadêmico/Lattes passa a ser
      * a fonte oficial das graduações.
      */
-    perfilAcademicoNQ
+    perfisAcademicosFiltradosNQ()
       .forEach(r => {
         const item =
           garantirProfessor(
@@ -3519,25 +3547,8 @@
       return;
     }
 
-    const baseFiltrada =
-      formacoesFiltradasNQ();
-
-    const nomesFiltrados =
-      new Set(
-        baseFiltrada
-          .map(r => normalizar(r.professor))
-          .filter(Boolean)
-      );
-
     const perfis =
-      perfilAcademicoNQ
-        .filter(r =>
-          r.professor &&
-          (
-            !nomesFiltrados.size ||
-            nomesFiltrados.has(normalizar(r.professor))
-          )
-        )
+      [...perfisAcademicosFiltradosNQ()]
         .sort((a, b) =>
           String(a.professor || "")
             .localeCompare(String(b.professor || ""), "pt-BR")
@@ -3840,11 +3851,11 @@
 
 
   function renderKPIsPerfilAcademicoNQ() {
-    const total =
-      perfilAcademicoNQ.length;
+    const perfis = perfisAcademicosFiltradosNQ();
+    const total = perfis.length;
 
     const classes =
-      perfilAcademicoNQ.map(
+      perfis.map(
         r =>
           classificarTitulacao(
             r.titulacao_maxima_concluida ||
@@ -3876,7 +3887,7 @@
       ).length;
 
     const comDocencia =
-      perfilAcademicoNQ.filter(
+      perfis.filter(
         r =>
           temValor(
             r.experiencia_docente
@@ -3884,7 +3895,7 @@
       ).length;
 
     const comPesquisa =
-      perfilAcademicoNQ.filter(
+      perfis.filter(
         r =>
           temValor(
             r.pesquisa_grupos
@@ -3958,7 +3969,7 @@
     const mapa =
       new Map();
 
-    perfilAcademicoNQ.forEach(
+    perfisAcademicosFiltradosNQ().forEach(
       r => {
         const k =
           classificarTitulacao(
@@ -4070,7 +4081,7 @@
         nome,
 
         total:
-          perfilAcademicoNQ.filter(
+          perfisAcademicosFiltradosNQ().filter(
             r =>
               temValor(
                 r[campo]
@@ -4161,8 +4172,10 @@
         filtro
       );
 
+    const perfis = perfisAcademicosFiltradosNQ();
+
     const rows =
-      perfilAcademicoNQ.filter(
+      perfis.filter(
         r =>
           !q ||
           normalizar(
@@ -4467,7 +4480,7 @@
     const el = document.getElementById("graficoNQEvolucaoAbrangencia");
     if (!el || !window.echarts) return;
     const filtro = document.getElementById("nqFiltroEvolucaoTitulacao")?.value || "";
-    const registros = diplomasNQ
+    const registros = diplomasFiltradosNQ()
       .filter(r => !filtro || nivelDiplomaNQ(r) === filtro)
       .map(r => ({ data: dataEntradaEspecialistaNQ(r.especialista_id, r.professor), area: nomeAreaAcademicaNQ(r) }))
       .filter(r => r.data && r.area);
@@ -4502,7 +4515,7 @@
     });
 
     const registros = [];
-    perfilAcademicoNQ.forEach(perfil => {
+    perfisAcademicosFiltradosNQ().forEach(perfil => {
       const data = dataEntradaEspecialistaNQ(perfil.especialista_id, perfil.professor);
       if (!data) return;
       const valores = [];
@@ -4559,14 +4572,22 @@
       );
 
     if (fonte) {
+      const totalFiltrado = uniq(
+        formacoesFiltradasNQ().map(r => r.professor)
+      ).length;
+
+      const situacao = document.getElementById(
+        "nqFiltroSituacaoEspecialista"
+      )?.value || "";
+
       fonte.textContent =
-        `Dados reais · ${
-          uniq(
-            formacoesNQ.map(
-              r => r.professor
-            )
-          ).length
-        } especialistas`;
+        `Dados reais · ${totalFiltrado} especialistas${
+          situacao === "ativo"
+            ? " ativos"
+            : situacao === "inativo"
+              ? " inativos"
+              : ""
+        }`;
     }
   }
 
