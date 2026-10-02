@@ -1,3 +1,3 @@
-V25.46.37
+V25.46.38
 2026-10-02
-Correção isolada da aba Reunião NQ > Professores e Especialistas: abertura independente das consultas, atualização em segundo plano e filtros Todos/Ativos/Inativos.
+Projeto Qualidade: auditoria 1:1 da planilha, tipo automático de evidência e PDF direto.

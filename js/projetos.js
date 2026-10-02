@@ -253,9 +253,13 @@
     return "";
   }
 
-  function tipoPorArquivo(nome) {
+  function tipoPorArquivo(nome, mime = "") {
     const ext = extensaoArquivo(nome);
-    return ext === "jpg" || ext === "jpeg" ? "Imagem" : "Documento";
+    const m = texto(mime).toLowerCase();
+    if (ext === "pdf" || m === "application/pdf") return "PDF";
+    if (ext === "jpg" || ext === "jpeg" || m === "image/jpeg") return "Imagem";
+    if (ext === "doc" || ext === "docx" || m.includes("word")) return "Documento";
+    return "Outro";
   }
 
   function atualizarStatusArquivo(linha, mensagem, classe = "") {
@@ -393,8 +397,10 @@
   }
 
   function renderizarResumo() {
+    // "Tarefas" representa o total importado da planilha. As tarefas sem vínculo
+    // continuam destacadas no card próprio, mas não deixam de fazer parte do total.
     $("projectCount").textContent = estado.projetos.length;
-    $("taskCount").textContent = estado.tarefas.filter((t) => t.projeto_id).length;
+    $("taskCount").textContent = estado.tarefas.length;
     $("unlinkedCount").textContent = estado.tarefas.filter((t) => !t.projeto_id).length;
     $("issueCount").textContent = estado.importacaoAtual?.linhas_com_erro || 0;
   }
@@ -701,6 +707,14 @@
       entrada.addEventListener("input", atualizarPreview);
       entrada.addEventListener("change", atualizarPreview);
     });
+
+    // O tipo da evidência segue o arquivo real. Isso corrige versões antigas em
+    // que, por exemplo, um PDF podia ter ficado salvo como "Imagem".
+    const tipoSalvo = linha.querySelector('[data-evidence="tipo"]');
+    if (tipoSalvo && (linha.dataset.fileName || linha.dataset.mimeType)) {
+      tipoSalvo.value = tipoPorArquivo(linha.dataset.fileName, linha.dataset.mimeType);
+    }
+
     const inputArquivo = linha.querySelector("[data-evidence-file]");
     if (linha.dataset.storagePath) {
       atualizarStatusArquivo(
@@ -733,7 +747,7 @@
       const titulo = linha.querySelector('[data-evidence="titulo"]');
       const tipo = linha.querySelector('[data-evidence="tipo"]');
       if (titulo && !texto(titulo.value)) titulo.value = file.name.replace(/\.[^.]+$/, "");
-      if (tipo) tipo.value = tipoPorArquivo(file.name);
+      if (tipo) tipo.value = tipoPorArquivo(file.name, file.type);
       atualizarStatusArquivo(
         linha,
         `Pronto para enviar: ${file.name} · ${(file.size / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`,
@@ -1000,7 +1014,7 @@
     estado.salvando = ativo;
     ["saveDraftButton", "finalizeButton"].forEach((id) => { $(id).disabled = ativo; });
     $("saveDraftButton").textContent = ativo ? "Salvando…" : "Salvar nova versão";
-    $("finalizeButton").textContent = ativo ? "Salvando…" : "Finalizar e gerar PDF";
+    $("finalizeButton").textContent = ativo ? "Salvando…" : "Finalizar versão e gerar PDF";
   }
 
   async function abrirArquivoArmazenado(caminho, nome) {
@@ -1035,7 +1049,7 @@
       return;
     }
 
-    if (finalizar && !window.confirm("Finalizar esta versão? Ela ficará registrada no histórico e não poderá ser sobrescrita.")) return;
+    if (finalizar && !window.confirm("Finalizar esta versão? Ela ficará registrada no histórico e não poderá ser sobrescrita. O status do projeto não será alterado.")) return;
 
     definirSalvando(true);
     mostrarFeedback(finalizar ? "Finalizando a versão…" : "Salvando uma nova versão…");
@@ -1074,9 +1088,23 @@
       renderizarOrigem();
       renderizarHistorico();
       atualizarPreview();
-      mostrarFeedback(`Versão ${edicao.versao} ${finalizar ? "finalizada" : "salva como rascunho"} com sucesso.`, "success");
-
-      if (finalizar) imprimirRelatorio();
+      if (finalizar) {
+        try {
+          await gerarPdfRelatorio("download");
+          mostrarFeedback(
+            `Versão ${edicao.versao} finalizada e PDF gerado. O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.`,
+            "success",
+          );
+        } catch (pdfError) {
+          console.error("PDF do Projeto Qualidade:", pdfError);
+          mostrarFeedback(
+            `Versão ${edicao.versao} finalizada com sucesso, mas o PDF não pôde ser gerado: ${mensagemErro(pdfError)}`,
+            "warning",
+          );
+        }
+      } else {
+        mostrarFeedback(`Versão ${edicao.versao} salva como rascunho com sucesso.`, "success");
+      }
     } catch (error) {
       mostrarFeedback(mensagemErro(error), "error");
     } finally {
@@ -1084,7 +1112,21 @@
     }
   }
 
-  function imprimirRelatorio() {
+  function nomeArquivoPdf() {
+    const projeto = origemAtual().projeto || projetoAtual();
+    const nome = texto(projeto?.nome || "Projeto da Qualidade")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90) || "Projeto-da-Qualidade";
+    const versao = estado.edicaoVisualizada?.versao
+      ? `-V${estado.edicaoVisualizada.versao}`
+      : "-PREVIA";
+    return `Relatorio-${nome}${versao}.pdf`;
+  }
+
+  function imprimirRelatorioFallback() {
     atualizarPreview();
     const projeto = origemAtual().projeto || projetoAtual();
     const tituloAnterior = document.title;
@@ -1095,6 +1137,114 @@
     };
     window.addEventListener("afterprint", restaurar);
     window.print();
+  }
+
+  async function gerarPdfRelatorio(modo = "preview") {
+    atualizarPreview();
+
+    const html2canvas = window.html2canvas;
+    const JsPDF = window.jspdf?.jsPDF;
+    if (!html2canvas || !JsPDF) {
+      imprimirRelatorioFallback();
+      throw new Error("Gerador direto de PDF não carregado. Foi aberta a impressão do navegador como alternativa.");
+    }
+
+    const janelaPreview = modo === "preview" ? window.open("", "_blank") : null;
+    if (janelaPreview) {
+      janelaPreview.opener = null;
+      janelaPreview.document.title = "Gerando PDF…";
+      janelaPreview.document.body.style.fontFamily = "Arial, sans-serif";
+      janelaPreview.document.body.style.padding = "24px";
+      janelaPreview.document.body.textContent = "Gerando a prévia do PDF…";
+    }
+
+    const origem = $("reportDocument");
+    if (!origem) throw new Error("Documento do relatório não localizado.");
+
+    const suporte = document.createElement("div");
+    suporte.className = "pdf-export-stage";
+    suporte.setAttribute("aria-hidden", "true");
+
+    const clone = origem.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.classList.add("pdf-export-document");
+    clone.querySelectorAll(".evidence-open-file").forEach((botao) => {
+      const span = document.createElement("span");
+      span.textContent = botao.dataset.fileName
+        ? `Arquivo: ${botao.dataset.fileName}`
+        : "Arquivo anexado";
+      botao.replaceWith(span);
+    });
+
+    suporte.appendChild(clone);
+    document.body.appendChild(suporte);
+
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const canvas = await html2canvas(clone, {
+        scale: 1.6,
+        backgroundColor: "#ffffff",
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+        windowWidth: 840,
+      });
+
+      if (!canvas.width || !canvas.height) throw new Error("O relatório ficou vazio durante a geração do PDF.");
+
+      const doc = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const margemX = 10;
+      const margemY = 10;
+      const larguraUtil = 210 - (margemX * 2);
+      const alturaUtil = 297 - (margemY * 2) - 6;
+      const alturaPaginaPx = Math.max(1, Math.floor(canvas.width * (alturaUtil / larguraUtil)));
+
+      let y = 0;
+      let pagina = 0;
+      while (y < canvas.height) {
+        const alturaFatia = Math.min(alturaPaginaPx, canvas.height - y);
+        const fatia = document.createElement("canvas");
+        fatia.width = canvas.width;
+        fatia.height = alturaFatia;
+        const ctx = fatia.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, fatia.width, fatia.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, alturaFatia, 0, 0, canvas.width, alturaFatia);
+
+        if (pagina > 0) doc.addPage("a4", "portrait");
+        const alturaMm = (alturaFatia / canvas.width) * larguraUtil;
+        doc.addImage(fatia.toDataURL("image/jpeg", 0.94), "JPEG", margemX, margemY, larguraUtil, alturaMm, undefined, "FAST");
+
+        pagina += 1;
+        y += alturaFatia;
+      }
+
+      const totalPaginas = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPaginas; i += 1) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(110, 98, 120);
+        doc.text(`Página ${i} de ${totalPaginas}`, 200, 292, { align: "right" });
+      }
+
+      const nome = nomeArquivoPdf();
+      if (modo === "download") {
+        doc.save(nome);
+      } else {
+        const blob = doc.output("blob");
+        const url = URL.createObjectURL(blob);
+        if (janelaPreview) janelaPreview.location.replace(url);
+        else window.open(url, "_blank");
+        window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+      }
+    } catch (error) {
+      if (janelaPreview) janelaPreview.close();
+      throw error;
+    } finally {
+      suporte.remove();
+    }
   }
 
   function ligarEventos() {
@@ -1147,7 +1297,7 @@
     Object.values(campos).forEach((id) => $(id).addEventListener("input", atualizarPreview));
     $("saveDraftButton").addEventListener("click", () => salvar(false));
     $("finalizeButton").addEventListener("click", () => salvar(true));
-    $("printDraftButton").addEventListener("click", imprimirRelatorio);
+    $("printDraftButton").addEventListener("click", () => gerarPdfRelatorio("preview").catch((e) => mostrarFeedback(mensagemErro(e), "warning")));
     $("reportDocument").addEventListener("click", (evento) => {
       const botao = evento.target.closest(".evidence-open-file");
       if (!botao) return;

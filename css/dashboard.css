@@ -2323,3 +2323,15 @@
   outline: 2px solid rgba(45,21,83,.18);
   border-color: #2d1553;
 }
+
+
+/* V25.46.38 · auditoria da importação do Projeto Qualidade */
+.pq-import-audit { margin-top: 14px; padding-top: 14px; border-top: 1px solid #eadff0; }
+.pq-import-audit > strong { display:block; margin-bottom:10px; color:#2d1553; }
+.pq-import-audit-table { margin-top: 10px; font-size: 12px; }
+.pq-import-audit-ok,
+.pq-import-audit-warning { margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+.pq-import-audit-ok { background:#edf8f1; color:#176536; border:1px solid #cbead6; }
+.pq-import-audit-warning { background:#fff7e9; color:#7c4f00; border:1px solid #f0d69c; }
+.pq-import-audit-errors { margin-top:10px; font-size:12px; }
+.pq-import-audit-errors ul { margin:8px 0 0 18px; }

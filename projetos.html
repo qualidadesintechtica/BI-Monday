@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20260924-v25-42-diagnostico-editor">
+    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-38-pdf">
   </head>
 
   <body>
@@ -15,7 +15,7 @@
         <div class="brand">
           <small>DataHub</small>
           <strong>Validação de Materiais</strong>
-          <small class="build-badge">v24.6 · Projeto Qualidade V24.4</small>
+          <small class="build-badge">v25.46.38 · Projeto Qualidade auditado</small>
         </div>
 
         <nav class="nav" aria-label="Navegação principal">
@@ -69,7 +69,7 @@
         <div id="projectsApp" hidden>
           <section class="project-kpis no-print" aria-label="Resumo dos projetos">
             <article><span>Projetos atuais</span><strong id="projectCount">0</strong></article>
-            <article><span>Tarefas vinculadas</span><strong id="taskCount">0</strong></article>
+            <article><span>Total de tarefas</span><strong id="taskCount">0</strong></article>
             <article class="attention"><span>Linhas com erro</span><strong id="issueCount">0</strong></article>
             <article class="attention"><span>Tarefas sem vínculo</span><strong id="unlinkedCount">0</strong></article>
           </section>
@@ -171,7 +171,7 @@
                 <button id="attachEvidenceButton" class="secondary-action attachment-action" type="button">Anexar arquivo</button>
                 <button id="printDraftButton" class="secondary-action" type="button">Visualizar PDF</button>
                 <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar nova versão</button>
-                <button id="finalizeButton" class="primary-action" type="button">Finalizar e gerar PDF</button>
+                <button id="finalizeButton" class="primary-action" type="button">Finalizar versão e gerar PDF</button>
               </div>
             </div>
 
@@ -278,7 +278,7 @@
     <template id="evidenceTemplate">
       <div class="evidence-row">
         <label><span>Título</span><input data-evidence="titulo" type="text" placeholder="Ex.: Apresentação executiva"></label>
-        <label><span>Tipo</span><select data-evidence="tipo"><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
+        <label><span>Tipo</span><select data-evidence="tipo"><option value="PDF">PDF</option><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
         <label class="wide evidence-file-field">
           <span>Arquivo do computador</span>
           <input
@@ -295,9 +295,11 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20260924-v25-42-diagnostico-editor"></script>
+    <script src="js/projetos.js?v=20261002-v25-46-38-auditoria-pdf"></script>
   </body>
 </html>

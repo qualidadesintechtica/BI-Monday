@@ -135,14 +135,26 @@ function tipoLinha(v: unknown): string {
   return "";
 }
 
-function sourceKey(prefix: string, id: unknown, projeto: unknown, acao?: unknown): string {
+function sourceKey(
+  prefix: string,
+  id: unknown,
+  projeto: unknown,
+  acao?: unknown,
+  abaOrigem?: unknown,
+  linhaOrigem?: unknown,
+): string {
   const sid = txt(id);
   if (sid) return `${prefix}|${sid}`;
 
   const p = norm(projeto);
   const a = norm(acao);
+  const aba = norm(abaOrigem);
+  const linha = txt(linhaOrigem);
+  const origem = aba || linha ? `|${aba}|${linha}` : "";
 
-  return a ? `${prefix}|${p}|${a}` : `${prefix}|${p}`;
+  // Sem ID, cada linha física da planilha precisa continuar sendo um registro.
+  // Isso impede que duas tarefas textualmente iguais sejam colapsadas no upsert.
+  return a ? `${prefix}|${p}|${a}${origem}` : `${prefix}|${p}${origem}`;
 }
 
 Deno.serve(async (req) => {
@@ -222,7 +234,7 @@ Deno.serve(async (req) => {
 
       if (!projeto) {
         if (Object.values(r).some(v => txt(v))) {
-          erros.push(`Linha ${idx + 2}: nome do projeto não informado.`);
+          erros.push(`${txt(r["__aba_origem"]) || "Planilha"} · linha ${txt(r["__linha_origem"]) || idx + 2}: nome do projeto não informado.`);
         }
         return;
       }
@@ -258,16 +270,16 @@ Deno.serve(async (req) => {
       if (tipo === "projeto") {
         projetos.push({
           ...base,
-          source_key: sourceKey("P", r["ID"], projeto),
+          source_key: sourceKey("P", r["ID"], projeto, undefined, r["__aba_origem"], r["__linha_origem"]),
         });
       } else if (tipo === "tarefa") {
         tarefas.push({
           ...base,
-          source_key: sourceKey("T", r["ID"], projeto, acao),
+          source_key: sourceKey("T", r["ID"], projeto, acao, r["__aba_origem"], r["__linha_origem"]),
           acao,
         });
       } else {
-        erros.push(`Linha ${idx + 2}: tipo não reconhecido.`);
+        erros.push(`${txt(r["__aba_origem"]) || "Planilha"} · linha ${txt(r["__linha_origem"]) || idx + 2}: tipo não reconhecido.`);
       }
     });
 
@@ -320,6 +332,18 @@ Deno.serve(async (req) => {
       if (error) throw new Error(erroTexto(error));
     }
 
+    const diagnosticoAbas = new Map<string, { linhas: number; projetos: number; tarefas: number; erros: number }>();
+    rows.forEach((r: Record<string, unknown>) => {
+      const nomeAba = txt(r["__aba_origem"]) || "Sem aba";
+      const d = diagnosticoAbas.get(nomeAba) || { linhas: 0, projetos: 0, tarefas: 0, erros: 0 };
+      d.linhas += 1;
+      const tp = tipoLinha(r["Work Item Type"]) || (txt(r["Projetos"]) && txt(r["Ações"]) ? "tarefa" : "");
+      if (tp === "projeto") d.projetos += 1;
+      else if (tp === "tarefa") d.tarefas += 1;
+      else d.erros += 1;
+      diagnosticoAbas.set(nomeAba, d);
+    });
+
     const mensagem = erros.length
       ? `Importação concluída com ${erros.length} linha(s) não aproveitada(s).`
       : "Importação concluída com sucesso.";
@@ -354,7 +378,8 @@ Deno.serve(async (req) => {
       tarefas_inseridas: tarefasInseridas,
       tarefas_atualizadas: tarefasAtualizadas,
       linhas_com_erro: erros.length,
-      erros: erros.slice(0, 30),
+      erros: erros.slice(0, 100),
+      diagnostico_abas: [...diagnosticoAbas.entries()].map(([nome, d]) => ({ aba: nome, ...d })),
       mensagem,
       finalizado_em: finishedAt,
     });

@@ -417,10 +417,117 @@
         null,
 
       "__aba_origem": r["__aba_origem"] ?? null,
+      "__linha_origem": r["__linha_origem"] ?? null,
 
-      // Preserva TODAS as colunas que existirem na planilha.
-      "__dados_originais": r
+      // Preserva TODAS as colunas que existirem na planilha, inclusive antes
+      // de uma reconciliação de nome de projeto.
+      "__dados_originais": r["__dados_originais_original"] ?? r
     }));
+  }
+
+  function tipoLinhaImportacao(row) {
+    const n = norm(row["Work Item Type"]);
+    const projeto = txt(row["Projetos"] || row["Projeto"]);
+    const acao = txt(row["Ações"] || row["Ações / Tarefas"] || row["Tarefa"]);
+    if (n.includes("projeto")) return "projeto";
+    if (n.includes("tarefa") || n.includes("action plan")) return "tarefa";
+    if (projeto && acao) return "tarefa";
+    return "nao_reconhecida";
+  }
+
+  function diagnosticoLocalImportacao(rows, abasParaLer, reconciliacoes = []) {
+    const porAba = new Map();
+    let projetos = 0;
+    let tarefas = 0;
+    let naoReconhecidas = 0;
+
+    rows.forEach((row) => {
+      const aba = txt(row.__aba_origem) || "Sem aba";
+      const item = porAba.get(aba) || { linhas: 0, projetos: 0, tarefas: 0, naoReconhecidas: 0 };
+      const tipo = tipoLinhaImportacao(row);
+      item.linhas += 1;
+      if (tipo === "projeto") { projetos += 1; item.projetos += 1; }
+      else if (tipo === "tarefa") { tarefas += 1; item.tarefas += 1; }
+      else { naoReconhecidas += 1; item.naoReconhecidas += 1; }
+      porAba.set(aba, item);
+    });
+
+    return {
+      linhas: rows.length,
+      projetos,
+      tarefas,
+      naoReconhecidas,
+      abas: abasParaLer.map((aba) => ({ aba, ...(porAba.get(aba) || { linhas: 0, projetos: 0, tarefas: 0, naoReconhecidas: 0 }) })),
+      reconciliacoes,
+      tarefasReconciliadas: reconciliacoes.length,
+    };
+  }
+
+  async function conferirSnapshotImportado(esperado) {
+    const sb = window.biSupabase;
+    const [p, t] = await Promise.all([
+      sb.from("pq_projetos_atual").select("id", { count: "exact", head: true }).eq("ativo", true),
+      sb.from("pq_tarefas_atual").select("id", { count: "exact", head: true }).eq("ativo", true),
+    ]);
+
+    if (p.error || t.error) {
+      return { ok: false, erro: p.error?.message || t.error?.message || "Não foi possível conferir o snapshot." };
+    }
+
+    const projetosBanco = Number(p.count || 0);
+    const tarefasBanco = Number(t.count || 0);
+    return {
+      ok: projetosBanco === esperado.projetos && tarefasBanco === esperado.tarefas,
+      projetosBanco,
+      tarefasBanco,
+      diferencaProjetos: projetosBanco - esperado.projetos,
+      diferencaTarefas: tarefasBanco - esperado.tarefas,
+    };
+  }
+
+  function htmlDiagnosticoImportacao(diag, conferencia, payload) {
+    const abas = diag.abas.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.aba)}</td>
+        <td>${item.linhas}</td>
+        <td>${item.projetos}</td>
+        <td>${item.tarefas}</td>
+        <td>${item.naoReconhecidas}</td>
+      </tr>`).join("");
+
+    const banco = conferencia?.erro
+      ? `<div class="pq-import-audit-warning">Conferência do banco indisponível: ${escapeHtml(conferencia.erro)}</div>`
+      : `<div class="pq-import-audit-${conferencia?.ok ? "ok" : "warning"}">
+          <b>Conferência após importação:</b>
+          Planilha ${diag.projetos} projetos / ${diag.tarefas} tarefas ·
+          Banco ${conferencia?.projetosBanco ?? "—"} projetos / ${conferencia?.tarefasBanco ?? "—"} tarefas.
+          ${conferencia?.ok ? "Os totais batem." : "Há diferença e nenhuma linha deve ser considerada descartada silenciosamente."}
+        </div>`;
+
+    const erros = Array.isArray(payload?.erros) && payload.erros.length
+      ? `<details class="pq-import-audit-errors"><summary>${payload.erros.length} ocorrência(s) informada(s) pelo importador</summary><ul>${payload.erros.map((e) => `<li>${escapeHtml(e)}</li>`).join("")}</ul></details>`
+      : "";
+
+    return `
+      <div class="pq-import-audit">
+        <strong>Auditoria da planilha</strong>
+        <div class="pq-import-summary">
+          <span><b>${diag.linhas}</b> linhas lidas</span>
+          <span><b>${diag.projetos}</b> projetos</span>
+          <span><b>${diag.tarefas}</b> tarefas</span>
+          <span><b>${diag.tarefasReconciliadas || 0}</b> tarefas reconciliadas</span>
+          <span><b>${diag.naoReconhecidas}</b> não reconhecidas</span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table pq-import-audit-table">
+            <thead><tr><th>Aba</th><th>Linhas</th><th>Projetos</th><th>Tarefas</th><th>Não reconhecidas</th></tr></thead>
+            <tbody>${abas}</tbody>
+          </table>
+        </div>
+        ${diag.reconciliacoes?.length ? `<details class="pq-import-audit-errors"><summary>${diag.reconciliacoes.length} tarefa(s) vinculada(s) a projeto renomeado</summary><ul>${diag.reconciliacoes.slice(0, 30).map((r) => `<li>${escapeHtml(r.de)} → ${escapeHtml(r.para)} (ID ${escapeHtml(r.id || "—")})</li>`).join("")}</ul></details>` : ""}
+        ${banco}
+        ${erros}
+      </div>`;
   }
 
   function configurarImportacaoPQ() {
@@ -531,15 +638,70 @@
             raw: true
           });
 
-          dados.forEach(row => rawRows.push({
+          dados.forEach((row, indice) => rawRows.push({
             ...row,
-            __aba_origem: sheetName
+            __aba_origem: sheetName,
+            __linha_origem: indice + 2
           }));
         });
 
         if (!rawRows.length) {
           throw new Error("Nenhuma linha foi localizada nas abas atuais da planilha.");
         }
+
+        // Reconciliação segura de projetos renomeados.
+        // Exemplo real da planilha atual: as tarefas ainda usam
+        // "Validação em Período de Férias Docentes", enquanto o projeto ID 384403
+        // passou a se chamar "Validação em Período de Recesso de Aulas".
+        // Usamos a aba histórica apenas como mapa nome antigo -> ID e mantemos as
+        // quatro abas atuais como fonte oficial do snapshot.
+        const nomeProjetoLinha = (row) => String(row["Projetos"] ?? row["Projeto"] ?? "").trim();
+        const tipoLinhaBruto = (row) => normalizarAba(row["Work Item Type"]);
+        const projetosAtuaisPorId = new Map();
+        const nomesProjetosAtuais = new Set();
+
+        rawRows.forEach((row) => {
+          if (!tipoLinhaBruto(row).includes("projeto")) return;
+          const id = String(row["ID"] ?? "").trim();
+          const nomeAtual = nomeProjetoLinha(row);
+          if (nomeAtual) nomesProjetosAtuais.add(normalizarAba(nomeAtual));
+          if (id && nomeAtual) projetosAtuaisPorId.set(id, nomeAtual);
+        });
+
+        const projetoIdHistoricoPorNome = new Map();
+        const abaHistorica = workbook.Sheets["Work item e filhos (1)"];
+        if (abaHistorica) {
+          const historico = window.XLSX.utils.sheet_to_json(abaHistorica, { defval: null, raw: true });
+          historico.forEach((row) => {
+            if (!normalizarAba(row["Work Item Type"]).includes("projeto")) return;
+            const id = String(row["ID"] ?? "").trim();
+            const nomeAntigo = nomeProjetoLinha(row);
+            if (id && nomeAntigo) projetoIdHistoricoPorNome.set(normalizarAba(nomeAntigo), id);
+          });
+        }
+
+        const reconciliacoes = [];
+        rawRows.forEach((row) => {
+          const tipo = tipoLinhaBruto(row);
+          if (!(tipo.includes("tarefa") || tipo.includes("action plan") || (!tipo && nomeProjetoLinha(row) && (row["Ações"] || row["Ações / Tarefas"])))) return;
+
+          const nomeInformado = nomeProjetoLinha(row);
+          const chaveNome = normalizarAba(nomeInformado);
+          if (!nomeInformado || nomesProjetosAtuais.has(chaveNome)) return;
+
+          const idPai = projetoIdHistoricoPorNome.get(chaveNome);
+          const nomeAtual = idPai ? projetosAtuaisPorId.get(idPai) : "";
+          if (!nomeAtual || normalizarAba(nomeAtual) === chaveNome) return;
+
+          row.__dados_originais_original = { ...row };
+          row.__projeto_nome_original = nomeInformado;
+          row.__projeto_id_reconciliado = idPai;
+          if (Object.prototype.hasOwnProperty.call(row, "Projeto")) row["Projeto"] = nomeAtual;
+          if (Object.prototype.hasOwnProperty.call(row, "Projetos")) row["Projetos"] = nomeAtual;
+          if (!Object.prototype.hasOwnProperty.call(row, "Projeto") && !Object.prototype.hasOwnProperty.call(row, "Projetos")) row["Projetos"] = nomeAtual;
+
+          reconciliacoes.push({ de: nomeInformado, para: nomeAtual, id: idPai, aba: row.__aba_origem, linha: row.__linha_origem });
+        });
 
         const rowsPreparadas = prepararLinhasProjetoQualidade(rawRows);
 
@@ -564,29 +726,21 @@
           ].includes(n);
         };
 
-        const vistos = new Set();
-        const rows = rowsPreparadas.filter(row => {
-          const idBruto = String(row["ID Azure"] || row["ID"] || "").trim();
-          const id = idEhPlaceholder(idBruto) ? "" : idBruto;
-
-          // Também enviamos o marcador como nulo para o Supabase gerar a
-          // source_key pelo projeto/ação, preservando todas as linhas.
-          if (!id && idBruto) {
-            if ("ID Azure" in row) row["ID Azure"] = null;
-            row["ID"] = null;
+        // A importação deve ser monotônica em relação à planilha: uma linha válida
+        // não pode sumir no navegador. IDs de placeholder são enviados como nulos e
+        // cada linha mantém aba + número de origem para ganhar uma chave estável no snapshot.
+        const rows = rowsPreparadas.map(row => {
+          const copia = { ...row };
+          const idBruto = String(copia["ID Azure"] || copia["ID"] || "").trim();
+          if (idEhPlaceholder(idBruto)) {
+            if ("ID Azure" in copia) copia["ID Azure"] = null;
+            copia["ID"] = null;
           }
-
-          const projeto = String(row["Projetos"] || row["Projeto"] || "").trim().toLowerCase();
-          const acao = String(row["Ações"] || row["Ações / Tarefas"] || row["Tarefa"] || "").trim().toLowerCase();
-          const sponsor = String(row["Sponsor"] || row["Responsável"] || row["Responsavel"] || "").trim().toLowerCase();
-          const chave = id ? `id:${id}` : `txt:${projeto}|${acao}|${sponsor}`;
-
-          if (vistos.has(chave)) return false;
-          vistos.add(chave);
-          return true;
+          return copia;
         });
 
-        status.textContent = `${rows.length} linha(s) únicas em ${abasParaLer.length} aba(s). Enviando atualização...`;
+        const diagnostico = diagnosticoLocalImportacao(rows, abasParaLer, reconciliacoes);
+        status.textContent = `${diagnostico.linhas} linha(s): ${diagnostico.projetos} projeto(s) e ${diagnostico.tarefas} tarefa(s). Enviando atualização...`;
         btn.textContent = "Enviando...";
 
         const response = await fetch(
@@ -603,6 +757,7 @@
               arquivo_tamanho: file.size,
               aba: abasParaLer.join(", "),
               abas: abasParaLer,
+              diagnostico_cliente: diagnostico,
               rows
             })
           }
@@ -619,19 +774,25 @@
           );
         }
 
+        const conferencia = await conferirSnapshotImportado(diagnostico);
+        console.info("[Projeto Qualidade] Auditoria da importação", { diagnostico, payload, conferencia });
+
         resultado.hidden = false;
         resultado.innerHTML = `
           <strong>Atualização concluída.</strong>
           <div class="pq-import-summary">
-            <span><b>${payload.total_linhas ?? 0}</b> linhas</span>
-            <span><b>${payload.projetos_gravados ?? 0}</b> projetos</span>
-            <span><b>${payload.tarefas_gravadas ?? 0}</b> tarefas</span>
+            <span><b>${payload.total_linhas ?? 0}</b> linhas recebidas</span>
+            <span><b>${payload.projetos_gravados ?? 0}</b> projetos gravados</span>
+            <span><b>${payload.tarefas_gravadas ?? 0}</b> tarefas gravadas</span>
             <span><b>${payload.linhas_com_erro ?? 0}</b> erros</span>
           </div>
           <small>${escapeHtml(payload.mensagem || "Base atualizada com sucesso.")}</small>
+          ${htmlDiagnosticoImportacao(diagnostico, conferencia, payload)}
         `;
 
-        status.textContent = "Projeto Qualidade atualizado com sucesso.";
+        status.textContent = conferencia.ok
+          ? "Projeto Qualidade atualizado e conferido com a planilha."
+          : "Projeto Qualidade atualizado, mas a conferência encontrou diferença nos totais.";
         input.value = "";
         nome.textContent = "Nenhum arquivo selecionado";
 

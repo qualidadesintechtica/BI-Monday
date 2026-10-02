@@ -789,3 +789,42 @@
   background: #fff;
 }
 .evidence-file-field input[type="file"] { width: 100%; display: block; }
+
+
+/* V25.46.38 · geração direta e estável do relatório em PDF */
+.pdf-export-stage {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  width: 840px;
+  background: #fff;
+  z-index: -1;
+  pointer-events: none;
+}
+.pdf-export-document.report-document {
+  width: 794px !important;
+  max-width: 794px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 44px 48px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+.pdf-export-document .all-source-table-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+}
+.pdf-export-document .all-source-table th {
+  position: static !important;
+}
+.pdf-export-document .report-section,
+.pdf-export-document .report-meta,
+.pdf-export-document .report-task-table tr,
+.pdf-export-document .report-evidence-table tr,
+.pdf-export-document .all-source-data,
+.pdf-export-document .report-footer {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
