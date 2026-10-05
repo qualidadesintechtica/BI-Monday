@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-40-release-tarefas">
+    <link rel="stylesheet" href="css/projetos.css?v=20261005-v25-46-42-evidencias-estruturadas">
   </head>
 
   <body>
@@ -304,6 +304,17 @@
 
     <template id="evidenceTemplate">
       <div class="evidence-row">
+        <div class="evidence-row-head wide">
+          <strong class="evidence-number" data-evidence-number>Evidência 01</strong>
+          <div class="evidence-row-controls">
+            <label class="evidence-include-toggle" title="Define se esta evidência entra no PDF desta versão">
+              <input data-evidence-include type="checkbox" checked>
+              <span>Incluir no relatório</span>
+            </label>
+            <button data-evidence-up class="evidence-order-button" type="button" title="Mover evidência para cima" aria-label="Mover evidência para cima">↑</button>
+            <button data-evidence-down class="evidence-order-button" type="button" title="Mover evidência para baixo" aria-label="Mover evidência para baixo">↓</button>
+          </div>
+        </div>
         <label><span>Título</span><input data-evidence="titulo" type="text" placeholder="Ex.: Apresentação executiva"></label>
         <label><span>Tipo</span><select data-evidence="tipo"><option value="PDF">PDF</option><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
         <label class="wide evidence-file-field">
@@ -314,6 +325,10 @@
             accept=".pdf,.doc,.docx,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg"
           >
           <small class="evidence-file-status">Nenhum arquivo selecionado.</small>
+          <div class="evidence-editor-preview" hidden>
+            <img alt="Prévia da evidência">
+            <small>Miniatura da imagem</small>
+          </div>
         </label>
         <label class="wide"><span>Link externo (opcional)</span><input data-evidence="url" type="url" placeholder="https://…"></label>
         <label class="wide"><span>O que comprova</span><input data-evidence="descricao" type="text" placeholder="Explique brevemente a evidência"></label>
@@ -327,6 +342,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20261002-v25-46-40-release-tarefas"></script>
+    <script src="js/projetos.js?v=20261005-v25-46-42-evidencias-estruturadas"></script>
   </body>
 </html>

@@ -17,6 +17,7 @@
     indicadoresNQAtual: null,
     carregandoIndicadoresNQ: false,
     tratamentoTarefas: new Map(),
+    evidenceUrlCache: new Map(),
   };
 
   const campos = {
@@ -281,6 +282,116 @@
 
   function arquivoPendente(linha) {
     return linha.querySelector("[data-evidence-file]")?.files?.[0] || null;
+  }
+
+  function evidenciaIncluida(item) {
+    return !(item?.incluir_relatorio === false || item?.incluir_relatorio === "false" || item?.incluir_relatorio === 0);
+  }
+
+  function atualizarNumeracaoEvidencias() {
+    const linhas = [...$("evidenceList").querySelectorAll(".evidence-row")];
+    linhas.forEach((linha, indice) => {
+      linha.dataset.ordem = String(indice + 1);
+      const numero = linha.querySelector("[data-evidence-number]");
+      if (numero) numero.textContent = `Evidência ${String(indice + 1).padStart(2, "0")}`;
+      const subir = linha.querySelector("[data-evidence-up]");
+      const descer = linha.querySelector("[data-evidence-down]");
+      if (subir) subir.disabled = indice === 0;
+      if (descer) descer.disabled = indice === linhas.length - 1;
+      linha.classList.toggle("evidence-excluded", !linha.querySelector("[data-evidence-include]")?.checked);
+    });
+  }
+
+  function moverEvidencia(linha, direcao) {
+    const lista = $("evidenceList");
+    if (!linha || !lista) return;
+    if (direcao < 0 && linha.previousElementSibling) {
+      lista.insertBefore(linha, linha.previousElementSibling);
+    } else if (direcao > 0 && linha.nextElementSibling) {
+      lista.insertBefore(linha.nextElementSibling, linha);
+    }
+    atualizarNumeracaoEvidencias();
+    atualizarPreview();
+  }
+
+  function liberarObjectUrlLinha(linha) {
+    const atual = linha?.dataset?.objectUrl;
+    if (atual) URL.revokeObjectURL(atual);
+    if (linha?.dataset) delete linha.dataset.objectUrl;
+  }
+
+  async function urlAssinadaEvidencia(caminho) {
+    const path = texto(caminho);
+    if (!path) return "";
+    const cache = estado.evidenceUrlCache.get(path);
+    if (cache?.url && cache.expira_em > Date.now()) return cache.url;
+    const { data, error } = await window.biSupabase.storage
+      .from(EVIDENCE_BUCKET)
+      .createSignedUrl(path, 300);
+    if (error) throw error;
+    const url = data?.signedUrl || "";
+    if (url) estado.evidenceUrlCache.set(path, { url, expira_em: Date.now() + 240000 });
+    return url;
+  }
+
+  async function carregarMiniaturaLinha(linha) {
+    const box = linha?.querySelector(".evidence-editor-preview");
+    const img = box?.querySelector("img");
+    if (!box || !img) return;
+    liberarObjectUrlLinha(linha);
+    box.hidden = true;
+    img.removeAttribute("src");
+
+    const pendente = arquivoPendente(linha);
+    const tipo = pendente
+      ? tipoPorArquivo(pendente.name, pendente.type)
+      : tipoPorArquivo(linha.dataset.fileName, linha.dataset.mimeType);
+    if (tipo !== "Imagem") return;
+
+    try {
+      let url = "";
+      if (pendente) {
+        url = URL.createObjectURL(pendente);
+        linha.dataset.objectUrl = url;
+      } else if (linha.dataset.storagePath) {
+        url = await urlAssinadaEvidencia(linha.dataset.storagePath);
+      }
+      if (!url) return;
+      img.src = url;
+      box.hidden = false;
+    } catch (error) {
+      console.warn("Miniatura da evidência indisponível:", error);
+    }
+  }
+
+  function esperarImagem(img) {
+    if (!img?.src || img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+      const concluir = () => resolve();
+      img.addEventListener("load", concluir, { once: true });
+      img.addEventListener("error", concluir, { once: true });
+      window.setTimeout(concluir, 5000);
+    });
+  }
+
+  async function hidratarMiniaturasRelatorio(raiz = $("reportDocument")) {
+    if (!raiz) return;
+    const imagens = [...raiz.querySelectorAll("img.report-evidence-image[data-storage-path]")];
+    await Promise.all(imagens.map(async (img) => {
+      try {
+        const caminho = img.dataset.storagePath;
+        if (!caminho) return;
+        if (!img.src || img.dataset.loadedPath !== caminho) {
+          img.src = await urlAssinadaEvidencia(caminho);
+          img.dataset.loadedPath = caminho;
+        }
+        await esperarImagem(img);
+        img.closest(".report-evidence-image-wrap")?.classList.add("loaded");
+      } catch (error) {
+        img.closest(".report-evidence-image-wrap")?.classList.add("failed");
+        console.warn("Miniatura no relatório indisponível:", error);
+      }
+    }));
   }
 
   const NQ_TELAS_AUDITADO_RELATORIO = Object.freeze({
@@ -1126,7 +1237,8 @@
     renderizarSnapshotNQ();
     carregarTratamentoTarefas(edicao);
     $("evidenceList").innerHTML = "";
-    const evidencias = Array.isArray(edicao?.evidencias) ? edicao.evidencias : [];
+    const evidencias = Array.isArray(edicao?.evidencias) ? [...edicao.evidencias] : [];
+    evidencias.sort((a, b) => (Number(a?.ordem) || 9999) - (Number(b?.ordem) || 9999));
     if (!evidencias.length) adicionarEvidencia();
     evidencias.forEach(adicionarEvidencia);
   }
@@ -1138,14 +1250,22 @@
     linha.dataset.fileName = texto(dados.arquivo_nome);
     linha.dataset.mimeType = texto(dados.mime_type);
     linha.dataset.fileSize = texto(dados.tamanho_bytes);
+
     linha.querySelectorAll("[data-evidence]").forEach((entrada) => {
       entrada.value = dados[entrada.dataset.evidence] || "";
       entrada.addEventListener("input", atualizarPreview);
       entrada.addEventListener("change", atualizarPreview);
     });
 
-    // O tipo da evidência segue o arquivo real. Isso corrige versões antigas em
-    // que, por exemplo, um PDF podia ter ficado salvo como "Imagem".
+    const incluir = linha.querySelector("[data-evidence-include]");
+    if (incluir) {
+      incluir.checked = evidenciaIncluida(dados);
+      incluir.addEventListener("change", () => {
+        atualizarNumeracaoEvidencias();
+        atualizarPreview();
+      });
+    }
+
     const tipoSalvo = linha.querySelector('[data-evidence="tipo"]');
     if (tipoSalvo && (linha.dataset.fileName || linha.dataset.mimeType)) {
       tipoSalvo.value = tipoPorArquivo(linha.dataset.fileName, linha.dataset.mimeType);
@@ -1159,6 +1279,7 @@
         "ready",
       );
     }
+
     inputArquivo.addEventListener("change", () => {
       const file = inputArquivo.files?.[0];
       if (!file) {
@@ -1167,6 +1288,7 @@
         } else {
           atualizarStatusArquivo(linha, "Nenhum arquivo selecionado.");
         }
+        void carregarMiniaturaLinha(linha);
         atualizarPreview();
         return;
       }
@@ -1175,6 +1297,7 @@
       if (erro) {
         inputArquivo.value = "";
         atualizarStatusArquivo(linha, erro, "error");
+        void carregarMiniaturaLinha(linha);
         atualizarPreview();
         return;
       }
@@ -1189,23 +1312,34 @@
         `Pronto para enviar: ${file.name} · ${(file.size / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`,
         "ready",
       );
+      void carregarMiniaturaLinha(linha);
       atualizarPreview();
     });
+
+    linha.querySelector("[data-evidence-up]")?.addEventListener("click", () => moverEvidencia(linha, -1));
+    linha.querySelector("[data-evidence-down]")?.addEventListener("click", () => moverEvidencia(linha, 1));
     linha.querySelector(".remove-evidence").addEventListener("click", () => {
+      liberarObjectUrlLinha(linha);
       linha.remove();
       if (!$("evidenceList").children.length) adicionarEvidencia();
+      atualizarNumeracaoEvidencias();
       atualizarPreview();
     });
+
     $("evidenceList").appendChild(fragmento);
+    atualizarNumeracaoEvidencias();
+    void carregarMiniaturaLinha(linha);
   }
 
   function obterEvidencias() {
     return [...$("evidenceList").querySelectorAll(".evidence-row")]
-      .map((linha) => {
+      .map((linha, indice) => {
         const evidencia = {};
         linha.querySelectorAll("[data-evidence]").forEach((entrada) => {
           evidencia[entrada.dataset.evidence] = texto(entrada.value);
         });
+        evidencia.incluir_relatorio = linha.querySelector("[data-evidence-include]")?.checked !== false;
+        evidencia.ordem = indice + 1;
         evidencia.storage_path = texto(linha.dataset.storagePath);
         evidencia.arquivo_nome = texto(linha.dataset.fileName);
         evidencia.mime_type = texto(linha.dataset.mimeType);
@@ -1254,7 +1388,10 @@
       linha.dataset.fileSize = String(file.size);
       input.value = "";
       atualizarStatusArquivo(linha, `Anexado: ${file.name}`, "ready");
+      await carregarMiniaturaLinha(linha);
     }
+    atualizarNumeracaoEvidencias();
+    atualizarPreview();
   }
 
   function obterFormulario() {
@@ -1271,8 +1408,8 @@
     if (!dados.resultados_esperados) faltantes.push("Resultados esperados");
     if (!dados.resultados_alcancados) faltantes.push("Resultados alcançados");
     if (!dados.impacto) faltantes.push("Impacto gerado");
-    if (!dados.evidencias.some((item) => item.titulo && (urlSegura(item.url) || evidenciaComArquivo(item)))) {
-      faltantes.push("Ao menos uma evidência com título e arquivo ou link http(s)");
+    if (!dados.evidencias.some((item) => evidenciaIncluida(item) && item.titulo && (urlSegura(item.url) || evidenciaComArquivo(item)))) {
+      faltantes.push("Ao menos uma evidência incluída no relatório, com título e arquivo ou link http(s)");
     }
     return faltantes;
   }
@@ -1283,7 +1420,7 @@
       ["Resultados esperados", Boolean(dados.resultados_esperados)],
       ["Resultados alcançados", Boolean(dados.resultados_alcancados)],
       ["Impacto gerado", Boolean(dados.impacto)],
-      ["Evidência com título e arquivo ou link", dados.evidencias.some((e) => e.titulo && (urlSegura(e.url) || evidenciaComArquivo(e)))],
+      ["Evidência incluída com título e arquivo ou link", dados.evidencias.some((e) => evidenciaIncluida(e) && e.titulo && (urlSegura(e.url) || evidenciaComArquivo(e)))],
     ];
     $("completionChecklist").innerHTML = itens
       .map(([rotulo, pronto]) => `<li class="${pronto ? "done" : ""}">${escapar(rotulo)}</li>`)
@@ -1341,26 +1478,59 @@
   }
 
   function tabelaEvidencias(evidencias) {
-    const validas = evidencias.filter((item) => item.titulo || item.url || item.descricao || evidenciaComArquivo(item));
-    if (!validas.length) return '<p class="report-empty">Nenhuma evidência registrada.</p>';
-    return `
-      <table class="report-evidence-table">
-        <thead><tr><th>Evidência</th><th>Tipo</th><th>O que comprova</th><th>Link</th></tr></thead>
-        <tbody>${validas.map((item) => {
-          const url = urlSegura(item.url);
-          const acesso = item.storage_path
-            ? `<button type="button" class="evidence-open-file" data-storage-path="${escapar(item.storage_path)}" data-file-name="${escapar(item.arquivo_nome || item.titulo || "arquivo")}">Abrir arquivo</button>`
-            : (url
-              ? `<a href="${escapar(url)}" target="_blank" rel="noopener noreferrer">Abrir evidência</a>`
-              : (item.arquivo_pendente ? "Será enviado ao salvar" : "—"));
-          return `<tr>
-            <td>${escapar(item.titulo || "—")}</td>
-            <td>${escapar(item.tipo || "—")}</td>
-            <td>${escapar(item.descricao || "—")}</td>
-            <td>${acesso}</td>
-          </tr>`;
-        }).join("")}</tbody>
+    const validas = evidencias
+      .filter((item) => evidenciaIncluida(item) && (item.titulo || item.url || item.descricao || evidenciaComArquivo(item)))
+      .sort((a, b) => (Number(a?.ordem) || 9999) - (Number(b?.ordem) || 9999));
+    if (!validas.length) return '<p class="report-empty">Nenhuma evidência selecionada para este relatório.</p>';
+
+    const resumo = `
+      <table class="report-evidence-table report-evidence-summary-table">
+        <thead><tr><th>Evidência</th><th>Tipo</th><th>O que comprova</th></tr></thead>
+        <tbody>${validas.map((item, indice) => `<tr>
+          <td>Evidência ${String(indice + 1).padStart(2, "0")}</td>
+          <td>${escapar(item.tipo || tipoPorArquivo(item.arquivo_nome, item.mime_type) || "—")}</td>
+          <td>${escapar(item.descricao || "—")}</td>
+        </tr>`).join("")}</tbody>
       </table>`;
+
+    const cards = validas.map((item, indice) => {
+      const numero = String(indice + 1).padStart(2, "0");
+      const tipo = item.tipo || tipoPorArquivo(item.arquivo_nome, item.mime_type) || "Outro";
+      const url = urlSegura(item.url);
+      const nomeArquivo = item.arquivo_nome || "";
+      const ehImagem = tipo === "Imagem" || tipoPorArquivo(nomeArquivo, item.mime_type) === "Imagem";
+      const miniatura = ehImagem && item.storage_path
+        ? `<div class="report-evidence-image-wrap">
+             <img class="report-evidence-image" data-storage-path="${escapar(item.storage_path)}" alt="${escapar(item.titulo || `Evidência ${numero}`)}">
+             <span>Carregando miniatura…</span>
+           </div>`
+        : "";
+      const arquivo = item.storage_path
+        ? `<div class="report-evidence-file">
+             <span class="report-evidence-file-icon" aria-hidden="true">${ehImagem ? "▣" : (tipo === "PDF" ? "PDF" : "DOC")}</span>
+             <div><strong>${escapar(nomeArquivo || item.titulo || "Arquivo anexado")}</strong><small>Arquivo protegido · disponível no histórico desta versão no DataHub</small></div>
+             <button type="button" class="evidence-open-file" data-storage-path="${escapar(item.storage_path)}" data-file-name="${escapar(nomeArquivo || item.titulo || "arquivo")}">Abrir arquivo</button>
+           </div>`
+        : "";
+      const link = url
+        ? `<div class="report-evidence-link"><span>Link externo:</span> <a class="report-evidence-external-link" href="${escapar(url)}" target="_blank" rel="noopener noreferrer">${escapar(url)}</a></div>`
+        : "";
+      const pendente = item.arquivo_pendente && !item.storage_path
+        ? '<div class="report-evidence-file pending"><span>Arquivo será enviado ao salvar esta versão.</span></div>'
+        : "";
+      return `
+        <article class="report-evidence-card">
+          <header class="report-evidence-head">
+            <span>Evidência ${numero}</span>
+            <strong>${escapar(item.titulo || "Sem título")}</strong>
+            <em>${escapar(tipo)}</em>
+          </header>
+          <p>${escapar(item.descricao || "Sem descrição informada.")}</p>
+          ${miniatura}${arquivo}${pendente}${link}
+        </article>`;
+    }).join("");
+
+    return `${resumo}<div class="report-evidence-cards">${cards}</div>`;
   }
 
   function atualizarPreview() {
@@ -1419,6 +1589,7 @@
         <span>Gerado em ${escapar(emitidoEm)}</span>
       </footer>`;
 
+    void hidratarMiniaturasRelatorio();
     atualizarChecklist(dados);
   }
 
@@ -1693,6 +1864,7 @@
 
     const origem = $("reportDocument");
     if (!origem) throw new Error("Documento do relatório não localizado.");
+    await hidratarMiniaturasRelatorio(origem);
 
     const suporte = document.createElement("div");
     suporte.className = "pdf-export-stage";
@@ -1714,7 +1886,20 @@
 
     try {
       if (document.fonts?.ready) await document.fonts.ready;
+      await hidratarMiniaturasRelatorio(clone);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const cloneRect = clone.getBoundingClientRect();
+      const linksPdf = [...clone.querySelectorAll("a.report-evidence-external-link[href]")].map((link) => {
+        const rect = link.getBoundingClientRect();
+        return {
+          url: link.href,
+          x: rect.left - cloneRect.left,
+          y: rect.top - cloneRect.top,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
 
       const canvas = await html2canvas(clone, {
         scale: 1.6,
@@ -1753,6 +1938,25 @@
         pagina += 1;
         y += alturaFatia;
       }
+
+      const escalaCanvas = canvas.width / Math.max(1, cloneRect.width);
+      linksPdf.forEach((link) => {
+        const xPx = link.x * escalaCanvas;
+        const yPx = link.y * escalaCanvas;
+        const wPx = link.width * escalaCanvas;
+        const hPx = link.height * escalaCanvas;
+        const paginaLink = Math.floor(yPx / alturaPaginaPx) + 1;
+        const yNaPagina = yPx - ((paginaLink - 1) * alturaPaginaPx);
+        if (paginaLink < 1 || paginaLink > doc.getNumberOfPages()) return;
+        doc.setPage(paginaLink);
+        doc.link(
+          margemX + (xPx / canvas.width) * larguraUtil,
+          margemY + (yNaPagina / canvas.width) * larguraUtil,
+          Math.max(1, (wPx / canvas.width) * larguraUtil),
+          Math.max(1, (hPx / canvas.width) * larguraUtil),
+          { url: link.url },
+        );
+      });
 
       const totalPaginas = doc.getNumberOfPages();
       for (let i = 1; i <= totalPaginas; i += 1) {
