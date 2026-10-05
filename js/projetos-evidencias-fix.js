@@ -209,9 +209,22 @@
       }
 
       const tipo = tipoArquivo(nome);
-      link.href = urlEstavelEvidencia(caminho, nome, tipo);
-      link.textContent = tipo === "PDF" ? "Abrir PDF" : "Abrir evidência";
-      link.title = "Abre a evidência no DataHub com acesso autenticado.";
+      const hrefDesejado = urlEstavelEvidencia(caminho, nome, tipo);
+      const textoDesejado = tipo === "PDF" ? "Abrir PDF" : "Abrir evidência";
+      const tituloDesejado = "Abre a evidência no DataHub com acesso autenticado.";
+
+      // IMPORTANTE: só altera o DOM quando o valor realmente mudou.
+      // A versão anterior reatribuía textContent em toda execução e o
+      // MutationObserver entrava em loop, congelando projetos.html.
+      if (link.getAttribute("href") !== hrefDesejado) {
+        link.setAttribute("href", hrefDesejado);
+      }
+      if (link.textContent !== textoDesejado) {
+        link.textContent = textoDesejado;
+      }
+      if (link.getAttribute("title") !== tituloDesejado) {
+        link.setAttribute("title", tituloDesejado);
+      }
     });
   }
 
@@ -342,15 +355,32 @@
   }
 
   function observarAtualizacoes() {
+    let relatorioAgendado = false;
+    let historicoAgendado = false;
+
     const relatorio = document.getElementById("reportDocument");
     if (relatorio) {
-      const observerRelatorio = new MutationObserver(() => reforcarLinksRelatorio());
+      const observerRelatorio = new MutationObserver(() => {
+        if (relatorioAgendado) return;
+        relatorioAgendado = true;
+        window.requestAnimationFrame(() => {
+          relatorioAgendado = false;
+          reforcarLinksRelatorio();
+        });
+      });
       observerRelatorio.observe(relatorio, { childList: true, subtree: true });
     }
 
     const history = document.getElementById("historyList");
     if (history) {
-      const observerHistory = new MutationObserver(() => reforcarHistorico());
+      const observerHistory = new MutationObserver(() => {
+        if (historicoAgendado) return;
+        historicoAgendado = true;
+        window.requestAnimationFrame(() => {
+          historicoAgendado = false;
+          reforcarHistorico();
+        });
+      });
       observerHistory.observe(history, { childList: true, subtree: true });
     }
 
