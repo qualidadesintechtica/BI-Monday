@@ -202,6 +202,28 @@
     }).format(new Date(valor));
   }
 
+  function statusEdicaoNormalizado(valor) {
+    const n = normalizar(valor).replace(/[\s-]+/g, "_");
+    if (n === "em_revisao" || n === "revisao") return "em_revisao";
+    if (n === "finalizada" || n === "finalizado") return "finalizada";
+    return "rascunho";
+  }
+
+  function rotuloStatusEdicao(valor) {
+    const status = statusEdicaoNormalizado(valor);
+    if (status === "em_revisao") return "Em revisão";
+    if (status === "finalizada") return "Finalizado";
+    return "Rascunho";
+  }
+
+  function edicaoEmRevisao(edicao) {
+    return statusEdicaoNormalizado(edicao?.status_edicao) === "em_revisao";
+  }
+
+  function edicaoFinalizada(edicao) {
+    return statusEdicaoNormalizado(edicao?.status_edicao) === "finalizada";
+  }
+
   function linhasOriginaisDoProjeto(projeto) {
     const nome = normalizar(projeto?.nome);
     const azureId = texto(projeto?.azure_id);
@@ -817,6 +839,14 @@
     return true;
   }
 
+  async function validarInstalacaoWorkflowRelease() {
+    const { data, error } = await window.biSupabase.rpc("pq_release_workflow_disponivel");
+    if (error || !data?.ok) {
+      throw new Error("O fluxo de aprovação do release ainda não foi instalado. Execute docs/08_FLUXO_APROVACAO_RELEASE_V25_46_43.sql no Supabase antes de continuar.");
+    }
+    return true;
+  }
+
   async function aplicarAtualizacoesTarefasNaBase(edicaoId, decisoes) {
     const atualizar = decisoes.filter((item) => item.acao === "finalizar_base" && item.tarefa_id != null);
     if (!atualizar.length) return { atualizadas: 0, avisos: [] };
@@ -866,6 +896,9 @@
     }
     if (/pq_release_tarefas_disponivel|pq_salvar_tarefas_release|pq_aplicar_status_tarefa/i.test(bruto)) {
       return "O tratamento de tarefas do release ainda não está disponível no Supabase. Execute docs/06_TAREFAS_RELEASE_V25_46_40.sql e recarregue a página.";
+    }
+    if (/pq_release_workflow_disponivel|pq_salvar_edicao_workflow|pq_enviar_edicao_revisao|pq_finalizar_edicao/i.test(bruto)) {
+      return "O fluxo Rascunho → Em revisão → Finalizado ainda não está disponível no Supabase. Execute docs/08_FLUXO_APROVACAO_RELEASE_V25_46_43.sql e recarregue a página.";
     }
     if (/pq_salvar_edicao|PGRST202|schema cache/i.test(bruto)) {
       return `O editor está instalado, mas a função de salvamento não foi reconhecida pela API do Supabase. Detalhe: ${bruto}`;
@@ -1114,8 +1147,16 @@
 
     const ultima = edicoesAtuais()[0];
     if (ultima) {
-      carregarCampos(ultima);
-      $("editionBadge").textContent = `Baseada na versão ${ultima.versao}`;
+      const statusUltima = statusEdicaoNormalizado(ultima.status_edicao);
+      if (statusUltima === "em_revisao" || statusUltima === "finalizada") {
+        estado.edicaoVisualizada = ultima;
+        estado.origemPreview = ultima.dados_origem || null;
+        carregarCampos(ultima);
+        $("editionBadge").textContent = `Versão ${ultima.versao} · ${rotuloStatusEdicao(ultima.status_edicao)}`;
+      } else {
+        carregarCampos(ultima);
+        $("editionBadge").textContent = `Baseada na versão ${ultima.versao}`;
+      }
     } else {
       limparCampos();
       $("contextField").value = projeto.contexto_objetivo_original || "";
@@ -1124,7 +1165,10 @@
       $("impactField").value = projeto.impacto_original || "";
       $("editionBadge").textContent = "Primeira versão";
     }
+    renderizarOrigem();
+    renderizarHistorico();
     atualizarPreview();
+    atualizarControlesWorkflow();
     filtrarProjetos();
     $("editorWorkspace").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -1549,7 +1593,7 @@
     const proximaVersao = edicoes.length ? Math.max(...edicoes.map((e) => e.versao)) + 1 : 1;
     const edicao = estado.edicaoVisualizada;
     const versao = edicao
-      ? `Versão ${edicao.versao} · ${edicao.status_edicao}`
+      ? `Versão ${edicao.versao} · ${rotuloStatusEdicao(edicao.status_edicao)}`
       : `Prévia da próxima versão ${proximaVersao}`;
     const autor = edicao?.criado_por_email || estado.usuario?.email || "—";
     const emitidoEm = edicao?.criado_em ? formatarDataHora(edicao.criado_em) : formatarDataHora(new Date());
@@ -1561,7 +1605,7 @@
         <p class="report-subtitle">Relatório executivo de projeto</p>
         <span class="report-version">${escapar(versao)}</span>
       </header>
-      ${faltantes.length ? `<div class="report-draft-warning">Rascunho · faltam: ${escapar(faltantes.join(", "))}.</div>` : ""}
+      ${faltantes.length ? `<div class="report-draft-warning">${escapar(edicao ? rotuloStatusEdicao(edicao.status_edicao) : "Rascunho")} · faltam: ${escapar(faltantes.join(", "))}.</div>` : ""}
       <div class="report-meta-grid">
         ${metadadoRelatorio("ID Ajure", projeto.azure_id)}
         ${metadadoRelatorio("Tipo", projeto.work_item_type)}
@@ -1603,25 +1647,46 @@
       $("historyList").innerHTML = '<p class="empty-copy">Ainda não existem versões salvas.</p>';
       return;
     }
-    $("historyList").innerHTML = edicoes.map((edicao) => `
-      <article class="history-item ${estado.edicaoVisualizada?.id === edicao.id ? "active" : ""}" data-edition-id="${escapar(edicao.id)}">
+
+    $("historyList").innerHTML = edicoes.map((edicao) => {
+      const status = statusEdicaoNormalizado(edicao.status_edicao);
+      const rotulo = rotuloStatusEdicao(status);
+      const workflow = status === "rascunho"
+        ? '<button type="button" data-action="review">Enviar para revisão</button>'
+        : (status === "em_revisao"
+          ? '<button type="button" class="history-primary" data-action="finalize">Aprovar</button>'
+          : '');
+      const detalheWorkflow = status === "em_revisao" && edicao.enviado_revisao_em
+        ? `<small class="history-workflow-meta">Enviado por ${escapar(edicao.enviado_revisao_por_email || "—")} · ${escapar(formatarDataHora(edicao.enviado_revisao_em))}</small>`
+        : (status === "finalizada" && edicao.finalizado_em
+          ? `<small class="history-workflow-meta">Finalizado por ${escapar(edicao.finalizado_por_email || "—")} · ${escapar(formatarDataHora(edicao.finalizado_em))}</small>`
+          : '');
+
+      return `
+      <article class="history-item ${estado.edicaoVisualizada && mesmoId(estado.edicaoVisualizada.id, edicao.id) ? "active" : ""}" data-edition-id="${escapar(edicao.id)}">
         <div class="history-item-head">
           <strong>Versão ${escapar(edicao.versao)}</strong>
-          <span class="history-status ${escapar(edicao.status_edicao)}">${escapar(edicao.status_edicao)}</span>
+          <span class="history-status ${escapar(status)}">${escapar(rotulo)}</span>
         </div>
         ${nqSnapshotValido(edicao.indicadores_nq) ? '<small class="history-nq-badge">Snapshot NQ incluído</small>' : ''}
         ${Array.isArray(edicao.tarefas_release) && edicao.tarefas_release.some((t) => t.acao && t.acao !== "manter") ? `<small class="history-release-badge">${edicao.tarefas_release.filter((t) => t.acao && t.acao !== "manter").length} tarefa(s) tratada(s) no release</small>` : ''}
+        ${detalheWorkflow}
         <p>${escapar(formatarDataHora(edicao.criado_em))}<br>${escapar(edicao.criado_por_email)}</p>
         <div class="history-actions">
           <button type="button" data-action="view">Ver versão</button>
           <button type="button" data-action="base">Usar como base</button>
+          ${workflow}
         </div>
-      </article>`).join("");
+      </article>`;
+    }).join("");
 
     $("historyList").querySelectorAll(".history-item").forEach((item) => {
-      const edicao = estado.edicoes.find((e) => e.id === item.dataset.editionId);
-      item.querySelector('[data-action="view"]').addEventListener("click", () => visualizarEdicao(edicao));
-      item.querySelector('[data-action="base"]').addEventListener("click", () => usarComoBase(edicao));
+      const edicao = estado.edicoes.find((e) => mesmoId(e.id, item.dataset.editionId));
+      if (!edicao) return;
+      item.querySelector('[data-action="view"]')?.addEventListener("click", () => visualizarEdicao(edicao));
+      item.querySelector('[data-action="base"]')?.addEventListener("click", () => usarComoBase(edicao));
+      item.querySelector('[data-action="review"]')?.addEventListener("click", () => void enviarEdicaoParaRevisao(edicao));
+      item.querySelector('[data-action="finalize"]')?.addEventListener("click", () => void finalizarEdicaoEmRevisao(edicao));
     });
   }
 
@@ -1629,11 +1694,12 @@
     estado.edicaoVisualizada = edicao;
     estado.origemPreview = edicao.dados_origem || null;
     carregarCampos(edicao);
-    $("editionBadge").textContent = `Visualizando versão ${edicao.versao} · salvar criará outra`;
+    $("editionBadge").textContent = `Versão ${edicao.versao} · ${rotuloStatusEdicao(edicao.status_edicao)}`;
     renderizarOrigem();
     renderizarHistorico();
     atualizarPreview();
-    mostrarFeedback(`Versão ${edicao.versao} aberta. O registro original continua protegido.`, "success");
+    atualizarControlesWorkflow();
+    mostrarFeedback(`Versão ${edicao.versao} aberta em modo protegido. O registro original não é sobrescrito.`, "success");
   }
 
   function usarComoBase(edicao) {
@@ -1644,14 +1710,73 @@
     renderizarOrigem();
     renderizarHistorico();
     atualizarPreview();
+    atualizarControlesWorkflow();
     mostrarFeedback(`Conteúdo da versão ${edicao.versao} carregado como base. Ao salvar, uma nova versão será criada.`, "success");
+  }
+
+  function definirEditorBloqueado(bloqueado) {
+    const seletores = [
+      "#reportForm input",
+      "#reportForm textarea",
+      "#reportForm select",
+      "#evidenceList button",
+      "#addEvidenceButton",
+      "#attachEvidenceButton",
+      "#loadNqIndicatorsButton",
+    ];
+    document.querySelectorAll(seletores.join(",")).forEach((el) => {
+      el.disabled = Boolean(bloqueado);
+    });
+    document.querySelector(".edit-panel")?.classList.toggle("workflow-locked", Boolean(bloqueado));
+  }
+
+  function atualizarControlesWorkflow() {
+    const edicao = estado.edicaoVisualizada;
+    const status = edicao ? statusEdicaoNormalizado(edicao.status_edicao) : "edicao";
+    const visualizandoSnapshot = Boolean(edicao);
+    const bloquearEditor = visualizandoSnapshot || estado.salvando;
+
+    definirEditorBloqueado(bloquearEditor);
+
+    const salvar = $("saveDraftButton");
+    const revisar = $("reviewButton");
+    const finalizar = $("finalizeButton");
+    const visualizarPdf = $("printDraftButton");
+
+    salvar.disabled = estado.salvando || visualizandoSnapshot;
+    revisar.disabled = estado.salvando || (visualizandoSnapshot && status !== "rascunho");
+    finalizar.disabled = estado.salvando || !visualizandoSnapshot || status !== "em_revisao";
+    if (visualizarPdf) visualizarPdf.disabled = estado.salvando;
+
+    salvar.textContent = estado.salvando ? "Processando…" : "Salvar rascunho";
+    revisar.textContent = estado.salvando
+      ? "Processando…"
+      : (visualizandoSnapshot && status === "rascunho" ? "Enviar rascunho para revisão" : "Enviar para revisão");
+    finalizar.textContent = estado.salvando ? "Processando…" : "Aprovar e gerar PDF";
+
+    const badge = $("editionBadge");
+    badge.classList.remove("workflow-rascunho", "workflow-em-revisao", "workflow-finalizada");
+    if (visualizandoSnapshot) badge.classList.add(`workflow-${status.replace("_", "-")}`);
+
+    const checklistTitle = $("checklistTitle");
+    const checklistHelp = $("checklistHelp");
+    if (status === "em_revisao") {
+      checklistTitle.textContent = "Pronto para aprovar?";
+      checklistHelp.textContent = "Esta versão está em revisão e o conteúdo está bloqueado. Aprove para finalizar ou use-a como base para criar uma nova versão com ajustes.";
+    } else if (status === "finalizada") {
+      checklistTitle.textContent = "Versão finalizada";
+      checklistHelp.textContent = "Esta versão está protegida contra alterações. Para evoluir o relatório, use “Usar como base” no histórico.";
+    } else {
+      checklistTitle.textContent = "Pronto para revisão?";
+      checklistHelp.textContent = visualizandoSnapshot
+        ? "Este rascunho salvo está protegido. Envie-o para revisão ou use-o como base para continuar editando."
+        : "O rascunho pode ser salvo incompleto. Para enviar à revisão, complete os itens essenciais.";
+    }
   }
 
   function definirSalvando(ativo) {
     estado.salvando = ativo;
-    ["saveDraftButton", "finalizeButton"].forEach((id) => { $(id).disabled = ativo; });
-    $("saveDraftButton").textContent = ativo ? "Salvando…" : "Salvar nova versão";
-    $("finalizeButton").textContent = ativo ? "Salvando…" : "Finalizar versão e gerar PDF";
+    atualizarControlesWorkflow();
   }
 
   async function abrirArquivoArmazenado(caminho, nome) {
@@ -1675,53 +1800,89 @@
     }
   }
 
-  async function salvar(finalizar) {
+  function substituirEdicaoNoEstado(edicao) {
+    const indice = estado.edicoes.findIndex((item) => mesmoId(item.id, edicao?.id));
+    if (indice >= 0) estado.edicoes[indice] = edicao;
+    else estado.edicoes.unshift(edicao);
+  }
+
+  async function persistirComplementosEdicao(edicaoId, dados) {
+    let avisoIndicadoresNQ = "";
+    if (nqSnapshotValido(estado.indicadoresNQAtual)) {
+      const { error: indicadoresError } = await window.biSupabase.rpc("pq_salvar_indicadores_nq", {
+        p_edicao_id: edicaoId,
+        p_indicadores: estado.indicadoresNQAtual,
+      });
+      if (indicadoresError) {
+        console.error("Snapshot NQ não persistido:", indicadoresError);
+        avisoIndicadoresNQ = " A versão foi salva, mas o snapshot do NQ não foi gravado. Execute docs/05_INDICADORES_NQ_RELATORIO_V25_46_39.sql no Supabase.";
+      }
+    }
+
+    let avisoTarefasRelease = "";
+    if (dados.tarefas_release.length) {
+      const tarefasPersistir = dados.tarefas_release.map((item) => ({
+        ...item,
+        decidido_em: new Date().toISOString(),
+        decidido_por: estado.usuario?.email || null,
+      }));
+      const { error: tarefasError } = await window.biSupabase.rpc("pq_salvar_tarefas_release", {
+        p_edicao_id: edicaoId,
+        p_tarefas: tarefasPersistir,
+      });
+      if (tarefasError) {
+        console.error("Tratamento das tarefas não persistido:", tarefasError);
+        avisoTarefasRelease = " O tratamento das tarefas não foi gravado; nenhuma tarefa da base será alterada.";
+      }
+    }
+
+    return { avisoIndicadoresNQ, avisoTarefasRelease };
+  }
+
+  async function salvarNovaVersao(statusDestino = "rascunho") {
     if (!estado.projetoId || estado.salvando) return;
+    const status = statusEdicaoNormalizado(statusDestino);
+    const enviarRevisao = status === "em_revisao";
     let dados = obterFormulario();
     let faltantes = validarFinalizacao(dados);
-    const resumoRelease = resumoTratamentoTarefas(dados.tarefas_release);
 
-    if (finalizar && faltantes.length) {
-      mostrarFeedback(`Complete antes de finalizar: ${faltantes.join("; ")}.`, "warning");
+    if (enviarRevisao && faltantes.length) {
+      mostrarFeedback(`Complete antes de enviar para revisão: ${faltantes.join("; ")}.`, "warning");
       $("completionChecklist").scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     try {
-      // Faz a checagem ANTES de criar uma versão. Assim, se o SQL V25.46.40
-      // ainda não tiver sido instalado, nenhuma versão parcial é gravada.
+      await validarInstalacaoWorkflowRelease();
       if (dados.tarefas_release.length) await validarInstalacaoReleaseTarefas();
     } catch (error) {
       mostrarFeedback(mensagemErro(error), "error");
-      $("releaseTaskList")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    if (finalizar) {
+    if (enviarRevisao) {
+      const resumoRelease = resumoTratamentoTarefas(dados.tarefas_release);
       const partes = [
-        "Finalizar esta versão? Ela ficará registrada no histórico e não poderá ser sobrescrita.",
-        `${resumoRelease.finalizarRelease} tarefa(s) serão consideradas finalizadas neste release.`,
+        "Enviar esta versão para revisão?",
+        "O conteúdo ficará protegido enquanto estiver em revisão.",
+        `${resumoRelease.finalizarRelease} tarefa(s) serão consideradas finalizadas neste release se a revisão for aprovada.`,
+        "Se forem necessários ajustes, use esta versão como base para criar uma nova.",
       ];
-      if (resumoRelease.atualizarBase) {
-        partes.push(`${resumoRelease.atualizarBase} tarefa(s) também terão o status atual atualizado no Projeto Qualidade.`);
-      } else {
-        partes.push("O status atual das tarefas no Projeto Qualidade não será alterado.");
-      }
-      partes.push("O status do projeto não será alterado.");
       if (!window.confirm(partes.join("\n\n"))) return;
     }
 
     definirSalvando(true);
-    mostrarFeedback(finalizar ? "Finalizando a versão…" : "Salvando uma nova versão…");
+    mostrarFeedback(enviarRevisao ? "Preparando versão para revisão…" : "Salvando rascunho…");
+
     try {
       await enviarArquivosPendentes();
       dados = obterFormulario();
       faltantes = validarFinalizacao(dados);
-      if (finalizar && faltantes.length) {
-        throw new Error(`Complete antes de finalizar: ${faltantes.join("; ")}.`);
+      if (enviarRevisao && faltantes.length) {
+        throw new Error(`Complete antes de enviar para revisão: ${faltantes.join("; ")}.`);
       }
 
-      const { data, error } = await window.biSupabase.rpc("pq_salvar_edicao", {
+      const { data, error } = await window.biSupabase.rpc("pq_salvar_edicao_workflow", {
         p_projeto_id: estado.projetoId,
         p_contexto_objetivo: dados.contexto_objetivo || null,
         p_resultados_esperados: dados.resultados_esperados || null,
@@ -1730,46 +1891,11 @@
         p_impacto: dados.impacto || null,
         p_observacoes: dados.observacoes || null,
         p_evidencias: dados.evidencias.map(({ arquivo_pendente, ...evidencia }) => evidencia),
-        p_finalizar: finalizar,
+        p_status_edicao: enviarRevisao ? "em_revisao" : "rascunho",
       });
       if (error) throw error;
 
-      let avisoIndicadoresNQ = "";
-      if (nqSnapshotValido(estado.indicadoresNQAtual)) {
-        const { error: indicadoresError } = await window.biSupabase.rpc("pq_salvar_indicadores_nq", {
-          p_edicao_id: data.id,
-          p_indicadores: estado.indicadoresNQAtual,
-        });
-        if (indicadoresError) {
-          console.error("Snapshot NQ não persistido:", indicadoresError);
-          avisoIndicadoresNQ = " A versão foi salva, mas o snapshot do NQ não foi gravado. Execute docs/05_INDICADORES_NQ_RELATORIO_V25_46_39.sql no Supabase.";
-        }
-      }
-
-      let avisoTarefasRelease = "";
-      if (dados.tarefas_release.length) {
-        const tarefasPersistir = dados.tarefas_release.map((item) => ({
-          ...item,
-          decidido_em: new Date().toISOString(),
-          decidido_por: estado.usuario?.email || null,
-        }));
-        const { error: tarefasError } = await window.biSupabase.rpc("pq_salvar_tarefas_release", {
-          p_edicao_id: data.id,
-          p_tarefas: tarefasPersistir,
-        });
-        if (tarefasError) {
-          console.error("Tratamento das tarefas não persistido:", tarefasError);
-          avisoTarefasRelease = " O tratamento das tarefas não foi gravado; nenhuma tarefa da base foi alterada.";
-        }
-      }
-
-      let resultadoAtualizacao = { atualizadas: 0, avisos: [] };
-      if (finalizar && !avisoTarefasRelease) {
-        resultadoAtualizacao = await aplicarAtualizacoesTarefasNaBase(data.id, dados.tarefas_release);
-        if (resultadoAtualizacao.avisos.length) {
-          avisoTarefasRelease += ` ${resultadoAtualizacao.avisos.length} tarefa(s) não puderam ser atualizadas na base; o release foi preservado.`;
-        }
-      }
+      const avisos = await persistirComplementosEdicao(data.id, dados);
 
       const { data: edicao, error: edicaoError } = await window.biSupabase
         .from("pq_projetos_edicoes")
@@ -1778,35 +1904,27 @@
         .single();
       if (edicaoError) throw edicaoError;
 
-      estado.edicoes.unshift(edicao);
+      substituirEdicaoNoEstado(edicao);
       estado.edicaoVisualizada = edicao;
-      estado.origemPreview = edicao.dados_origem;
-      $("editionBadge").textContent = `Versão ${edicao.versao} · ${edicao.status_edicao}`;
+      estado.origemPreview = edicao.dados_origem || null;
+      carregarCampos(edicao);
+      $("editionBadge").textContent = `Versão ${edicao.versao} · ${rotuloStatusEdicao(edicao.status_edicao)}`;
       renderizarOrigem();
       renderizarHistorico();
       atualizarPreview();
+      atualizarControlesWorkflow();
       filtrarProjetos();
-      if (finalizar) {
-        try {
-          await gerarPdfRelatorio("download");
-          const resumoBase = resultadoAtualizacao.atualizadas
-            ? ` ${resultadoAtualizacao.atualizadas} tarefa(s) também atualizada(s) no Projeto Qualidade.`
-            : "";
-          mostrarFeedback(
-            `Versão ${edicao.versao} finalizada e PDF gerado.${resumoBase} O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.${avisoIndicadoresNQ}${avisoTarefasRelease}`,
-            avisoTarefasRelease ? "warning" : "success",
-          );
-        } catch (pdfError) {
-          console.error("PDF do Projeto Qualidade:", pdfError);
-          mostrarFeedback(
-            `Versão ${edicao.versao} finalizada com sucesso, mas o PDF não pôde ser gerado: ${mensagemErro(pdfError)}${avisoIndicadoresNQ}${avisoTarefasRelease}`,
-            "warning",
-          );
-        }
+
+      const alertas = `${avisos.avisoIndicadoresNQ}${avisos.avisoTarefasRelease}`;
+      if (enviarRevisao) {
+        mostrarFeedback(
+          `Versão ${edicao.versao} enviada para revisão. O conteúdo está protegido até a aprovação ou criação de uma nova versão para ajustes.${alertas}`,
+          alertas ? "warning" : "success",
+        );
       } else {
         mostrarFeedback(
-          `Versão ${edicao.versao} salva como rascunho com sucesso.${avisoIndicadoresNQ}${avisoTarefasRelease}`,
-          (avisoIndicadoresNQ || avisoTarefasRelease) ? "warning" : "success",
+          `Versão ${edicao.versao} salva como rascunho.${alertas}`,
+          alertas ? "warning" : "success",
         );
       }
     } catch (error) {
@@ -1814,6 +1932,178 @@
     } finally {
       definirSalvando(false);
     }
+  }
+
+  async function enviarEdicaoParaRevisao(edicao) {
+    if (!edicao || estado.salvando) return;
+    if (statusEdicaoNormalizado(edicao.status_edicao) !== "rascunho") {
+      mostrarFeedback("Somente versões em rascunho podem ser enviadas para revisão.", "warning");
+      return;
+    }
+
+    if (!estado.edicaoVisualizada || !mesmoId(estado.edicaoVisualizada.id, edicao.id)) {
+      visualizarEdicao(edicao);
+    }
+
+    const dados = obterFormulario();
+    const faltantes = validarFinalizacao(dados);
+    if (faltantes.length) {
+      mostrarFeedback(`Complete antes de enviar para revisão: ${faltantes.join("; ")}. Use “Usar como base” para ajustar esta versão.`, "warning");
+      $("completionChecklist").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    try {
+      await validarInstalacaoWorkflowRelease();
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+      return;
+    }
+
+    if (!window.confirm(`Enviar a versão ${edicao.versao} para revisão?\n\nO conteúdo desta fotografia continuará protegido.`)) return;
+
+    definirSalvando(true);
+    mostrarFeedback(`Enviando a versão ${edicao.versao} para revisão…`);
+    try {
+      const { data, error } = await window.biSupabase.rpc("pq_enviar_edicao_revisao", {
+        p_edicao_id: edicao.id,
+      });
+      if (error) throw error;
+
+      const atualizada = data;
+      substituirEdicaoNoEstado(atualizada);
+      estado.edicaoVisualizada = atualizada;
+      estado.origemPreview = atualizada.dados_origem || null;
+      carregarCampos(atualizada);
+      $("editionBadge").textContent = `Versão ${atualizada.versao} · ${rotuloStatusEdicao(atualizada.status_edicao)}`;
+      renderizarOrigem();
+      renderizarHistorico();
+      atualizarPreview();
+      atualizarControlesWorkflow();
+      mostrarFeedback(`Versão ${atualizada.versao} enviada para revisão com sucesso.`, "success");
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+    } finally {
+      definirSalvando(false);
+    }
+  }
+
+  async function finalizarEdicaoEmRevisao(edicao) {
+    if (!edicao || estado.salvando) return;
+    if (!edicaoEmRevisao(edicao)) {
+      mostrarFeedback("Somente versões em revisão podem ser finalizadas.", "warning");
+      return;
+    }
+
+    if (!estado.edicaoVisualizada || !mesmoId(estado.edicaoVisualizada.id, edicao.id)) {
+      visualizarEdicao(edicao);
+    }
+
+    const dados = obterFormulario();
+    const faltantes = validarFinalizacao(dados);
+    if (faltantes.length) {
+      mostrarFeedback(`Esta versão não pode ser finalizada: ${faltantes.join("; ")}. Crie uma nova versão para corrigir o conteúdo.`, "warning");
+      return;
+    }
+
+    const resumoRelease = resumoTratamentoTarefas(
+      Array.isArray(edicao.tarefas_release) ? edicao.tarefas_release : dados.tarefas_release,
+    );
+
+    try {
+      await validarInstalacaoWorkflowRelease();
+      if (Array.isArray(edicao.tarefas_release) && edicao.tarefas_release.length) {
+        await validarInstalacaoReleaseTarefas();
+      }
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+      return;
+    }
+
+    const partes = [
+      `Aprovar e finalizar a versão ${edicao.versao}?`,
+      "Depois de finalizada, esta versão permanecerá bloqueada e preservada no histórico.",
+      `${resumoRelease.finalizarRelease} tarefa(s) serão consideradas finalizadas neste release.`,
+    ];
+    if (resumoRelease.atualizarBase) {
+      partes.push(`${resumoRelease.atualizarBase} tarefa(s) também terão o status atual atualizado no Projeto Qualidade.`);
+    } else {
+      partes.push("O status atual das tarefas no Projeto Qualidade não será alterado.");
+    }
+    partes.push("O status geral do projeto não será alterado.");
+    if (!window.confirm(partes.join("\n\n"))) return;
+
+    definirSalvando(true);
+    mostrarFeedback(`Finalizando a versão ${edicao.versao}…`);
+
+    try {
+      const { data, error } = await window.biSupabase.rpc("pq_finalizar_edicao", {
+        p_edicao_id: edicao.id,
+      });
+      if (error) throw error;
+
+      const atualizada = data;
+      substituirEdicaoNoEstado(atualizada);
+      estado.edicaoVisualizada = atualizada;
+      estado.origemPreview = atualizada.dados_origem || null;
+      carregarCampos(atualizada);
+
+      const decisoes = Array.isArray(atualizada.tarefas_release) ? atualizada.tarefas_release : [];
+      const resultadoAtualizacao = await aplicarAtualizacoesTarefasNaBase(atualizada.id, decisoes);
+      const avisoTarefas = resultadoAtualizacao.avisos.length
+        ? ` ${resultadoAtualizacao.avisos.length} tarefa(s) não puderam ser atualizadas na base; o release finalizado foi preservado.`
+        : "";
+
+      $("editionBadge").textContent = `Versão ${atualizada.versao} · ${rotuloStatusEdicao(atualizada.status_edicao)}`;
+      renderizarOrigem();
+      renderizarHistorico();
+      atualizarPreview();
+      atualizarControlesWorkflow();
+      filtrarProjetos();
+
+      try {
+        await gerarPdfRelatorio("download");
+        const resumoBase = resultadoAtualizacao.atualizadas
+          ? ` ${resultadoAtualizacao.atualizadas} tarefa(s) também atualizada(s) no Projeto Qualidade.`
+          : "";
+        mostrarFeedback(
+          `Versão ${atualizada.versao} aprovada, finalizada e PDF gerado.${resumoBase}${avisoTarefas}`,
+          avisoTarefas ? "warning" : "success",
+        );
+      } catch (pdfError) {
+        console.error("PDF do Projeto Qualidade:", pdfError);
+        mostrarFeedback(
+          `Versão ${atualizada.versao} finalizada, mas o PDF não pôde ser gerado: ${mensagemErro(pdfError)}${avisoTarefas}`,
+          "warning",
+        );
+      }
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+    } finally {
+      definirSalvando(false);
+    }
+  }
+
+  function acaoEnviarRevisao() {
+    const edicao = estado.edicaoVisualizada;
+    if (edicao && statusEdicaoNormalizado(edicao.status_edicao) === "rascunho") {
+      void enviarEdicaoParaRevisao(edicao);
+      return;
+    }
+    if (!edicao) {
+      void salvarNovaVersao("em_revisao");
+      return;
+    }
+    mostrarFeedback("Esta versão não está disponível para envio à revisão.", "warning");
+  }
+
+  function acaoFinalizarRevisao() {
+    const edicao = estado.edicaoVisualizada;
+    if (!edicao || !edicaoEmRevisao(edicao)) {
+      mostrarFeedback("Abra uma versão com status Em revisão para aprová-la e finalizar.", "warning");
+      return;
+    }
+    void finalizarEdicaoEmRevisao(edicao);
   }
 
   function nomeArquivoPdf() {
@@ -2040,8 +2330,9 @@
       window.setTimeout(() => inputArquivo?.click(), 350);
     });
     Object.values(campos).forEach((id) => $(id).addEventListener("input", atualizarPreview));
-    $("saveDraftButton").addEventListener("click", () => salvar(false));
-    $("finalizeButton").addEventListener("click", () => salvar(true));
+    $("saveDraftButton").addEventListener("click", () => salvarNovaVersao("rascunho"));
+    $("reviewButton").addEventListener("click", acaoEnviarRevisao);
+    $("finalizeButton").addEventListener("click", acaoFinalizarRevisao);
     $("printDraftButton").addEventListener("click", () => gerarPdfRelatorio("preview").catch((e) => mostrarFeedback(mensagemErro(e), "warning")));
     $("reportDocument").addEventListener("click", (evento) => {
       const botao = evento.target.closest(".evidence-open-file");

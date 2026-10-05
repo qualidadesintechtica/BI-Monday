@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20261005-v25-46-42-evidencias-estruturadas">
+    <link rel="stylesheet" href="css/projetos.css?v=20261005-v25-46-43-fluxo-aprovacao-release">
   </head>
 
   <body>
@@ -170,8 +170,9 @@
               <div class="toolbar-actions">
                 <button id="attachEvidenceButton" class="secondary-action attachment-action" type="button">Anexar arquivo</button>
                 <button id="printDraftButton" class="secondary-action" type="button">Visualizar PDF</button>
-                <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar nova versão</button>
-                <button id="finalizeButton" class="primary-action" type="button">Finalizar versão e gerar PDF</button>
+                <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar rascunho</button>
+                <button id="reviewButton" class="review-action" type="button">Enviar para revisão</button>
+                <button id="finalizeButton" class="primary-action" type="button" disabled>Aprovar e gerar PDF</button>
               </div>
             </div>
 
@@ -274,14 +275,14 @@
                       <h3 id="historyTitle">Histórico de versões</h3>
                     </div>
                   </div>
-                  <p class="history-help">Abrir uma versão carrega a fotografia original e o texto daquele salvamento. “Usar como base” cria uma nova versão.</p>
+                  <p class="history-help">Fluxo: Rascunho → Em revisão → Finalizado. Abrir preserva a fotografia registrada; “Usar como base” cria uma nova versão para ajustes.</p>
                   <div id="historyList" class="history-list"></div>
                 </section>
 
                 <section class="panel checklist-panel" aria-labelledby="checklistTitle">
-                  <h3 id="checklistTitle">Pronto para finalizar?</h3>
+                  <h3 id="checklistTitle">Pronto para revisão?</h3>
                   <ul id="completionChecklist"></ul>
-                  <p>O rascunho pode ser salvo incompleto. A versão final exige todos os itens essenciais.</p>
+                  <p id="checklistHelp">O rascunho pode ser salvo incompleto. Para enviar à revisão, complete os itens essenciais.</p>
                 </section>
               </aside>
             </div>
@@ -342,6 +343,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20261005-v25-46-42-evidencias-estruturadas"></script>
+    <script src="js/projetos.js?v=20261005-v25-46-43-fluxo-aprovacao-release"></script>
   </body>
 </html>
