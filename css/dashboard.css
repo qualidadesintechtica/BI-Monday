@@ -2335,3 +2335,24 @@
 .pq-import-audit-warning { background:#fff7e9; color:#7c4f00; border:1px solid #f0d69c; }
 .pq-import-audit-errors { margin-top:10px; font-size:12px; }
 .pq-import-audit-errors ul { margin:8px 0 0 18px; }
+
+
+/* V25.46.41 — Certificados: correção auditada de revisor */
+.cert-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cert-audit-original {
+  display: block;
+  margin-top: 4px;
+  color: #7b728d;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.cert-restaurar-revisor {
+  white-space: nowrap;
+}

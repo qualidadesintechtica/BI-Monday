@@ -1,3 +1,1 @@
-V25.46.40
-2026-10-02
-Projeto Qualidade: tratamento de tarefas no release com snapshot e atualização opcional auditada.
+V25.46.41

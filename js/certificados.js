@@ -2,7 +2,7 @@
   "use strict";
 
   // ============================================================
-  // CERTIFICADOS V25.46.34 — UMA LINHA POR REVISOR / CERTIFICADO
+  // CERTIFICADOS V25.46.41 — UA NORMALIZADA + CORREÇÃO AUDITADA DE REVISOR
   //
   // Regra:
   // 1. A Monday/Supabase define o universo da aba.
@@ -38,6 +38,16 @@
   const STORAGE_KEY = "bi_certificados_edicoes_v25_46_27";
   let historico = new Set();
   let historicoDetalhes = new Map();
+
+  // V25.46.41: correções auditadas de revisor por item/revisor original.
+  // A Monday continua sendo a fonte operacional, mas quando o responsável
+  // foi alterado depois da validação é possível registrar a pessoa correta
+  // para o certificado sem modificar o board.
+  let ajustesRevisorPorChave = new Map();
+  let ajustesRevisorDisponiveis = true;
+  let ultimosDadosConsolidados = [];
+  let ultimosDadosMondayDiretos = [];
+
   let inicializado = false;
 
   const MATRIZES_ALVO = new Set([
@@ -67,6 +77,31 @@
       .replace(/[^a-z0-9]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+
+  // V25.46.41: trata UNIDADE 1, UNIDADE 01, UA 1, UA01 e UA 01
+  // como a mesma Unidade de Aprendizagem. A normalização é usada tanto
+  // na exibição quanto no cruzamento Monday ↔ base consolidada.
+  function numeroUa(valor) {
+    const n = norm(valor)
+      .replace(/[._-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const m = n.match(/^(?:ua|unidade|unidade de aprendizagem)\s*0?(\d{1,2})(?:\b|$)/i);
+    if (!m) return null;
+    const numero = Number(m[1]);
+    return Number.isFinite(numero) && numero > 0 ? numero : null;
+  }
+
+  function normalizarNomeUa(valor) {
+    const numero = numeroUa(valor);
+    if (!numero) return txt(valor);
+    return `UNIDADE ${String(numero).padStart(2, "0")}`;
+  }
+
+  function chaveNomeUa(valor) {
+    return norm(normalizarNomeUa(valor));
   }
 
   function matrizAlvoLegado(item) {
@@ -188,13 +223,14 @@
   }
 
   function nomeDaUa(x) {
-    return txt(
+    const bruto = txt(
       x?.titulo_ua ||
       x?.item_name ||
       x?.nome_ua ||
       x?.unidade_material ||
       x?.id_ua
     );
+    return normalizarNomeUa(bruto);
   }
 
 
@@ -338,6 +374,8 @@
         categoria_material: txt(item?.tipo_material),
         esteira: txt(item?.esteira),
         esteira_producao: txt(item?.esteira),
+        matriz_oferta: txt(item?.matriz_oferta),
+        semestre_oferta: txt(item?.semestre_oferta),
         __fonte_certificado: "monday_live"
       }));
 
@@ -731,6 +769,134 @@
     }
   }
 
+  function chaveOriginalAjuste(revisor, indice = 0) {
+    return (
+      txt(revisor?.mondayUserId) ||
+      emailDoTexto(revisor?.emailOriginal || revisor?.email) ||
+      chavePessoa(revisor?.revisorMonday || revisor?.revisorOriginal || revisor?.revisor) ||
+      `manual-${indice}`
+    );
+  }
+
+  function chaveMapaAjuste(mondayItemId, revisorChave) {
+    return `${txt(mondayItemId)}|${txt(revisorChave)}`;
+  }
+
+  async function carregarAjustesAuditados() {
+    ajustesRevisorPorChave = new Map();
+    ajustesRevisorDisponiveis = true;
+
+    try {
+      const { data, error } = await window.biSupabase
+        .from("certificados_revisor_ajustes")
+        .select("id,monday_item_id,revisor_chave,revisor_monday_id,revisor_original,email_original,revisor_corrigido,email_corrigido,motivo,criado_em,criado_por")
+        .eq("ativo", true);
+
+      if (error) throw error;
+
+      (data || []).forEach((ajuste) => {
+        const chave = chaveMapaAjuste(ajuste.monday_item_id, ajuste.revisor_chave);
+        ajustesRevisorPorChave.set(chave, ajuste);
+      });
+    } catch (e) {
+      ajustesRevisorDisponiveis = false;
+      console.warn(
+        "Certificados: tabela certificados_revisor_ajustes ainda não instalada. Correções auditadas ficarão indisponíveis até executar o SQL da V25.46.41.",
+        e
+      );
+    }
+  }
+
+  function aplicarAjusteAuditado(ua, revisor, indice) {
+    if (!ua || !revisor) return;
+
+    const mondayItemId = txt(ua.idEnvio || ua.chaveUa).replace(/^monday:/, "");
+    const revisorChave = chaveOriginalAjuste(revisor, indice);
+    const ajuste = ajustesRevisorPorChave.get(chaveMapaAjuste(mondayItemId, revisorChave));
+    if (!ajuste) return;
+
+    if (!revisor.revisorOriginal) revisor.revisorOriginal = txt(revisor.revisorMonday || revisor.revisor);
+    if (!revisor.emailOriginal) revisor.emailOriginal = txt(revisor.email);
+
+    const nomeCorrigido = nomeCaixaAlta(ajuste.revisor_corrigido);
+    const oficial = localizarRevisorPlanilha(nomeCorrigido);
+    const emailCorrigido = emailDoTexto(ajuste.email_corrigido);
+
+    revisor.revisor = oficial?.revisor || nomeCorrigido;
+    revisor.email = emailCorrigido || oficial?.email || "";
+    revisor.localizado = !!oficial;
+    revisor.fonte = "ajuste_auditado";
+    revisor.ajusteAuditado = true;
+    revisor.ajusteId = ajuste.id;
+    revisor.ajusteMotivo = txt(ajuste.motivo);
+    revisor.ajusteCriadoEm = ajuste.criado_em;
+    revisor.ajusteRevisorChave = revisorChave;
+  }
+
+  async function salvarAjusteAuditado(ua, revisor, indice, nomeCorrigido, emailCorrigido, motivo) {
+    if (!ajustesRevisorDisponiveis) {
+      throw new Error("Execute primeiro o SQL docs/07_CERTIFICADOS_AJUSTE_REVISOR_V25_46_41.sql no Supabase.");
+    }
+
+    const mondayItemId = txt(ua.idEnvio || ua.chaveUa).replace(/^monday:/, "");
+    const revisorChave = chaveOriginalAjuste(revisor, indice);
+    const nomeOriginal = txt(revisor.revisorOriginal || revisor.revisorMonday || revisor.revisor);
+    const emailOriginal = emailDoTexto(revisor.emailOriginal || revisor.email);
+
+    // Preserva o histórico: desativa o ajuste vigente e cria um novo registro.
+    const { error: erroDesativar } = await window.biSupabase
+      .from("certificados_revisor_ajustes")
+      .update({ ativo: false })
+      .eq("monday_item_id", mondayItemId)
+      .eq("revisor_chave", revisorChave)
+      .eq("ativo", true);
+
+    if (erroDesativar) throw erroDesativar;
+
+    const payload = {
+      monday_item_id: mondayItemId,
+      revisor_chave: revisorChave,
+      revisor_monday_id: txt(revisor.mondayUserId) || null,
+      revisor_original: nomeOriginal || null,
+      email_original: emailOriginal || null,
+      revisor_corrigido: nomeCaixaAlta(nomeCorrigido),
+      email_corrigido: emailDoTexto(emailCorrigido) || null,
+      motivo: txt(motivo),
+      ativo: true
+    };
+
+    const { error } = await window.biSupabase
+      .from("certificados_revisor_ajustes")
+      .insert(payload);
+
+    if (error) throw error;
+  }
+
+  async function restaurarRevisorMonday(ua, revisor, indice) {
+    if (!ajustesRevisorDisponiveis) {
+      throw new Error("A tabela de ajustes auditados ainda não está disponível.");
+    }
+
+    const mondayItemId = txt(ua.idEnvio || ua.chaveUa).replace(/^monday:/, "");
+    const revisorChave = txt(revisor.ajusteRevisorChave) || chaveOriginalAjuste(revisor, indice);
+
+    const { error } = await window.biSupabase
+      .from("certificados_revisor_ajustes")
+      .update({ ativo: false })
+      .eq("monday_item_id", mondayItemId)
+      .eq("revisor_chave", revisorChave)
+      .eq("ativo", true);
+
+    if (error) throw error;
+  }
+
+  async function remontarComAjustes() {
+    await carregarAjustesAuditados();
+    montar(ultimosDadosConsolidados, ultimosDadosMondayDiretos);
+    popular();
+    render();
+  }
+
   function chaveEdicao(ua, revisor, indice) {
     const original = norm(revisor?.revisorMonday);
     return `${ua.chaveUa}|${original || `manual-${indice}`}`;
@@ -803,18 +969,25 @@
     }
   }
 
-  function chaveCertificado(ua, revisor) {
-    // V25.46.31: cada revisor da mesma UA possui sua própria chave.
-    // Prioridade: person_id da Monday -> e-mail -> nome normalizado.
-    const chaveRevisor =
+  function identidadeRevisorCertificado(revisor) {
+    if (revisor?.ajusteAuditado) {
+      return emailDoTexto(revisor?.email) || norm(revisor?.revisor);
+    }
+
+    return (
       txt(revisor?.mondayUserId) ||
       emailDoTexto(revisor?.email) ||
-      norm(revisor?.revisor);
+      norm(revisor?.revisor)
+    );
+  }
+
+  function chaveCertificado(ua, revisor) {
+    const chaveRevisor = identidadeRevisorCertificado(revisor);
 
     return [
       ua.idEnvio || ua.chaveUa,
       chaveRevisor,
-      norm(ua.name),
+      chaveNomeUa(ua.name),
       norm(ua.titulo),
       norm(ua.semestre)
     ].join("|");
@@ -845,10 +1018,7 @@
     ua.revisores
       .filter((r) => txt(r?.revisor))
       .forEach((r) => {
-        const chaveRevisor =
-          txt(r.mondayUserId) ||
-          emailDoTexto(r.email) ||
-          norm(r.revisor);
+        const chaveRevisor = identidadeRevisorCertificado(r);
 
         if (!chaveRevisor || unicos.has(chaveRevisor)) return;
         unicos.set(chaveRevisor, registroCertificado(ua, r));
@@ -859,7 +1029,7 @@
 
   function estadoCertificado(ua) {
     if (!ua.revisores.some((r) => txt(r.revisor))) return "Revisor não informado na Monday";
-    if (ua.revisores.some((r) => txt(r.revisor) && !r.localizado)) return "Revisor da Monday não localizado na base oficial";
+    if (ua.revisores.some((r) => txt(r.revisor) && !r.localizado)) return "Cadastro oficial pendente";
     if (ua.revisores.some((r) => !emailValido(r.email))) return "Sem e-mail";
 
     const certs = certificadosDaUa(ua);
@@ -888,8 +1058,9 @@
 
   function situacaoCadastroRelatorio(revisor) {
     if (!txt(revisor?.revisor)) return "REVISOR NÃO INFORMADO";
-    if (!revisor?.localizado) return "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
     if (!emailValido(revisor?.email)) return "SEM E-MAIL";
+    if (revisor?.ajusteAuditado) return "CORREÇÃO AUDITADA";
+    if (!revisor?.localizado) return "CADASTRO OFICIAL PENDENTE";
     return "CADASTRO OK";
   }
 
@@ -905,6 +1076,8 @@
           Motivo: "REVISOR NÃO INFORMADO",
           Revisor: "",
           "E-mail": "",
+          "Revisor original (Monday)": "",
+          "Motivo da correção": "",
           UA: txt(ua?.name),
           UC: txt(ua?.titulo),
           Matriz: txt(ua?.matriz),
@@ -924,7 +1097,6 @@
       let motivo = "";
       if (!enviado) {
         if (!emailValido(revisor.email)) motivo = "SEM E-MAIL";
-        else if (!revisor.localizado) motivo = "REVISOR NÃO LOCALIZADO NA BASE OFICIAL";
         else motivo = "AGUARDANDO ENVIO";
       }
 
@@ -933,6 +1105,8 @@
         Motivo: motivo,
         Revisor: nomeCaixaAlta(revisor.revisor),
         "E-mail": txt(revisor.email).toLowerCase(),
+        "Revisor original (Monday)": txt(revisor.revisorOriginal || revisor.revisorMonday),
+        "Motivo da correção": txt(revisor.ajusteMotivo),
         UA: txt(ua.name),
         UC: txt(ua.titulo),
         Matriz: txt(ua.matriz),
@@ -953,6 +1127,8 @@
       "Motivo",
       "Revisor",
       "E-mail",
+      "Revisor original (Monday)",
+      "Motivo da correção",
       "UA",
       "UC",
       "Matriz",
@@ -976,7 +1152,7 @@
     });
 
     ws["!cols"] = larguras;
-    ws["!autofilter"] = { ref: `A1:L${Math.max(linhas.length + 1, 1)}` };
+    ws["!autofilter"] = { ref: `A1:N${Math.max(linhas.length + 1, 1)}` };
     return ws;
   }
 
@@ -1062,14 +1238,15 @@
 
   function chaveIdTituloUa(item) {
     const idTitulo = norm(item?.id_titulo || item?.codigo_uc || "");
-    const idUa = norm(item?.id_ua || item?.codigo_ua || item?.codigo_pp || "");
+    const brutoUa = item?.id_ua || item?.codigo_ua || item?.codigo_pp || "";
+    const idUa = chaveNomeUa(brutoUa) || norm(brutoUa);
     if (!idTitulo || !idUa) return "";
     return `${idTitulo}|${idUa}`;
   }
 
   function chaveTituloUa(item) {
     const titulo = norm(tituloDaUa(item));
-    const ua = norm(nomeDaUa(item));
+    const ua = chaveNomeUa(nomeDaUa(item));
     if (!titulo || !ua) return "";
     return `${titulo}|${ua}`;
   }
@@ -1291,7 +1468,12 @@
         fonteCertificado: origem
       };
 
-      uaNova.revisores.forEach((revisor, ri) => aplicarEdicaoManual(uaNova, revisor, ri));
+      uaNova.revisores.forEach((revisor, ri) => {
+        if (!revisor.revisorOriginal) revisor.revisorOriginal = txt(revisor.revisorMonday || revisor.revisor);
+        if (!revisor.emailOriginal) revisor.emailOriginal = txt(revisor.email);
+        aplicarEdicaoManual(uaNova, revisor, ri);
+        aplicarAjusteAuditado(uaNova, revisor, ri);
+      });
 
       const anterior = mapa.get(chaveUa);
       if (!anterior) {
@@ -1354,11 +1536,12 @@
       totalComIdsPeople,
       totalSemRevisor,
       itensLiveMonday: mondayItensLive.length,
-      regra: "base sincronizada preservada + Monday ao vivo somente aditiva"
+      ajustesAuditadosAtivos: ajustesRevisorPorChave.size,
+      regra: "base sincronizada preservada + Monday ao vivo somente aditiva + UA normalizada + correção auditada de revisor"
     };
 
     console.info(
-      "[Certificados] V25.46.33 — base monotônica:",
+      "[Certificados] V25.46.41 — UA normalizada + correção auditada:",
       window.__BI_CERT_DIAGNOSTICO
     );
   }
@@ -1670,7 +1853,14 @@
       const enviado = cert ? historico.has(cert.chave) : false;
 
       let revisorHtml = "";
-      if (r.localizado && txt(r.revisor)) {
+      if (r.ajusteAuditado && txt(r.revisor)) {
+        revisorHtml = `
+          <div>
+            ${esc(r.revisor)}
+            <small class="cert-email-manual-tag">Correção auditada</small>
+            <small class="cert-audit-original">Monday: ${esc(r.revisorOriginal || r.revisorMonday || "--")}</small>
+          </div>`;
+      } else if (r.localizado && txt(r.revisor)) {
         revisorHtml = `
           <div>
             ${esc(r.revisor)}
@@ -1698,11 +1888,13 @@
       let emailHtml = "";
       if (emailValido(r.email)) {
         const origemEmail =
-          r.emailManual
-            ? "Informado manualmente"
-            : r.localizado
-              ? "Base oficial"
-              : "Monday";
+          r.ajusteAuditado
+            ? "Correção auditada"
+            : r.emailManual
+              ? "Informado manualmente"
+              : r.localizado
+                ? "Base oficial"
+                : "Monday";
 
         emailHtml = `<div>${esc(r.email)}<div class="cert-email-manual-tag">${esc(origemEmail)}</div></div>`;
       } else {
@@ -1723,8 +1915,9 @@
 
       let situacao = "Pendente";
       if (!podeGerar) situacao = "Revisor não informado na Monday";
-      else if (!r.localizado) situacao = "Revisor da Monday não localizado na base oficial";
       else if (!emailValido(r.email)) situacao = "Sem e-mail";
+      else if (r.ajusteAuditado) situacao = "Correção auditada";
+      else if (!r.localizado) situacao = "Cadastro oficial pendente";
       else if (enviado) situacao = "Enviado";
 
       return `
@@ -1746,12 +1939,27 @@
           <td>${esc(ua.statusValidacao || "Validado")}</td>
           <td><small class="cert-pill">${esc(situacao)}</small></td>
           <td>
-            <button
-              class="cert-btn cert-one"
-              data-li="${li}"
-              type="button"
-              ${podeGerar ? "" : "disabled"}
-            >PDF</button>
+            <div class="cert-row-actions">
+              <button
+                class="cert-btn cert-one"
+                data-li="${li}"
+                type="button"
+                ${podeGerar ? "" : "disabled"}
+              >PDF</button>
+              <button
+                class="cert-btn cert-corrigir-revisor"
+                data-li="${li}"
+                type="button"
+                title="Registrar correção auditada do revisor"
+              >Corrigir</button>
+              ${r.ajusteAuditado ? `
+                <button
+                  class="cert-btn cert-restaurar-revisor"
+                  data-li="${li}"
+                  type="button"
+                  title="Desativar a correção e voltar ao revisor atual da Monday"
+                >Usar Monday</button>` : ""}
+            </div>
           </td>
         </tr>`;
     }).join("");
@@ -1953,6 +2161,9 @@
   // ============================================================
 
   async function init(dadosConsolidados, dadosMondayDiretos) {
+    ultimosDadosConsolidados = Array.isArray(dadosConsolidados) ? dadosConsolidados : [];
+    ultimosDadosMondayDiretos = Array.isArray(dadosMondayDiretos) ? dadosMondayDiretos : [];
+
     if (!window.biSupabase) {
       console.error("biSupabase não foi inicializado.");
       return;
@@ -1966,7 +2177,8 @@
       await Promise.all([
         carregarRevisoresPlanilha(),
         carregarUsuariosMonday(),
-        carregarHistorico()
+        carregarHistorico(),
+        carregarAjustesAuditados()
       ]);
 
       const atualizarPorFiltro = () => {
@@ -2145,6 +2357,93 @@
         if (botao) botao.disabled = false;
         if (status) status.textContent = `Concluído: ${ok} enviado(s), ${erros} erro(s).`;
         render();
+      });
+
+      document.addEventListener("click", async (e) => {
+        const corrigir = e.target?.closest?.(".cert-corrigir-revisor");
+        if (corrigir) {
+          const linhaIndice = Number(corrigir.dataset.li);
+          const linha = linhasFiltradas[linhaIndice];
+          if (!linha?.ua || !linha?.revisor) return;
+
+          const atual = txt(linha.revisor.revisor);
+          const nome = prompt(
+            "Informe o nome correto do revisor para este certificado:",
+            atual
+          );
+          if (nome === null) return;
+          if (!txt(nome)) {
+            alert("Informe o nome correto do revisor.");
+            return;
+          }
+
+          const oficial = localizarRevisorPlanilha(nome);
+          let email = oficial?.email || txt(linha.revisor.email);
+          if (!emailValido(email)) {
+            const informado = prompt(
+              "O revisor não possui e-mail localizado na base oficial. Informe o e-mail (opcional):",
+              email
+            );
+            if (informado === null) return;
+            email = txt(informado).toLowerCase();
+            if (email && !emailValido(email)) {
+              alert("O e-mail informado não é válido.");
+              return;
+            }
+          }
+
+          const motivo = prompt(
+            "Informe o motivo da correção (obrigatório). Ex.: revisor alterado na Monday após a validação:",
+            linha.revisor.ajusteMotivo || "Revisor alterado na Monday após a validação"
+          );
+          if (motivo === null) return;
+          if (!txt(motivo)) {
+            alert("O motivo é obrigatório para preservar a auditoria.");
+            return;
+          }
+
+          corrigir.disabled = true;
+          try {
+            await salvarAjusteAuditado(
+              linha.ua,
+              linha.revisor,
+              linha.revisorIndice,
+              oficial?.revisor || nome,
+              email,
+              motivo
+            );
+            await remontarComAjustes();
+          } catch (erro) {
+            console.error(erro);
+            alert(`Não foi possível salvar a correção: ${erro.message}`);
+          } finally {
+            corrigir.disabled = false;
+          }
+          return;
+        }
+
+        const restaurar = e.target?.closest?.(".cert-restaurar-revisor");
+        if (restaurar) {
+          const linhaIndice = Number(restaurar.dataset.li);
+          const linha = linhasFiltradas[linhaIndice];
+          if (!linha?.ua || !linha?.revisor) return;
+
+          if (!confirm(
+            `Voltar a usar o revisor atual da Monday para ${linha.ua.name} — ${linha.ua.titulo}?`
+          )) return;
+
+          restaurar.disabled = true;
+          try {
+            await restaurarRevisorMonday(linha.ua, linha.revisor, linha.revisorIndice);
+            await remontarComAjustes();
+          } catch (erro) {
+            console.error(erro);
+            alert(`Não foi possível restaurar o revisor da Monday: ${erro.message}`);
+          } finally {
+            restaurar.disabled = false;
+          }
+          return;
+        }
       });
 
       document.addEventListener("click", async (e) => {

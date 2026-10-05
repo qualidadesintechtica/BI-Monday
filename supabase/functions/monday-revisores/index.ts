@@ -15,6 +15,8 @@ const COLUNAS_CERTIFICADOS = [
   "color_mkvgaz7h",
   "color_mkv9rf79",
   "color_mkv9p57c",
+  "color_mkvftgax",
+  "color_mkvf324y",
 ];
 
 const CORS = {
@@ -102,6 +104,8 @@ function mapearItem(item: any) {
     tipo_material: textoColuna(item, "color_mkvgaz7h"),
     tipo_unidade: textoColuna(item, "color_mkv9rf79"),
     esteira: textoColuna(item, "color_mkv9p57c"),
+    matriz_oferta: textoColuna(item, "color_mkvftgax"),
+    semestre_oferta: textoColuna(item, "color_mkvf324y"),
   };
 }
 
