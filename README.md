@@ -64,3 +64,14 @@ Arquivos funcionais alterados
 
 Novo SQL
 - docs/08_FLUXO_APROVACAO_RELEASE_V25_46_43.sql
+
+## V25.46.44 — Filtro Enviado/Pendente em Certificados
+
+Alteração restrita à aba Certificados:
+
+- novo filtro **Envio** com `Enviados e pendentes`, `Pendentes` e `Enviados`;
+- o filtro atua por certificado individual (UA + revisor), preservando múltiplos revisores;
+- o relatório Excel respeita o novo filtro e registra a seleção na aba Resumo;
+- demais filtros, auditoria de revisor, geração/envio, Projeto Qualidade, Reunião NQ e Operação foram preservados.
+
+Não há SQL novo nesta versão.

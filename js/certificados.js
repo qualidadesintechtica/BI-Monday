@@ -1183,6 +1183,7 @@
       { Indicador: "Filtro - Semestre", Valor: txt($("certSemestre")?.value) || "Todos" },
       { Indicador: "Filtro - Revisor", Valor: txt($("certRevisor")?.value) || "Todos" },
       { Indicador: "Filtro - E-mail", Valor: txt($("certEmail")?.value) || "Com e sem e-mail" },
+      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Enviados" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
       { Indicador: "Filtro - Pesquisa", Valor: txt($("certBusca")?.value) || "Sem pesquisa" },
       { Indicador: "Global - Esteira", Valor: selecionadosFiltroGlobal("filtroEsteira").join(" | ") || "Todas" },
       { Indicador: "Global - Matriz", Valor: selecionadosFiltroGlobal("filtroMatriz").join(" | ") || "Todas" },
@@ -1787,6 +1788,7 @@
     const rev = txt($("certRevisor")?.value);
     const revNorm = norm(rev);
     const filtroEmail = txt($("certEmail")?.value);
+    const filtroEnvio = txt($("certEnvio")?.value);
     const q = norm($("certBusca")?.value || "");
     const linhas = [];
 
@@ -1804,6 +1806,14 @@
 
         if (filtroEmail === "com" && !emailValido(revisor?.email)) return;
         if (filtroEmail === "sem" && emailValido(revisor?.email)) return;
+
+        // O status de envio pertence ao certificado individual (UA + revisor).
+        // Assim, quando uma UA possui dois revisores, cada linha pode ser
+        // filtrada separadamente como ENVIADA ou PENDENTE.
+        const certFiltro = temNome ? registroCertificado(ua, revisor) : null;
+        const foiEnviado = certFiltro ? historico.has(certFiltro.chave) : false;
+        if (filtroEnvio === "enviado" && !foiEnviado) return;
+        if (filtroEnvio === "pendente" && foiEnviado) return;
 
         if (q) {
           const textoLinha = norm([
@@ -2185,7 +2195,7 @@
         render();
       };
 
-      ["certSemestre", "certRevisor", "certEmail"].forEach((id) => {
+      ["certSemestre", "certRevisor", "certEmail", "certEnvio"].forEach((id) => {
         const el = $(id);
         if (!el) return;
         el.addEventListener("change", atualizarPorFiltro);
