@@ -1,3 +1,3 @@
-V25.46.39
+V25.46.40
 2026-10-02
-Projeto Qualidade: snapshot imutável dos indicadores NQ no relatório.
+Projeto Qualidade: tratamento de tarefas no release com snapshot e atualização opcional auditada.

@@ -16,6 +16,7 @@
     salvando: false,
     indicadoresNQAtual: null,
     carregandoIndicadoresNQ: false,
+    tratamentoTarefas: new Map(),
   };
 
   const campos = {
@@ -526,6 +527,208 @@
     return { projeto: projetoAtual(), tarefas: tarefasAtuais() };
   }
 
+  function tarefasDaOrigemAtual() {
+    const origem = origemAtual();
+    const tarefasOrigem = Array.isArray(origem?.tarefas) ? origem.tarefas : [];
+    return tarefasOrigem.length ? tarefasOrigem : tarefasAtuais();
+  }
+
+  function chaveTarefaRelease(tarefa) {
+    const id = texto(tarefa?.id);
+    if (id) return `id:${id}`;
+    const sourceKey = texto(tarefa?.source_key);
+    if (sourceKey) return `source:${sourceKey}`;
+    const azure = texto(tarefa?.azure_id);
+    if (azure) return `azure:${azure}`;
+    return `fallback:${normalizar(tarefa?.descricao || tarefa?.nome)}|${normalizar(tarefa?.sponsor)}`;
+  }
+
+  function statusEhFinalizado(valor) {
+    const n = normalizar(valor).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    return /^(finaliz|conclu|done\b|completed\b)/.test(n);
+  }
+
+  function statusEhPendenteRelease(valor) {
+    const n = normalizar(valor).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!n || statusEhFinalizado(n)) return false;
+    return [
+      "a fazer",
+      "afazer",
+      "em andamento",
+      "em progresso",
+      "to do",
+      "todo",
+      "doing",
+      "active",
+      "new",
+      "novo",
+    ].includes(n);
+  }
+
+  function statusFinalizadoPadrao() {
+    const frequencias = new Map();
+    estado.tarefas.forEach((tarefa) => {
+      const status = texto(tarefa?.status);
+      if (!statusEhFinalizado(status)) return;
+      frequencias.set(status, (frequencias.get(status) || 0) + 1);
+    });
+    return [...frequencias.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))[0]?.[0]
+      || "Finalizado";
+  }
+
+  function decisaoReleaseDaTarefa(tarefa) {
+    return estado.tratamentoTarefas.get(chaveTarefaRelease(tarefa)) || "manter";
+  }
+
+  function tarefasPendentesDoRelease() {
+    return tarefasDaOrigemAtual().filter((tarefa) => statusEhPendenteRelease(tarefa?.status));
+  }
+
+  function obterTratamentoTarefas() {
+    const finalizado = statusFinalizadoPadrao();
+    return tarefasPendentesDoRelease().map((tarefa) => {
+      const acao = decisaoReleaseDaTarefa(tarefa);
+      const finaliza = acao === "finalizar_release" || acao === "finalizar_base";
+      return {
+        tarefa_id: tarefa?.id ?? null,
+        source_key: texto(tarefa?.source_key) || null,
+        azure_id: texto(tarefa?.azure_id) || null,
+        descricao: texto(tarefa?.descricao || tarefa?.nome) || null,
+        sponsor: limparNome(tarefa?.sponsor) || null,
+        status_original: texto(tarefa?.status) || null,
+        acao,
+        status_release: finaliza ? finalizado : (texto(tarefa?.status) || null),
+        atualizar_base: acao === "finalizar_base",
+      };
+    });
+  }
+
+  function resumoTratamentoTarefas(decisoes = obterTratamentoTarefas()) {
+    const tarefas = tarefasDaOrigemAtual();
+    const jaFinalizadas = tarefas.filter((t) => statusEhFinalizado(t?.status)).length;
+    const pendentes = decisoes.length;
+    const finalizarRelease = decisoes.filter((d) => d.acao === "finalizar_release" || d.acao === "finalizar_base").length;
+    const atualizarBase = decisoes.filter((d) => d.acao === "finalizar_base").length;
+    return {
+      total: tarefas.length,
+      jaFinalizadas,
+      pendentes,
+      finalizarRelease,
+      atualizarBase,
+      manter: Math.max(0, pendentes - finalizarRelease),
+    };
+  }
+
+  function renderizarTratamentoTarefas() {
+    const lista = $("releaseTaskList");
+    const resumo = $("releaseTaskSummary");
+    if (!lista || !resumo) return;
+
+    const tarefas = tarefasPendentesDoRelease();
+    const decisoes = obterTratamentoTarefas();
+    const totais = resumoTratamentoTarefas(decisoes);
+
+    resumo.innerHTML = `
+      <article><span>Tarefas do projeto</span><strong>${totais.total}</strong></article>
+      <article><span>Já finalizadas</span><strong>${totais.jaFinalizadas}</strong></article>
+      <article><span>A fazer / em andamento</span><strong>${totais.pendentes}</strong></article>
+      <article class="release-summary-highlight"><span>Marcadas para finalizar</span><strong>${totais.finalizarRelease}</strong></article>
+    `;
+
+    const nota = $("releaseTaskUpdateNote");
+    if (nota) {
+      nota.textContent = totais.atualizarBase
+        ? `${totais.atualizarBase} tarefa(s) também terão o status atual do Projeto Qualidade atualizado ao finalizar esta versão.`
+        : "Nenhuma tarefa será alterada na base atual. O release pode registrar uma conclusão sem modificar o Projeto Qualidade.";
+    }
+
+    if (!tarefas.length) {
+      lista.innerHTML = '<p class="release-task-empty">Não há tarefas com status A fazer ou Em andamento neste projeto.</p>';
+      return;
+    }
+
+    lista.innerHTML = tarefas.map((tarefa) => {
+      const chave = chaveTarefaRelease(tarefa);
+      const decisao = estado.tratamentoTarefas.get(chave) || "manter";
+      return `
+        <article class="release-task-row" data-release-task="${escapar(chave)}">
+          <div class="release-task-info">
+            <strong>${escapar(tarefa.descricao || tarefa.nome || "Ação sem descrição")}</strong>
+            <span>ID ${escapar(tarefa.azure_id || tarefa.id || "—")} · ${escapar(limparNome(tarefa.sponsor) || "Sem responsável")}</span>
+            <small>Status atual: <b>${escapar(tarefa.status || "—")}</b></small>
+          </div>
+          <label>
+            <span>No release</span>
+            <select data-release-action>
+              <option value="manter" ${decisao === "manter" ? "selected" : ""}>Manter como está</option>
+              <option value="finalizar_release" ${decisao === "finalizar_release" ? "selected" : ""}>Marcar como finalizada nesta versão</option>
+              <option value="finalizar_base" ${decisao === "finalizar_base" ? "selected" : ""}>Finalizar e atualizar também o Projeto Qualidade</option>
+            </select>
+          </label>
+        </article>`;
+    }).join("");
+
+    lista.querySelectorAll("[data-release-action]").forEach((select) => {
+      select.addEventListener("change", () => {
+        const linha = select.closest("[data-release-task]");
+        if (!linha) return;
+        estado.tratamentoTarefas.set(linha.dataset.releaseTask, select.value || "manter");
+        renderizarTratamentoTarefas();
+        atualizarPreview();
+      });
+    });
+  }
+
+  function carregarTratamentoTarefas(edicao) {
+    estado.tratamentoTarefas = new Map();
+    const salvas = Array.isArray(edicao?.tarefas_release) ? edicao.tarefas_release : [];
+    const tarefas = tarefasDaOrigemAtual();
+
+    tarefas.forEach((tarefa) => {
+      const encontrada = salvas.find((item) => {
+        if (item?.tarefa_id != null && tarefa?.id != null && mesmoId(item.tarefa_id, tarefa.id)) return true;
+        if (texto(item?.source_key) && texto(tarefa?.source_key) === texto(item.source_key)) return true;
+        if (texto(item?.azure_id) && texto(tarefa?.azure_id) === texto(item.azure_id)) return true;
+        return false;
+      });
+      if (encontrada?.acao) estado.tratamentoTarefas.set(chaveTarefaRelease(tarefa), encontrada.acao);
+    });
+
+    renderizarTratamentoTarefas();
+  }
+
+  async function validarInstalacaoReleaseTarefas() {
+    const { data, error } = await window.biSupabase.rpc("pq_release_tarefas_disponivel");
+    if (error || !data?.ok) {
+      throw new Error("O tratamento de tarefas do release ainda não foi instalado. Execute docs/06_TAREFAS_RELEASE_V25_46_40.sql no Supabase antes de salvar ou finalizar esta versão.");
+    }
+    return true;
+  }
+
+  async function aplicarAtualizacoesTarefasNaBase(edicaoId, decisoes) {
+    const atualizar = decisoes.filter((item) => item.acao === "finalizar_base" && item.tarefa_id != null);
+    if (!atualizar.length) return { atualizadas: 0, avisos: [] };
+
+    const avisos = [];
+    let atualizadas = 0;
+    for (const item of atualizar) {
+      const { data, error } = await window.biSupabase.rpc("pq_aplicar_status_tarefa", {
+        p_tarefa_id: item.tarefa_id,
+        p_edicao_id: edicaoId,
+        p_status_novo: item.status_release || statusFinalizadoPadrao(),
+      });
+      if (error) {
+        avisos.push(`${item.descricao || item.azure_id || item.tarefa_id}: ${error.message || error}`);
+        continue;
+      }
+      atualizadas += data?.alterada === false ? 0 : 1;
+      const tarefaAtual = estado.tarefas.find((t) => mesmoId(t.id, item.tarefa_id));
+      if (tarefaAtual) tarefaAtual.status = item.status_release || statusFinalizadoPadrao();
+    }
+    return { atualizadas, avisos };
+  }
+
   function mostrarFeedback(mensagem, tipo = "") {
     const alvo = $("feedbackMessage");
     alvo.textContent = mensagem;
@@ -549,6 +752,9 @@
     // apresentados como erro de função, sem induzir uma reinstalação do editor.
     if (!editorTabelaConfirmada && /(pq_projetos_edicoes.*does not exist|relation .*pq_projetos_edicoes.*does not exist|PGRST205)/i.test(bruto)) {
       return "A tabela do editor não foi localizada no Supabase. Confirme se public.pq_projetos_edicoes existe neste projeto.";
+    }
+    if (/pq_release_tarefas_disponivel|pq_salvar_tarefas_release|pq_aplicar_status_tarefa/i.test(bruto)) {
+      return "O tratamento de tarefas do release ainda não está disponível no Supabase. Execute docs/06_TAREFAS_RELEASE_V25_46_40.sql e recarregue a página.";
     }
     if (/pq_salvar_edicao|PGRST202|schema cache/i.test(bruto)) {
       return `O editor está instalado, mas a função de salvamento não foi reconhecida pela API do Supabase. Detalhe: ${bruto}`;
@@ -904,6 +1110,7 @@
     Object.values(campos).forEach((id) => { $(id).value = ""; });
     estado.indicadoresNQAtual = null;
     renderizarSnapshotNQ();
+    carregarTratamentoTarefas(null);
     $("evidenceList").innerHTML = "";
     adicionarEvidencia();
   }
@@ -917,6 +1124,7 @@
       : null;
     if ($("nqSnapshotSituacao")) $("nqSnapshotSituacao").value = estado.indicadoresNQAtual?.filtro_situacao || "";
     renderizarSnapshotNQ();
+    carregarTratamentoTarefas(edicao);
     $("evidenceList").innerHTML = "";
     const evidencias = Array.isArray(edicao?.evidencias) ? edicao.evidencias : [];
     if (!evidencias.length) adicionarEvidencia();
@@ -1053,6 +1261,7 @@
     const dados = {};
     Object.entries(campos).forEach(([chave, id]) => { dados[chave] = texto($(id).value); });
     dados.evidencias = obterEvidencias();
+    dados.tarefas_release = obterTratamentoTarefas();
     return dados;
   }
 
@@ -1090,19 +1299,45 @@
       </section>`;
   }
 
-  function tabelaTarefas(tarefas) {
+  function decisaoSalvaParaTarefa(tarefa, decisoes = []) {
+    return decisoes.find((item) => {
+      if (item?.tarefa_id != null && tarefa?.id != null && mesmoId(item.tarefa_id, tarefa.id)) return true;
+      if (texto(item?.source_key) && texto(tarefa?.source_key) === texto(item.source_key)) return true;
+      if (texto(item?.azure_id) && texto(tarefa?.azure_id) === texto(item.azure_id)) return true;
+      return false;
+    }) || null;
+  }
+
+  function tabelaTarefas(tarefas, decisoes = []) {
     if (!tarefas.length) return '<p class="report-empty">Nenhuma tarefa original vinculada.</p>';
     return `
       <table class="report-task-table">
-        <thead><tr><th>ID</th><th>Ação original</th><th>Status</th><th>Período</th></tr></thead>
-        <tbody>${tarefas.map((t) => `
+        <thead><tr><th>ID</th><th>Ação original</th><th>Status original</th><th>Status no release</th><th>Período</th></tr></thead>
+        <tbody>${tarefas.map((t) => {
+          const decisao = decisaoSalvaParaTarefa(t, decisoes);
+          const statusRelease = decisao?.status_release || t.status || "—";
+          const alterada = decisao && decisao.acao && decisao.acao !== "manter";
+          return `
           <tr>
             <td>${escapar(t.azure_id || "—")}</td>
             <td>${escapar(t.descricao || "—")}</td>
             <td>${escapar(t.status || "—")}</td>
+            <td class="${alterada ? "report-task-status-changed" : ""}">${escapar(statusRelease)}</td>
             <td>${escapar(formatarData(t.data_inicio))} a ${escapar(formatarData(t.data_fim))}</td>
-          </tr>`).join("")}</tbody>
+          </tr>`;
+        }).join("")}</tbody>
       </table>`;
+  }
+
+  function blocoResumoTarefasRelease(decisoes = []) {
+    const selecionadas = decisoes.filter((d) => d.acao === "finalizar_release" || d.acao === "finalizar_base");
+    if (!selecionadas.length) return "";
+    const naBase = selecionadas.filter((d) => d.acao === "finalizar_base").length;
+    return `
+      <div class="report-release-summary">
+        <strong>${selecionadas.length} tarefa(s) marcada(s) como finalizada(s) neste release.</strong>
+        <span>${naBase ? `${naBase} também selecionada(s) para atualização do status atual no Projeto Qualidade.` : "Nenhuma alteração do status atual do Projeto Qualidade foi solicitada."}</span>
+      </div>`;
   }
 
   function tabelaEvidencias(evidencias) {
@@ -1172,7 +1407,7 @@
       ${tabelaDadosDisponiveis(projeto.dados_origem)}
       ${blocoTexto("Contexto e objetivo", dados.contexto_objetivo)}
       ${blocoTexto("Resultados esperados", dados.resultados_esperados)}
-      <section class="report-section"><h2>Ações e tarefas originais</h2>${tabelaTarefas(tarefas)}</section>
+      <section class="report-section"><h2>Ações e tarefas originais</h2>${blocoResumoTarefasRelease(dados.tarefas_release)}${tabelaTarefas(tarefas, dados.tarefas_release)}</section>
       ${blocoTexto("Novas ações e complementos", dados.acoes_complementares)}
       ${blocoTexto("Resultados alcançados", dados.resultados_alcancados)}
       ${blocoIndicadoresNQ(estado.indicadoresNQAtual)}
@@ -1204,6 +1439,7 @@
           <span class="history-status ${escapar(edicao.status_edicao)}">${escapar(edicao.status_edicao)}</span>
         </div>
         ${nqSnapshotValido(edicao.indicadores_nq) ? '<small class="history-nq-badge">Snapshot NQ incluído</small>' : ''}
+        ${Array.isArray(edicao.tarefas_release) && edicao.tarefas_release.some((t) => t.acao && t.acao !== "manter") ? `<small class="history-release-badge">${edicao.tarefas_release.filter((t) => t.acao && t.acao !== "manter").length} tarefa(s) tratada(s) no release</small>` : ''}
         <p>${escapar(formatarDataHora(edicao.criado_em))}<br>${escapar(edicao.criado_por_email)}</p>
         <div class="history-actions">
           <button type="button" data-action="view">Ver versão</button>
@@ -1272,6 +1508,7 @@
     if (!estado.projetoId || estado.salvando) return;
     let dados = obterFormulario();
     let faltantes = validarFinalizacao(dados);
+    const resumoRelease = resumoTratamentoTarefas(dados.tarefas_release);
 
     if (finalizar && faltantes.length) {
       mostrarFeedback(`Complete antes de finalizar: ${faltantes.join("; ")}.`, "warning");
@@ -1279,7 +1516,29 @@
       return;
     }
 
-    if (finalizar && !window.confirm("Finalizar esta versão? Ela ficará registrada no histórico e não poderá ser sobrescrita. O status do projeto não será alterado.")) return;
+    try {
+      // Faz a checagem ANTES de criar uma versão. Assim, se o SQL V25.46.40
+      // ainda não tiver sido instalado, nenhuma versão parcial é gravada.
+      if (dados.tarefas_release.length) await validarInstalacaoReleaseTarefas();
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+      $("releaseTaskList")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    if (finalizar) {
+      const partes = [
+        "Finalizar esta versão? Ela ficará registrada no histórico e não poderá ser sobrescrita.",
+        `${resumoRelease.finalizarRelease} tarefa(s) serão consideradas finalizadas neste release.`,
+      ];
+      if (resumoRelease.atualizarBase) {
+        partes.push(`${resumoRelease.atualizarBase} tarefa(s) também terão o status atual atualizado no Projeto Qualidade.`);
+      } else {
+        partes.push("O status atual das tarefas no Projeto Qualidade não será alterado.");
+      }
+      partes.push("O status do projeto não será alterado.");
+      if (!window.confirm(partes.join("\n\n"))) return;
+    }
 
     definirSalvando(true);
     mostrarFeedback(finalizar ? "Finalizando a versão…" : "Salvando uma nova versão…");
@@ -1316,6 +1575,31 @@
         }
       }
 
+      let avisoTarefasRelease = "";
+      if (dados.tarefas_release.length) {
+        const tarefasPersistir = dados.tarefas_release.map((item) => ({
+          ...item,
+          decidido_em: new Date().toISOString(),
+          decidido_por: estado.usuario?.email || null,
+        }));
+        const { error: tarefasError } = await window.biSupabase.rpc("pq_salvar_tarefas_release", {
+          p_edicao_id: data.id,
+          p_tarefas: tarefasPersistir,
+        });
+        if (tarefasError) {
+          console.error("Tratamento das tarefas não persistido:", tarefasError);
+          avisoTarefasRelease = " O tratamento das tarefas não foi gravado; nenhuma tarefa da base foi alterada.";
+        }
+      }
+
+      let resultadoAtualizacao = { atualizadas: 0, avisos: [] };
+      if (finalizar && !avisoTarefasRelease) {
+        resultadoAtualizacao = await aplicarAtualizacoesTarefasNaBase(data.id, dados.tarefas_release);
+        if (resultadoAtualizacao.avisos.length) {
+          avisoTarefasRelease += ` ${resultadoAtualizacao.avisos.length} tarefa(s) não puderam ser atualizadas na base; o release foi preservado.`;
+        }
+      }
+
       const { data: edicao, error: edicaoError } = await window.biSupabase
         .from("pq_projetos_edicoes")
         .select("*")
@@ -1330,22 +1614,29 @@
       renderizarOrigem();
       renderizarHistorico();
       atualizarPreview();
+      filtrarProjetos();
       if (finalizar) {
         try {
           await gerarPdfRelatorio("download");
+          const resumoBase = resultadoAtualizacao.atualizadas
+            ? ` ${resultadoAtualizacao.atualizadas} tarefa(s) também atualizada(s) no Projeto Qualidade.`
+            : "";
           mostrarFeedback(
-            `Versão ${edicao.versao} finalizada e PDF gerado. O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.${avisoIndicadoresNQ}`,
-            "success",
+            `Versão ${edicao.versao} finalizada e PDF gerado.${resumoBase} O status do projeto permanece “${texto(projetoAtual()?.status || "não informado")}”.${avisoIndicadoresNQ}${avisoTarefasRelease}`,
+            avisoTarefasRelease ? "warning" : "success",
           );
         } catch (pdfError) {
           console.error("PDF do Projeto Qualidade:", pdfError);
           mostrarFeedback(
-            `Versão ${edicao.versao} finalizada com sucesso, mas o PDF não pôde ser gerado: ${mensagemErro(pdfError)}`,
+            `Versão ${edicao.versao} finalizada com sucesso, mas o PDF não pôde ser gerado: ${mensagemErro(pdfError)}${avisoIndicadoresNQ}${avisoTarefasRelease}`,
             "warning",
           );
         }
       } else {
-        mostrarFeedback(`Versão ${edicao.versao} salva como rascunho com sucesso.${avisoIndicadoresNQ}`, avisoIndicadoresNQ ? "warning" : "success");
+        mostrarFeedback(
+          `Versão ${edicao.versao} salva como rascunho com sucesso.${avisoIndicadoresNQ}${avisoTarefasRelease}`,
+          (avisoIndicadoresNQ || avisoTarefasRelease) ? "warning" : "success",
+        );
       }
     } catch (error) {
       mostrarFeedback(mensagemErro(error), "error");

@@ -6,7 +6,7 @@
     <title>Projetos da Qualidade | DataHub</title>
     <link rel="stylesheet" href="css/global.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
-    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-39-nq-snapshot">
+    <link rel="stylesheet" href="css/projetos.css?v=20261002-v25-46-40-release-tarefas">
   </head>
 
   <body>
@@ -15,7 +15,7 @@
         <div class="brand">
           <small>DataHub</small>
           <strong>Validação de Materiais</strong>
-          <small class="build-badge">v25.46.38 · Projeto Qualidade auditado</small>
+          <small class="build-badge">v25.46.40 · Release com tratamento de tarefas</small>
         </div>
 
         <nav class="nav" aria-label="Navegação principal">
@@ -212,6 +212,15 @@
                       <span>Resultados esperados <b>*</b></span>
                       <textarea id="expectedField" rows="4" placeholder="Descreva os resultados e critérios esperados."></textarea>
                     </label>
+
+                    <fieldset class="release-tasks-fieldset">
+                      <legend>Tratamento das tarefas no release</legend>
+                      <p>Revise as tarefas que ainda estão <b>A fazer</b> ou <b>Em andamento</b>. Você pode manter o status, finalizar apenas nesta versão ou também atualizar o status atual no Projeto Qualidade.</p>
+                      <div id="releaseTaskSummary" class="release-task-summary"></div>
+                      <div id="releaseTaskList" class="release-task-list"></div>
+                      <div id="releaseTaskUpdateNote" class="release-task-update-note"></div>
+                      <small class="release-task-warning">A opção de atualizar o Projeto Qualidade só é aplicada ao finalizar a versão. Uma futura importação continuará refletindo o status que vier na planilha de origem.</small>
+                    </fieldset>
                     <label class="field full">
                       <span>Novas ações ou complementos</span>
                       <textarea id="actionsField" rows="4" placeholder="Registre novas ações sem alterar as tarefas originais."></textarea>
@@ -318,6 +327,6 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20260908-v24-6"></script>
-    <script src="js/projetos.js?v=20261002-v25-46-39-nq-snapshot"></script>
+    <script src="js/projetos.js?v=20261002-v25-46-40-release-tarefas"></script>
   </body>
 </html>
