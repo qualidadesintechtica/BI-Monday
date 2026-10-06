@@ -40,7 +40,7 @@
   let historicoDetalhes = new Map();
   let filaEnvios = new Map();
   let conferenciasEnvios = [];
-  let filaCarregando = false;
+  let filaConsultaEmAndamento = null;
   let filaDisponivel = false;
   let enfileirando = false;
 
@@ -72,20 +72,42 @@
     return "";
   }
 
-  async function carregarFila() {
-    if (filaCarregando) return;
-    filaCarregando = true;
+  async function aguardarConsultaFila(consulta, prazo = 10000) {
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve(consulta),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("A consulta demorou mais de 10 segundos. Tente novamente.")), prazo);
+        })
+      ]);
+    } finally { clearTimeout(timer); }
+  }
+
+  function carregarFila() {
+    if (filaConsultaEmAndamento) return filaConsultaEmAndamento;
+    filaConsultaEmAndamento = consultarFila().finally(() => {
+      filaConsultaEmAndamento = null;
+    });
+    return filaConsultaEmAndamento;
+  }
+
+  async function consultarFila() {
     try {
       let out;
       try {
-        out = await apiFila("certificados-fila-status");
-      } catch (erroApi) {
-        // Alternativa autenticada: somente metadados, sem PDFs ou secrets.
-        const fallback = await window.biSupabase.rpc("certificados_fila_status");
-        if (fallback.error || !fallback.data?.success) {
-          throw new Error(fallback.error?.message || "Não foi possível consultar a fila automática.");
+        // O SQL 14 já permite consultar sem depender da Edge Function.
+        const resultado = await aguardarConsultaFila(window.biSupabase.rpc("certificados_fila_status"));
+        if (resultado.error || !resultado.data?.success) {
+          throw new Error(resultado.error?.message || "A consulta SQL não retornou a situação da fila.");
         }
-        out = fallback.data;
+        out = resultado.data;
+      } catch (erroSql) {
+        try {
+          out = await aguardarConsultaFila(apiFila("certificados-fila-status"));
+        } catch (erroApi) {
+          throw new Error(`Consulta SQL: ${erroSql.message}\nServiço da fila: ${erroApi.message}`);
+        }
       }
       filaDisponivel = true;
       filaEnvios = new Map((out.registros || []).map(x => [x.chave_certificado, x]));
@@ -100,14 +122,42 @@
       const config = out.config || {};
       const espera = Date.parse(config.iniciar_apos) > Date.now();
       const el = $("certAtualizarFila");
-      if (el) el.title = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("aceito")} enviados · ${n("erro") + n("conferir")} para conferir · limite: 25/h e 200/24h.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
+      if (el) el.title = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("processando")} processando · ${n("aceito")} enviados · ${n("erro") + n("conferir")} com erro ou para conferir.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
+      return out;
     } catch (e) {
       filaDisponivel = false;
       const el = $("certAtualizarFila");
       if (el) el.title = "Não foi possível consultar a fila automática.";
       console.warn("Não foi possível consultar a fila automática.", e);
       throw e;
-    } finally { filaCarregando = false; }
+    }
+  }
+
+  async function atualizarFilaManual(evento) {
+    const botao = evento?.currentTarget || $("certAtualizarFila");
+    if (botao?.disabled) return;
+    const textoAnterior = botao?.textContent || "Atualizar fila";
+    if (botao) { botao.disabled = true; botao.textContent = "Atualizando…"; }
+    try {
+      const out = await carregarFila();
+      render();
+      const registros = out.registros || [];
+      const n = estado => registros.filter(x => x.status === estado).length;
+      const config = out.config || {};
+      const espera = Date.parse(config.iniciar_apos) > Date.now();
+      let situacao = config.pausado
+        ? `Fila pausada: ${config.motivo || "Envios ainda não ativados."}`
+        : espera
+          ? `Aguardando início em ${new Date(config.iniciar_apos).toLocaleString("pt-BR")}.`
+          : "Fila liberada. O processamento depende da função e do agendamento instalados.";
+      if (config.ultimo_erro) situacao += `\nÚltimo erro: ${config.ultimo_erro}`;
+      alert(`Consulta atualizada.\n\n${n("na_fila")} na fila automática\n${n("processando")} processando\n${n("aceito")} enviados na fila\n${n("erro") + n("conferir")} com erro ou para conferir\n${(out.conferencia || []).length} aguardando conferência de envio anterior\n\n${situacao}`);
+    } catch (e) {
+      render();
+      alert(`Não foi possível atualizar a fila.\n\n${e.message || String(e)}\n\nCopie esta mensagem para identificar a causa.`);
+    } finally {
+      if (botao) { botao.disabled = false; botao.textContent = textoAnterior; }
+    }
   }
 
   // V25.46.41: correções auditadas de revisor por item/revisor original.
@@ -2210,6 +2260,7 @@
 
     if (!inicializado) {
       inicializado = true;
+      $("certAtualizarFila")?.addEventListener("click", atualizarFilaManual);
 
       carregarEdicoesManuais();
 
@@ -2318,9 +2369,6 @@
       });
 
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
-      $("certAtualizarFila")?.addEventListener("click", async () => {
-        try { await carregarFila(); render(); } catch (e) { alert("Não foi possível atualizar a fila automática. O histórico de enviados continua disponível."); }
-      });
       setInterval(async () => {
         if (document.hidden || enfileirando || selecionados().length || document.activeElement?.closest?.(".cert-email-manual,.cert-revisor-manual")) return;
         try { await carregarFila(); render(); } catch (_) { /* Aviso no painel. */ }

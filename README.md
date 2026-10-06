@@ -1,3 +1,7 @@
+# BI-Monday V25.46.51 — Atualizar fila
+
+Consulte LEIA_AJUSTE_V25_46_51.md para instalar a correção do botão. Atualize index.html e js/certificados.js. Nenhuma alteração na configuração de envio é executada por esta atualização.
+
 BI-Monday V25.46.43 — Fluxo de aprovação do release
 
 Base: V25.46.42.
