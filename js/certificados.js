@@ -64,9 +64,9 @@
 
   function statusDaFila(r) {
     if (!r) return "";
-    if (historico.has(r.chave)) return "Aceito pelo SMTP2GO";
+    if (historico.has(r.chave)) return "Enviado";
     const f = filaEnvios.get(r.chave);
-    if (f) return ({ na_fila: "Na fila automática", processando: "Processando", aceito: "Aceito pelo SMTP2GO", erro: "Erro — conferir", conferir: "Conferir no SMTP2GO" })[f.status] || f.status;
+    if (f) return ({ na_fila: "Na fila automática", processando: "Processando", aceito: "Enviado", erro: "Erro — conferir", conferir: "Conferir no SMTP2GO" })[f.status] || f.status;
     if (exigeConferencia(r)) return "Conferir envio anterior";
     return "";
   }
@@ -87,11 +87,12 @@
       const n = (estado) => (out.registros || []).filter(x => x.status === estado).length;
       const config = out.config || {};
       const espera = Date.parse(config.iniciar_apos) > Date.now();
-      const el = $("certFilaStatus");
-      if (el) el.textContent = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("aceito")} aceitos · ${n("erro") + n("conferir")} para conferir · limite: 25/h e 200/24h.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
+      const el = $("certAtualizarFila");
+      if (el) el.title = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("aceito")} enviados · ${n("erro") + n("conferir")} para conferir · limite: 25/h e 200/24h.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
     } catch (e) {
-      const el = $("certFilaStatus");
-      if (el) el.textContent = `Fila indisponível: ${e.message}. Confira a instalação das funções e do SQL.`;
+      const el = $("certAtualizarFila");
+      if (el) el.title = "Não foi possível consultar a fila automática.";
+      console.warn("Não foi possível consultar a fila automática.", e);
       throw e;
     } finally { filaCarregando = false; }
   }
@@ -1242,7 +1243,7 @@
       { Indicador: "Filtro - Semestre", Valor: txt($("certSemestre")?.value) || "Todos" },
       { Indicador: "Filtro - Revisor", Valor: txt($("certRevisor")?.value) || "Todos" },
       { Indicador: "Filtro - E-mail", Valor: txt($("certEmail")?.value) || "Com e sem e-mail" },
-      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Aceitos pelo SMTP2GO", fila: "Na fila", conferir: "Para conferir" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
+      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Enviados", fila: "Na fila", conferir: "Para conferir" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
       { Indicador: "Filtro - Pesquisa", Valor: txt($("certBusca")?.value) || "Sem pesquisa" },
       { Indicador: "Global - Esteira", Valor: selecionadosFiltroGlobal("filtroEsteira").join(" | ") || "Todas" },
       { Indicador: "Global - Matriz", Valor: selecionadosFiltroGlobal("filtroMatriz").join(" | ") || "Todas" },
@@ -1990,7 +1991,7 @@
       else if (!emailValido(r.email)) situacao = "Sem e-mail";
       else if (r.ajusteAuditado) situacao = "Correção auditada";
       else if (!r.localizado) situacao = "Cadastro oficial pendente";
-      else if (enviado) situacao = "Aceito pelo SMTP2GO";
+      else if (enviado) situacao = "Enviado";
       if (cert && statusDaFila(cert)) situacao = statusDaFila(cert);
 
       return `
@@ -2296,7 +2297,7 @@
 
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
       $("certAtualizarFila")?.addEventListener("click", async () => {
-        try { await carregarFila(); render(); } catch (e) { alert(e.message); }
+        try { await carregarFila(); render(); } catch (e) { alert("Não foi possível atualizar a fila automática. O histórico de enviados continua disponível."); }
       });
       setInterval(async () => {
         if (document.hidden || enfileirando || selecionados().length || document.activeElement?.closest?.(".cert-email-manual,.cert-revisor-manual")) return;
