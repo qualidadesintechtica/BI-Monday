@@ -6,3 +6,9 @@ verify_jwt = false
 
 [functions.monday-revisores]
 verify_jwt = false
+
+[functions.certificados-fila-status]
+verify_jwt = false
+
+[functions.processar-certificados]
+verify_jwt = false

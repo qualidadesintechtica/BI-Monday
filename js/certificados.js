@@ -38,6 +38,63 @@
   const STORAGE_KEY = "bi_certificados_edicoes_v25_46_27";
   let historico = new Set();
   let historicoDetalhes = new Map();
+  let filaEnvios = new Map();
+  let conferenciasEnvios = [];
+  let filaCarregando = false;
+  let enfileirando = false;
+
+  async function apiFila(rota, body = {}) {
+    const { data: { session } } = await window.biSupabase.auth.getSession();
+    if (!session) throw new Error("Sessão expirada. Entre novamente no BI.");
+    const resp = await fetch(`${window.BI_CONFIG.SUPABASE_URL}/functions/v1/${rota}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY },
+      body: JSON.stringify(body)
+    });
+    const out = await resp.json().catch(() => ({}));
+    if (!resp.ok || !out.success) throw new Error(out.error || `Erro HTTP ${resp.status}`);
+    return out;
+  }
+
+  function exigeConferencia(r) {
+    const item = txt(r.chave).split("|")[0].replace(/^monday:/, "");
+    return conferenciasEnvios.some(x => x.monday_item_id === item &&
+      (txt(x.email).toLowerCase() === txt(r.email).toLowerCase() || nomeCaixaAlta(x.revisor) === nomeCaixaAlta(r.revisor)));
+  }
+
+  function statusDaFila(r) {
+    if (!r) return "";
+    if (historico.has(r.chave)) return "Aceito pelo SMTP2GO";
+    const f = filaEnvios.get(r.chave);
+    if (f) return ({ na_fila: "Na fila automática", processando: "Processando", aceito: "Aceito pelo SMTP2GO", erro: "Erro — conferir", conferir: "Conferir no SMTP2GO" })[f.status] || f.status;
+    if (exigeConferencia(r)) return "Conferir envio anterior";
+    return "";
+  }
+
+  async function carregarFila() {
+    if (filaCarregando) return;
+    filaCarregando = true;
+    try {
+      const out = await apiFila("certificados-fila-status");
+      filaEnvios = new Map((out.registros || []).map(x => [x.chave_certificado, x]));
+      conferenciasEnvios = out.conferencia || [];
+      for (const x of out.registros || []) {
+        if (x.status === "aceito") {
+          historico.add(x.chave_certificado);
+          historicoDetalhes.set(x.chave_certificado, { ...x, enviado_em: x.aceito_em });
+        }
+      }
+      const n = (estado) => (out.registros || []).filter(x => x.status === estado).length;
+      const config = out.config || {};
+      const espera = Date.parse(config.iniciar_apos) > Date.now();
+      const el = $("certFilaStatus");
+      if (el) el.textContent = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("aceito")} aceitos · ${n("erro") + n("conferir")} para conferir · limite: 25/h e 200/24h.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
+    } catch (e) {
+      const el = $("certFilaStatus");
+      if (el) el.textContent = `Fila indisponível: ${e.message}. Confira a instalação das funções e do SQL.`;
+      throw e;
+    } finally { filaCarregando = false; }
+  }
 
   // V25.46.41: correções auditadas de revisor por item/revisor original.
   // A Monday continua sendo a fonte operacional, mas quando o responsável
@@ -948,14 +1005,16 @@
 
   async function carregarHistorico() {
     try {
-      const { data, error } = await window.biSupabase
-        .from("certificados_envios")
-        .select("chave_certificado,status,revisor,email,name_ua,titulo,semestre_oferta,enviado_em")
-        .eq("status", "enviado");
-
-      if (error) throw error;
-
-      const registros = data || [];
+      const registros = [];
+      for (let inicio = 0; ; inicio += 1000) {
+        const { data, error } = await window.biSupabase
+          .from("certificados_envios")
+          .select("chave_certificado,status,revisor,email,name_ua,titulo,semestre_oferta,enviado_em")
+          .eq("status", "enviado").order("id").range(inicio, inicio + 999);
+        if (error) throw error;
+        registros.push(...(data || []));
+        if ((data || []).length < 1000) break;
+      }
       historico = new Set(registros.map((x) => x.chave_certificado));
       historicoDetalhes = new Map(
         registros
@@ -1097,7 +1156,7 @@
       let motivo = "";
       if (!enviado) {
         if (!emailValido(revisor.email)) motivo = "SEM E-MAIL";
-        else motivo = "AGUARDANDO ENVIO";
+        else motivo = statusDaFila(cert).toLocaleUpperCase("pt-BR") || "AGUARDANDO ENVIO";
       }
 
       linhas.push({
@@ -1183,7 +1242,7 @@
       { Indicador: "Filtro - Semestre", Valor: txt($("certSemestre")?.value) || "Todos" },
       { Indicador: "Filtro - Revisor", Valor: txt($("certRevisor")?.value) || "Todos" },
       { Indicador: "Filtro - E-mail", Valor: txt($("certEmail")?.value) || "Com e sem e-mail" },
-      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Enviados" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
+      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Aceitos pelo SMTP2GO", fila: "Na fila", conferir: "Para conferir" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
       { Indicador: "Filtro - Pesquisa", Valor: txt($("certBusca")?.value) || "Sem pesquisa" },
       { Indicador: "Global - Esteira", Valor: selecionadosFiltroGlobal("filtroEsteira").join(" | ") || "Todas" },
       { Indicador: "Global - Matriz", Valor: selecionadosFiltroGlobal("filtroMatriz").join(" | ") || "Todas" },
@@ -1814,6 +1873,9 @@
         const foiEnviado = certFiltro ? historico.has(certFiltro.chave) : false;
         if (filtroEnvio === "enviado" && !foiEnviado) return;
         if (filtroEnvio === "pendente" && foiEnviado) return;
+        const estadoFila = certFiltro ? filaEnvios.get(certFiltro.chave)?.status : "";
+        if (filtroEnvio === "fila" && !["na_fila", "processando"].includes(estadoFila)) return;
+        if (filtroEnvio === "conferir" && !(certFiltro && (exigeConferencia(certFiltro) || ["erro", "conferir"].includes(estadoFila)))) return;
 
         if (q) {
           const textoLinha = norm([
@@ -1928,7 +1990,8 @@
       else if (!emailValido(r.email)) situacao = "Sem e-mail";
       else if (r.ajusteAuditado) situacao = "Correção auditada";
       else if (!r.localizado) situacao = "Cadastro oficial pendente";
-      else if (enviado) situacao = "Enviado";
+      else if (enviado) situacao = "Aceito pelo SMTP2GO";
+      if (cert && statusDaFila(cert)) situacao = statusDaFila(cert);
 
       return `
         <tr>
@@ -2094,75 +2157,18 @@
   // ============================================================
 
   async function enviar(r) {
-    if (!emailValido(r.email)) {
-      throw new Error(`E-mail do revisor ${r.revisor} não localizado.`);
-    }
-
+    if (!emailValido(r.email)) throw new Error(`E-mail do revisor ${r.revisor} não localizado.`);
+    if (exigeConferencia(r)) throw new Error("Envio anterior pendente de conferência no SMTP2GO.");
     const certificado = await pdf(r, false);
-    const { data: { session } } = await window.biSupabase.auth.getSession();
-
-    if (!session) {
-      throw new Error("Sessão expirada. Entre novamente no BI.");
-    }
-
-    const url = `${window.BI_CONFIG.SUPABASE_URL}/functions/v1/enviar-certificado`;
-
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-        "apikey": window.BI_CONFIG.SUPABASE_PUBLISHABLE_KEY
-      },
-      body: JSON.stringify({
-        destinatario: r.email,
-        nome_revisor: r.revisor,
-        name: r.name,
-        titulo: r.titulo,
-        semestre_oferta: r.semestre,
-        pdf_base64: certificado.base64,
-        nome_arquivo: certificado.nome
-      })
+    const out = await apiFila("enviar-certificado", {
+      chave_certificado: r.chave,
+      destinatario: r.email, nome_revisor: r.revisor,
+      name: r.name, titulo: r.titulo, semestre_oferta: r.semestre,
+      pdf_base64: certificado.base64, nome_arquivo: certificado.nome
     });
-
-    const out = await resp.json().catch(() => ({}));
-
-    if (!resp.ok || !out.success) {
-      throw new Error(
-        out?.detalhe?.message || out?.error || `Erro HTTP ${resp.status}`
-      );
-    }
-
-    historico.add(r.chave);
-
-    try {
-      const { error } = await window.biSupabase
-        .from("certificados_envios")
-        .insert({
-          chave_certificado: r.chave,
-          revisor: r.revisor,
-          email: r.email,
-          name_ua: r.name,
-          titulo: r.titulo,
-          semestre_oferta: r.semestre,
-          status: "enviado",
-          // Mantemos o nome da coluna antiga para compatibilidade.
-          resend_id: out.smtp2go_id || out.resend_id || null
-        });
-
-      if (error) {
-        console.warn(
-          "Certificado enviado, mas não foi possível registrar o histórico.",
-          error
-        );
-      }
-    } catch (e) {
-      console.warn(
-        "Certificado enviado, mas ocorreu erro ao registrar o histórico.",
-        e
-      );
-    }
-
+    filaEnvios.set(r.chave, { chave_certificado: r.chave, status: out.status });
+    if (out.status === "aceito") historico.add(r.chave);
+    if (["erro", "conferir"].includes(out.status)) throw new Error("Registro bloqueado para conferência. Não foi reenviado.");
     return out;
   }
 
@@ -2184,10 +2190,11 @@
 
       carregarEdicoesManuais();
 
+      await carregarHistorico();
       await Promise.all([
         carregarRevisoresPlanilha(),
         carregarUsuariosMonday(),
-        carregarHistorico(),
+        carregarFila().catch(console.warn),
         carregarAjustesAuditados()
       ]);
 
@@ -2288,6 +2295,13 @@
       });
 
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
+      $("certAtualizarFila")?.addEventListener("click", async () => {
+        try { await carregarFila(); render(); } catch (e) { alert(e.message); }
+      });
+      setInterval(async () => {
+        if (document.hidden || enfileirando || selecionados().length || document.activeElement?.closest?.(".cert-email-manual,.cert-revisor-manual")) return;
+        try { await carregarFila(); render(); } catch (_) { /* Aviso no painel. */ }
+      }, 30000);
 
       $("certGerar")?.addEventListener("click", async () => {
         const arr = selecionados();
@@ -2341,7 +2355,8 @@
           return;
         }
 
-        if (!confirm(`Enviar ${arr.length} certificado(s)?`)) return;
+        if (!confirm(`Adicionar ${arr.length} certificado(s) à fila automática? Os envios respeitarão 25/h e 200/24h. Registros já aceitos ou na fila não serão repetidos.`)) return;
+        enfileirando = true;
 
         const botao = $("certEnviar");
         const status = $("certStatus");
@@ -2349,24 +2364,30 @@
 
         let ok = 0;
         let erros = 0;
+        const detalhes = [];
+        let processados = 0;
 
         for (const r of arr) {
           if (status) {
-            status.textContent = `Enviando ${ok + erros + 1} de ${arr.length}: ${r.revisor}`;
+            status.textContent = `Adicionando à fila ${++processados} de ${arr.length}: ${r.revisor}`;
           }
 
           try {
-            await enviar(r);
-            ok++;
+            const out = await enviar(r);
+            if (!out.duplicado) ok++;
           } catch (e) {
             erros++;
-            console.error("Erro ao enviar certificado:", r, e);
+            detalhes.push(`${r.revisor} — ${r.name}: ${e.message}`);
+            console.error("Erro ao enfileirar certificado:", e);
           }
         }
 
         if (botao) botao.disabled = false;
-        if (status) status.textContent = `Concluído: ${ok} enviado(s), ${erros} erro(s).`;
+        enfileirando = false;
+        try { await carregarFila(); } catch (_) {}
         render();
+        if (status) status.textContent = `${ok} novo(s) na fila, ${arr.length - ok - erros} já registrado(s), ${erros} bloqueio(s)/erro(s).`;
+        if (detalhes.length) alert(detalhes.slice(0, 8).join("\n") + (detalhes.length > 8 ? "\nConsulte a tabela para os demais registros." : ""));
       });
 
       document.addEventListener("click", async (e) => {

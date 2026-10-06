@@ -1399,7 +1399,9 @@
             <select id="certEnvio">
               <option value="">Enviados e pendentes</option>
               <option value="pendente">Pendentes</option>
-              <option value="enviado">Enviados</option>
+              <option value="enviado">Aceitos pelo SMTP2GO</option>
+              <option value="fila">Na fila automática</option>
+              <option value="conferir">Para conferir</option>
             </select>
           </label>
 
@@ -1414,6 +1416,8 @@
         </div>
 
         <datalist id="certRevisoresLista"></datalist>
+        <p id="certFilaStatus" role="status" style="padding:12px;border:1px solid #db007d;border-radius:8px">Consultando fila automática…</p>
+        <p style="font-size:13px">Aceito pelo SMTP2GO significa recebido pelo serviço para envio. A entrega ao servidor do destinatário deve ser conferida em Reports → Activity.</p>
 
         <section class="mini-kpis four">
           <article class="mini-kpi">
@@ -1447,13 +1451,14 @@
           </button>
 
           <button id="certEnviar" class="cert-btn cert-primary" type="button">
-            Enviar selecionados
+            Adicionar à fila automática
           </button>
 
           <button id="certRelatorio" class="cert-btn" type="button">
             Exportar relatório
           </button>
 
+          <button id="certAtualizarFila" class="cert-btn" type="button">Atualizar fila</button>
           <span id="certStatus"></span>
         </div>
 
@@ -1566,7 +1571,7 @@
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20261002-v25-46-38-auditoria"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="js/certificados.js?v=20261005-v25-46-44-filtro-envio"></script>
+  <script src="js/certificados.js?v=20261006-v25-46-48-fila-smtp2go"></script>
   <script src="js/dashboard.js?v=20261001-v25-46-34-linha-por-revisor"></script>
 
 
