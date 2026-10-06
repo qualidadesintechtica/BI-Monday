@@ -41,6 +41,7 @@
   let filaEnvios = new Map();
   let conferenciasEnvios = [];
   let filaCarregando = false;
+  let filaDisponivel = false;
   let enfileirando = false;
 
   async function apiFila(rota, body = {}) {
@@ -75,7 +76,18 @@
     if (filaCarregando) return;
     filaCarregando = true;
     try {
-      const out = await apiFila("certificados-fila-status");
+      let out;
+      try {
+        out = await apiFila("certificados-fila-status");
+      } catch (erroApi) {
+        // Alternativa autenticada: somente metadados, sem PDFs ou secrets.
+        const fallback = await window.biSupabase.rpc("certificados_fila_status");
+        if (fallback.error || !fallback.data?.success) {
+          throw new Error(fallback.error?.message || "Não foi possível consultar a fila automática.");
+        }
+        out = fallback.data;
+      }
+      filaDisponivel = true;
       filaEnvios = new Map((out.registros || []).map(x => [x.chave_certificado, x]));
       conferenciasEnvios = out.conferencia || [];
       for (const x of out.registros || []) {
@@ -90,6 +102,7 @@
       const el = $("certAtualizarFila");
       if (el) el.title = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("aceito")} enviados · ${n("erro") + n("conferir")} para conferir · limite: 25/h e 200/24h.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
     } catch (e) {
+      filaDisponivel = false;
       const el = $("certAtualizarFila");
       if (el) el.title = "Não foi possível consultar a fila automática.";
       console.warn("Não foi possível consultar a fila automática.", e);
@@ -1243,7 +1256,7 @@
       { Indicador: "Filtro - Semestre", Valor: txt($("certSemestre")?.value) || "Todos" },
       { Indicador: "Filtro - Revisor", Valor: txt($("certRevisor")?.value) || "Todos" },
       { Indicador: "Filtro - E-mail", Valor: txt($("certEmail")?.value) || "Com e sem e-mail" },
-      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Enviados", fila: "Na fila", conferir: "Para conferir" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
+      { Indicador: "Filtro - Envio", Valor: ({ pendente: "Pendentes", enviado: "Enviados", fila: "Na fila automática", processando: "Processando", conferir: "Para conferir" }[txt($("certEnvio")?.value)] || "Enviados e pendentes") },
       { Indicador: "Filtro - Pesquisa", Valor: txt($("certBusca")?.value) || "Sem pesquisa" },
       { Indicador: "Global - Esteira", Valor: selecionadosFiltroGlobal("filtroEsteira").join(" | ") || "Todas" },
       { Indicador: "Global - Matriz", Valor: selecionadosFiltroGlobal("filtroMatriz").join(" | ") || "Todas" },
@@ -1875,7 +1888,8 @@
         if (filtroEnvio === "enviado" && !foiEnviado) return;
         if (filtroEnvio === "pendente" && foiEnviado) return;
         const estadoFila = certFiltro ? filaEnvios.get(certFiltro.chave)?.status : "";
-        if (filtroEnvio === "fila" && !["na_fila", "processando"].includes(estadoFila)) return;
+        if (filtroEnvio === "fila" && estadoFila !== "na_fila") return;
+        if (filtroEnvio === "processando" && estadoFila !== "processando") return;
         if (filtroEnvio === "conferir" && !(certFiltro && (exigeConferencia(certFiltro) || ["erro", "conferir"].includes(estadoFila)))) return;
 
         if (q) {
@@ -1907,6 +1921,14 @@
 
     const tb = $("certTbody");
     if (!tb) return;
+
+    const consultaFilaIndisponivel = ["fila", "processando", "conferir"].includes(txt($("certEnvio")?.value)) && !filaDisponivel;
+    if (consultaFilaIndisponivel) {
+      tb.innerHTML = '<tr><td colspan="10" class="empty-table">Não foi possível consultar esta situação de envio. Clique em Atualizar fila.</td></tr>';
+      atualizarSel();
+      if ($("certStatus")) $("certStatus").textContent = "Situação de envio indisponível para consulta.";
+      return;
+    }
 
     if (!linhasFiltradas.length) {
       tb.innerHTML = `

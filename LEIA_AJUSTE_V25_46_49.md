@@ -11,7 +11,8 @@ O histórico existente não é apagado nem reclassificado. Registros de sucesso 
 | Enviados e pendentes | Todos os registros que atendem aos demais filtros. |
 | Pendentes | Sem registro de envio confirmado. Inclui itens na fila, sem e-mail ou aguardando conferência. |
 | Enviados | Registro de sucesso no histórico ou confirmação positiva do SMTP2GO. |
-| Na fila automática | Incluídos na fila local e aguardando o disparo, ou em processamento. |
+| Na fila automática | Incluídos na fila local e aguardando o disparo. |
+| Processando | Tentativa em execução pelo worker local. |
 | Para conferir | Erro, resposta inconclusiva ou envio anterior que precisa ser conferido antes de repetir. |
 
 Nos prints, a consulta da fila retorna **Failed to fetch**. Remover o texto não corrige a conexão nem instala o backend. A fila depende das três Edge Functions, SQLs e cron da V25.46.48; consulte o guia incluído caso ainda falte instalá-los. Erros continuam registrados no console e no diagnóstico. O botão Atualizar fila informa falha de consulta quando acionado.
