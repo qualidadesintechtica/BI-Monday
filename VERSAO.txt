@@ -1,3 +1,3 @@
-V25.46.52
+V25.46.53
 2026-10-07
-Planejamento com tarefas, passos, vínculos e atenção integrada ao BI.
+Inclui cinco responsáveis nas tarefas, passos e filtros do Planejamento.

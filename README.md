@@ -1,3 +1,7 @@
+# Atualização V25.46.53 — Responsáveis
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_53.md**. Esta atualização não exige SQL novo.
+
 # Atualização V25.46.52 — Planejamento
 
 Comece pelo arquivo **COMECE_AQUI_V25_46_52.md**. A instalação desta atualização usa apenas **docs/15_INSTALAR_PLANEJAMENTO.sql**.

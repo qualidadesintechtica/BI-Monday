@@ -9,9 +9,11 @@
   const STATUS = {a_fazer: 'A fazer', em_andamento: 'Em andamento', bloqueada: 'Bloqueada', concluida: 'Concluída'};
   const PRIORIDADES = {baixa: 'Baixa', media: 'Média', alta: 'Alta', critica: 'Crítica'};
   const TIPOS = {visao: 'Visão do BI', material: 'UC / UA / Material', projeto: 'Projeto Qualidade', tarefa_projeto: 'Tarefa do projeto', professor: 'Professor NQ', revisor: 'Revisor UA', certificado: 'Certificado'};
+  const RESPONSAVEIS_FIXOS = ['João Guilherme', 'Ligia Paolilo', 'Cléa Domingues', 'Cristina Quiteria', 'Luciana Bandeira'];
   const $ = id => document.getElementById(id);
   const txt = v => String(v ?? '').trim();
   const norm = v => txt(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const chaveNome = v => norm(v).replace(/\s+/g, ' ');
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone = v => JSON.parse(JSON.stringify(v));
   const hoje = () => new Intl.DateTimeFormat('sv-SE', {timeZone: 'America/Sao_Paulo'}).format(new Date());
@@ -25,6 +27,27 @@
   const exigeAtencao = t => !t.arquivada && t.status !== 'concluida' && (t.atencao || t.status === 'bloqueada' || atraso(t));
   const opcoes = (obj, atual, vazio = '') => (vazio ? `<option value="">${esc(vazio)}</option>` : '') +
     Object.entries(obj).map(([v, l]) => `<option value="${esc(v)}" ${v === atual ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  function listaResponsaveis() {
+    const nomes = [...RESPONSAVEIS_FIXOS];
+    estado.tarefas.forEach(t => {
+      nomes.push(t.responsavel);
+      (t.etapas || []).forEach(e => nomes.push(e.responsavel));
+    });
+    [window.BI_RESPONSAVEIS_NQ?.gestores, window.BI_RESPONSAVEIS_NQ?.revisores].forEach(m => m?.forEach(n => nomes.push(n)));
+    estado.refs.forEach(r => {
+      if (r.tipo === 'professor') nomes.push(r.dados.professor);
+      if (r.tipo === 'revisor') nomes.push(r.dados.nome);
+    });
+    const unicos = new Map();
+    nomes.forEach(n => {
+      const nome = txt(n).replace(/\s+/g, ' '), chave = chaveNome(nome);
+      if (nome && !unicos.has(chave)) unicos.set(chave, nome);
+    });
+    return [...unicos.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }
+  function atualizarListaResponsaveis() {
+    if ($('planResponsaveis')) $('planResponsaveis').innerHTML = listaResponsaveis().map(n => `<option value="${esc(n)}"></option>`).join('');
+  }
   function registrar(r) {
     const ref = {...r, id: txt(r.id).slice(0, 500), label: txt(r.label).slice(0, 600), dados: r.dados || {}};
     estado.refs.set(chaveRef(ref), ref);
@@ -135,7 +158,7 @@
     const q=norm($('planBusca')?.value), status=$('planFiltroStatus')?.value, prio=$('planFiltroPrioridade')?.value,
       resp=$('planFiltroResponsavel')?.value, atencao=$('planSomenteAtencao')?.checked, arquivo=$('planArquivadas')?.checked;
     return estado.tarefas.filter(t => t.arquivada === !!arquivo && (!status || t.status===status) && (!prio || t.prioridade===prio) &&
-      (!resp || t.responsavel===resp) && (!atencao || exigeAtencao(t)) && (!estado.filtroPagina || paginasDaTarefa(t).has(estado.filtroPagina)) &&
+      (!resp || chaveNome(t.responsavel)===chaveNome(resp)) && (!atencao || exigeAtencao(t)) && (!estado.filtroPagina || paginasDaTarefa(t).has(estado.filtroPagina)) &&
       (!q || norm([t.titulo,t.descricao,t.responsavel,...(t.vinculos || []).map(r=>r.label),...(t.etapas || []).map(e=>e.titulo)].join(' ')).includes(q)))
       .sort((a,b) => Number(exigeAtencao(b))-Number(exigeAtencao(a)) || ['critica','alta','media','baixa'].indexOf(a.prioridade)-['critica','alta','media','baixa'].indexOf(b.prioridade) ||
         (a.prazo || '9999').localeCompare(b.prazo || '9999') || b.atualizado_em.localeCompare(a.atualizado_em));
@@ -156,8 +179,8 @@
     if (!$('planBoard')) return;
     $('planNova').disabled=!estado.pronto; $('planExportar').disabled=!estado.pronto;
     const resp=$('planFiltroResponsavel'), prev=resp.value;
-    const nomes=[...new Set(estado.tarefas.map(t=>t.responsavel).filter(Boolean))].sort();
-    resp.innerHTML='<option value="">Todos os responsáveis</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join(''); resp.value=nomes.includes(prev)?prev:'';
+    const nomes=listaResponsaveis();
+    resp.innerHTML='<option value="">Todos os responsáveis</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join(''); resp.value=nomes.find(n=>chaveNome(n)===chaveNome(prev)) || '';
     const lista=filtradas(), abertas=estado.tarefas.filter(t=>!t.arquivada);
     $('planTotal').textContent=abertas.length;
     $('planEmAndamento').textContent=abertas.filter(t=>t.status==='em_andamento').length;
@@ -210,7 +233,7 @@
     $('planEtapas').innerHTML=estado.draft.etapas.map((e,i)=>`<div class="plan-step" data-plan-step="${i}">
       <input type="checkbox" data-step-field="concluida" aria-label="Concluir passo ${i+1}" ${e.concluida?'checked':''}>
       <div><input data-step-field="titulo" aria-label="Título do passo ${i+1}" maxlength="300" value="${esc(e.titulo)}" placeholder="O que precisa ser feito?" required>
-      <div class="plan-step-extra"><input data-step-field="responsavel" aria-label="Responsável pelo passo ${i+1}" maxlength="300" value="${esc(e.responsavel || '')}" placeholder="Responsável"><input data-step-field="prazo" type="date" aria-label="Prazo do passo ${i+1}" value="${esc(e.prazo || '')}"></div></div>
+      <div class="plan-step-extra"><input data-step-field="responsavel" list="planResponsaveis" aria-label="Responsável pelo passo ${i+1}" maxlength="300" value="${esc(e.responsavel || '')}" placeholder="Responsável"><input data-step-field="prazo" type="date" aria-label="Prazo do passo ${i+1}" value="${esc(e.prazo || '')}"></div></div>
       <div class="plan-step-actions"><button type="button" data-plan-step-up="${i}" aria-label="Mover passo ${i+1} para cima" ${!i?'disabled':''}>↑</button><button type="button" data-plan-step-delete="${i}" aria-label="Remover passo ${i+1}">×</button></div></div>`).join('');
     $('planEtapasContagem').textContent=`${estado.draft.etapas.filter(e=>e.concluida).length}/${estado.draft.etapas.length} passos concluídos`;
   }
@@ -250,15 +273,11 @@
     $('planComentar').disabled=!d.id; $('planComentario').disabled=!d.id;
     $('planBuscaVinculo').value=''; $('planTipoVinculo').value='';
     renderEtapas(); if(referencia) adicionarRef(referencia); else renderVinculos(); buscarRefs();
+    atualizarListaResponsaveis();
     $('planDialog').showModal(); $('planCampo_titulo').focus();
     if(d.id) void historico(d.id);
     await fontesExtras(); if(estado.draft===d && $('planDialog').open) {buscarRefs();renderVinculos();}
-    if ($('planResponsaveis')) {
-      const nomes=new Set(estado.tarefas.map(t=>t.responsavel).filter(Boolean));
-      [window.BI_RESPONSAVEIS_NQ?.gestores,window.BI_RESPONSAVEIS_NQ?.revisores].forEach(m=>m?.forEach(n=>nomes.add(n)));
-      estado.refs.forEach(r=>{if(r.tipo==='professor')nomes.add(r.dados.professor);if(r.tipo==='revisor')nomes.add(r.dados.nome);});
-      $('planResponsaveis').innerHTML=[...nomes].filter(Boolean).sort().map(n=>`<option value="${esc(n)}"></option>`).join('');
-    }
+    atualizarListaResponsaveis();
   }
   function lerFormulario() {
     const d=estado.draft;
