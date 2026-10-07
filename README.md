@@ -1,3 +1,7 @@
+# Atualização V25.46.54 — Importação de Projeto Qualidade
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_54.md**. Atualize os arquivos do site e execute **docs/16_ANOTACOES_PLANEJAMENTO_QUALIDADE.sql** depois da estrutura do Planejamento.
+
 # Atualização V25.46.53 — Responsáveis
 
 Comece pelo arquivo **COMECE_AQUI_V25_46_53.md**. Esta atualização não exige SQL novo.
