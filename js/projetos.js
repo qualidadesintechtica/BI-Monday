@@ -879,6 +879,9 @@
 
   function mensagemErro(error) {
     const bruto = texto(error?.message || error);
+    if (/pq_transicionar_edicao_compativel|invalid input syntax for type bigint/i.test(bruto)) {
+      return "A aprovação ainda usa uma função incompatível com o identificador desta versão. Execute docs/19_CORRIGIR_APROVACAO_PDF_UUID.sql no Supabase e atualize projetos.html e js/projetos.js da V25.46.58. Depois recarregue a página e tente novamente.";
+    }
     if (/pq_projetos_edicoes_status_edicao_check/i.test(bruto)) {
       return "A regra de status das versões está desatualizada no banco. Execute docs/18_CORRIGIR_STATUS_EDICOES_PDF.sql no Supabase, recarregue a página e tente novamente. As versões existentes serão preservadas.";
     }
@@ -1973,8 +1976,9 @@
     definirSalvando(true);
     mostrarFeedback(`Enviando a versão ${edicao.versao} para revisão…`);
     try {
-      const { data, error } = await window.biSupabase.rpc("pq_enviar_edicao_revisao", {
-        p_edicao_id: edicao.id,
+      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_compativel", {
+        p_edicao_id: texto(edicao.id),
+        p_status_edicao: "em_revisao",
       });
       if (error) throw error;
 
@@ -2045,8 +2049,9 @@
     mostrarFeedback(`Finalizando a versão ${edicao.versao}…`);
 
     try {
-      const { data, error } = await window.biSupabase.rpc("pq_finalizar_edicao", {
-        p_edicao_id: edicao.id,
+      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_compativel", {
+        p_edicao_id: texto(edicao.id),
+        p_status_edicao: "finalizada",
       });
       if (error) throw error;
 

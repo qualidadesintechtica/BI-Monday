@@ -1,3 +1,7 @@
+# Atualização V25.46.58 — Aprovação e PDF com ID UUID
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_58.md**. Execute **docs/19_CORRIGIR_APROVACAO_PDF_UUID.sql** e atualize as páginas indicadas no guia. O SQL 19 resolve a incompatibilidade entre IDs UUID e funções bigint e já inclui a correção de status do SQL 18. As versões e seus identificadores são preservados.
+
 # Atualização V25.46.57 — Planejamento e aprovação do PDF
 
 Comece pelo arquivo **COMECE_AQUI_V25_46_57.md**. Este pacote reúne as três correções: controles de tarefas somente no Planejamento, status editável dos cartões e regra de status das versões do Projeto Qualidade. Execute os SQLs 17 e 18 e atualize os seis arquivos do site indicados no guia.
