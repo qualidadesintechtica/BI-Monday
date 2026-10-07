@@ -1,3 +1,15 @@
+# Atualização V25.46.57 — Planejamento e aprovação do PDF
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_57.md**. Este pacote reúne as três correções: controles de tarefas somente no Planejamento, status editável dos cartões e regra de status das versões do Projeto Qualidade. Execute os SQLs 17 e 18 e atualize os seis arquivos do site indicados no guia.
+
+# Atualização V25.46.56 — Status editável no Planejamento
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_56.md**. Execute o SQL 17 e atualize os cinco arquivos do site indicados no guia. Esta versão inclui a retirada dos botões de tarefas das outras áreas.
+
+# Atualização V25.46.55 — Ações somente no Planejamento
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_55.md**. Esta alteração não exige SQL novo.
+
 # Atualização V25.46.54 — Importação de Projeto Qualidade
 
 Comece pelo arquivo **COMECE_AQUI_V25_46_54.md**. Atualize os arquivos do site e execute **docs/16_ANOTACOES_PLANEJAMENTO_QUALIDADE.sql** depois da estrutura do Planejamento.

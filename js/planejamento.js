@@ -113,12 +113,7 @@
       const n = pagina === 'planejamento' ? abertas.length : abertas.filter(t => paginasDaTarefa(t).has(pagina)).length;
       if (n) { const b = document.createElement('span'); b.className='plan-nav-badge'; b.textContent=n; b.title=`${n} tarefa(s) que exigem atenção`; link.appendChild(b); }
     });
-    const banner = $('planContexto'); if (!banner) return;
-    banner.hidden = estado.pagina === 'planejamento';
-    const n = abertas.filter(t => paginasDaTarefa(t).has(estado.pagina)).length;
-    $('planContextoTexto').textContent = n ? `${n} tarefa(s) exigem atenção nesta área.` : 'Registre uma ação para acompanhar este ponto do processo.';
-    $('planVerAtencao').hidden = !n;
-    $('planCriarContexto').disabled = !estado.pronto;
+
   }
   function paginaAlterada(pagina) {
     estado.pagina=pagina; atualizarSinais(); if (pagina === 'planejamento') {render();if(estado.pronto)void carregar(true);}
@@ -174,7 +169,7 @@
   }
   function card(t) {
     const etapas=t.etapas || [], feitas=etapas.filter(e=>e.concluida).length;
-    return `<article class="plan-task ${exigeAtencao(t)?'plan-task-attention':''}" draggable="${!t.arquivada && !t.qualidade}" data-plan-drag="${esc(t.id)}">
+    return `<article class="plan-task ${exigeAtencao(t)?'plan-task-attention':''}" draggable="${!t.arquivada}" data-plan-drag="${esc(t.id)}">
       <div class="plan-card-top"><span class="plan-priority plan-priority-${t.prioridade}">${PRIORIDADES[t.prioridade]}</span>
       ${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${t.atencao && t.status!=='concluida'?'<span class="plan-tag">Atenção</span>':''}${atraso(t)?'<span class="plan-tag plan-late">Atrasada</span>':''}</div>
       <button type="button" class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>
@@ -182,7 +177,7 @@
       <p class="plan-task-meta">${esc(t.responsavel || 'Sem responsável')}<br><span class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</span></p>
       ${etapas.length?`<div class="plan-progress"><span style="width:${Math.round(feitas/etapas.length*100)}%"></span></div><small>${feitas}/${etapas.length} passos concluídos</small>`:'<small>Sem passos cadastrados</small>'}
       <div class="plan-card-links">${(t.vinculos || []).slice(0,2).map(r=>`<span title="${esc(r.label)}">${esc(TIPOS[r.tipo])}: ${esc(r.label.slice(0,75))}</span>`).join('')}${(t.vinculos || []).length>2?`<small>+${t.vinculos.length-2} vínculos</small>`:''}</div>
-      <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || t.qualidade || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label></article>`;
+      <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label></article>`;
   }
   function render() {
     if (!$('planBoard')) return;
@@ -249,10 +244,11 @@
   }
   function renderQualidade() {
     const q=estado.draft.qualidade, box=$('planQualidadeDetalhe');box.hidden=!q;
-    ['titulo','responsavel','prazo','status','prioridade'].forEach(k=>{const el=$('planCampo_'+k);el.disabled=!!q;});
+    ['titulo','responsavel','prazo','prioridade'].forEach(k=>{const el=$('planCampo_'+k);el.disabled=!!q;});
+    $('planCampo_status').disabled=!!q && !q.ativo;
     if(!q) {box.innerHTML='';return;}
     const fonte=q.fonte;
-    box.innerHTML=`<p class="plan-source-note">${q.ativo?'Status, responsáveis, prazos e passos abaixo acompanham o Projeto Qualidade. Altere esses dados na aba de origem. As anotações e passos adicionais ficam salvos neste cartão.':'Este item saiu da base ativa de Projeto Qualidade. Suas anotações e seu histórico foram preservados.'}</p>
+    box.innerHTML=`<p class="plan-source-note">${q.ativo?'Você pode alterar o status neste cartão: ele será salvo também no Projeto Qualidade. Responsáveis, prazos e passos acompanham a fonte. As anotações e passos adicionais ficam salvos neste cartão.':'Este item saiu da base ativa de Projeto Qualidade. Suas anotações e seu histórico foram preservados.'}</p>
       <button type="button" id="planAbrirQualidade">Abrir Projeto Qualidade</button>
       ${fonte?`<details><summary>Objetivo, resultados e dados da planilha</summary>${contextoLegivel({projeto:fonte.projeto,azure_id:fonte.id_azure,status:fonte.status,sponsor:fonte.sponsor,data_inicio:fonte.data_inicio,data_fim:fonte.data_fim,objetivo:fonte.contexto_objetivo_original,resultados_esperados:fonte.resultados_esperados_original,acoes:fonte.acoes_tarefas_original,impacto:fonte.impacto_original,resultados_alcancados:fonte.resultados_alcancados_original,link_evidencias:fonte.link_evidencias,aba_origem:fonte.aba_origem})}
       <details><summary>Todas as colunas originais</summary><pre>${esc(JSON.stringify(fonte.dados_origem || {},null,2))}</pre></details></details>`:''}
@@ -279,13 +275,14 @@
     estado.draft.vinculos.push(clone(r)); renderVinculos();
   }
   async function abrir(tarefa = null, referencia = null) {
+    if(estado.pagina!=='planejamento' && $('viewPlanejamento')) window.abrirPaginaBI?.('planejamento');
     if (!estado.pronto) { window.abrirPaginaBI?.('planejamento'); return; }
     if (estado.salvando) return;
     estado.draft=clone(tarefa || {titulo:'',descricao:'',responsavel:'',prazo:'',status:'a_fazer',prioridade:'media',atencao:!!referencia,etapas:[],vinculos:[],arquivada:false});
     const d=estado.draft;
     if(d.qualidade) {d.id=d.qualidade.salvo?.id;d.versao=d.qualidade.salvo?.versao;d.etapas=clone(d.qualidade.salvo?.etapas || []);}
     $('planDialogTitulo').textContent=d.qualidade?'Projeto Qualidade':d.id?'Editar tarefa':'Nova tarefa';
-    $('planSalvar').textContent=d.qualidade?'Salvar acompanhamento':'Salvar tarefa';
+    $('planSalvar').textContent=d.qualidade?'Salvar alterações':'Salvar tarefa';
     $('planDescricaoRotulo').textContent=d.qualidade?'Anotações de acompanhamento':'Descrição';
     $('planPassosTitulo').textContent=d.qualidade?'Passos adicionais de acompanhamento':'Passos da tarefa';
     ['titulo','descricao','responsavel','prazo'].forEach(k=>$('planCampo_'+k).value=k==='prazo'?txt(d[k]).slice(0,10):(d[k] || ''));
@@ -294,13 +291,13 @@
     $('planCampo_atencao').checked=d.atencao;
     $('planDialogErro').textContent=''; $('planComentario').value='';
     $('planArquivar').hidden=!d.id || (d.qualidade && !d.qualidade.ativo); $('planArquivar').textContent=d.arquivada?'Restaurar tarefa':'Arquivar tarefa';
-    $('planHistorico').innerHTML=d.id?'Carregando histórico…':'O histórico será registrado após salvar a tarefa.';
+    $('planHistorico').innerHTML=d.id || d.qualidade?'Carregando histórico…':'O histórico será registrado após salvar a tarefa.';
     $('planComentar').disabled=!d.id; $('planComentario').disabled=!d.id;
     $('planBuscaVinculo').value=''; $('planTipoVinculo').value='';
     renderQualidade(); renderEtapas(); if(referencia) adicionarRef(referencia); else renderVinculos(); buscarRefs();
     atualizarListaResponsaveis();
     $('planDialog').showModal(); $('planCampo_titulo').focus();
-    if(d.id) void historico(d.id);
+    if(d.id || d.qualidade) void historico(d.id);
     await fontesExtras(); if(estado.draft===d && $('planDialog').open) {buscarRefs();renderVinculos();}
     atualizarListaResponsaveis();
   }
@@ -314,6 +311,20 @@
     const i=estado.persistidas.findIndex(x=>x.id===t.id); if(i<0) estado.persistidas.push(t); else estado.persistidas[i]=t;montarTarefas();
     render(); atualizarSinais();
   }
+  function erroStatusQualidade(error) {
+    if(['PGRST202','PGRST205','42883','42P01'].includes(error?.code)) return new Error('Execute docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql no Supabase para habilitar a alteração de status dos cartões importados.');
+    return error;
+  }
+  function argumentosStatus(q,status) {
+    if(!q?.fonte || !q.ativo) throw new Error('O item não está ativo no Projeto Qualidade. Atualize o quadro.');
+    return {p_tipo:q.tipo,p_fonte_id:q.fonte.id,p_chave:q.chave,p_status:status,p_status_atual:q.fonte.status ?? null,p_fonte_atualizada_em:q.fonte.updated_at || null};
+  }
+  function atualizarFonteQualidade(q,fonte) {
+    if(!fonte?.id || fonte.status == null) throw new Error('O banco não confirmou o novo status.');
+    const campo=q.tipo==='projeto'?'projetos':'tarefas',arr=estado.qualidadeFonte?.[campo];
+    if(arr) {const i=arr.findIndex(x=>txt(x.id)===txt(fonte.id));if(i>=0)arr[i]=fonte;}
+    window.invalidarProjetoQualidade?.();montarTarefas();
+  }
   async function salvar(d) {
     if (!txt(d.titulo)) throw new Error('Informe o título da tarefa.');
     if(d.etapas.some(e=>!txt(e.titulo))) throw new Error('Preencha o título de todos os passos ou remova os passos vazios.');
@@ -323,9 +334,18 @@
     if(d.qualidade) {dados.titulo=dados.titulo.slice(0,200);dados.responsavel=dados.responsavel.slice(0,300);dados.status='a_fazer';}
     const args={p_id:d.id || null,p_versao:d.versao || null,p_dados:dados};
     if(d.qualidade) args.p_chave=d.qualidade.chave;
-    const {data,error}=await window.biSupabase.rpc(d.qualidade?'bi_planejamento_qualidade_salvar':'bi_planejamento_salvar', args);
-    if(error && d.qualidade && ['PGRST202','42883'].includes(error.code)) throw new Error('Execute docs/16_ANOTACOES_PLANEJAMENTO_QUALIDADE.sql no Supabase para salvar o acompanhamento dos projetos.');
-    if(error) throw error;
+    const alterouStatus=d.qualidade && d.status!==window.biPlanejamentoQualidade.status(d.qualidade.fonte?.status);
+    let resposta;
+    if(alterouStatus) {
+      resposta=await window.biSupabase.rpc('bi_planejamento_qualidade_acompanhar',{...args,...argumentosStatus(d.qualidade,d.status)});
+      if(resposta.error) throw erroStatusQualidade(resposta.error);
+      atualizarFonteQualidade(d.qualidade,resposta.data?.fonte);
+    } else {
+      resposta=await window.biSupabase.rpc(d.qualidade?'bi_planejamento_qualidade_salvar':'bi_planejamento_salvar',args);
+      if(resposta.error && d.qualidade && ['PGRST202','42883'].includes(resposta.error.code)) throw new Error('Execute docs/16_ANOTACOES_PLANEJAMENTO_QUALIDADE.sql no Supabase para salvar o acompanhamento dos projetos.');
+      if(resposta.error) throw resposta.error;
+    }
+    const data=alterouStatus?resposta.data?.anotacao:resposta.data;
     const t=Array.isArray(data)?data[0]:data;
     if(!t?.id) throw new Error('O banco não confirmou o salvamento.');
     alterarLocal(t); return t;
@@ -344,22 +364,32 @@
   }
   async function mudarStatus(id,status) {
     if(estado.salvando) return;
-    const t=estado.tarefas.find(x=>x.id===id); if(!t || t.qualidade || t.arquivada || t.status===status) return;
-    estado.salvando=true;
-    try {await salvar({...clone(t),status}); aviso('Status atualizado.');}
-    catch(error) {aviso(mensagemErro(error),true);render();}
+    const t=estado.tarefas.find(x=>x.id===id); if(!t || t.arquivada || t.status===status) return;
+    estado.salvando=true;aviso('Salvando status…');render();
+    try {
+      if(t.qualidade) {
+        const {data,error}=await window.biSupabase.rpc('bi_planejamento_qualidade_alterar_status',argumentosStatus(t.qualidade,status));
+        if(error)throw erroStatusQualidade(error);
+        atualizarFonteQualidade(t.qualidade,data);atualizarSinais();
+        aviso('Status salvo no Planejamento e no Projeto Qualidade.');
+      } else {await salvar({...clone(t),status});aviso('Status atualizado.');}
+    } catch(error) {aviso(mensagemErro(error),true);}
     finally {estado.salvando=false;render();}
   }
   async function historico(id) {
-    const token=++estado.historicoToken;
-    const {data,error}=await window.biSupabase.from('bi_planejamento_historico').select('*').eq('tarefa_id',id).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100);
-    if(token!==estado.historicoToken || estado.draft?.id!==id) return;
-    if(error) {$('planHistorico').textContent=mensagemErro(error);return;}
+    const token=++estado.historicoToken,d=estado.draft;
+    const consultas=[id?window.biSupabase.from('bi_planejamento_historico').select('*').eq('tarefa_id',id).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100):Promise.resolve({data:[]}),
+      d.qualidade?window.biSupabase.from('bi_planejamento_qualidade_status_historico').select('*').eq('qualidade_chave',d.qualidade.chave).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100):Promise.resolve({data:[]})];
+    const [anotacoes,status]=await Promise.all(consultas);
+    if(token!==estado.historicoToken || estado.draft!==d) return;
     const nomes={criada:'Tarefa criada',alterada:'Tarefa alterada',arquivada:'Tarefa arquivada',restaurada:'Tarefa restaurada',comentario:'Comentário'};
-    $('planHistorico').innerHTML=(data || []).map(h=>{
-      const campos=h.antes && h.depois?['titulo','descricao','responsavel','prazo','status','prioridade','atencao','etapas','vinculos'].filter(k=>JSON.stringify(h.antes[k])!==JSON.stringify(h.depois[k])):[];
-      return `<article><strong>${nomes[h.acao] || esc(h.acao)}</strong><small>${esc(h.usuario_email)} · ${esc(new Date(h.criado_em).toLocaleString('pt-BR'))}</small>${h.comentario?`<p>${esc(h.comentario)}</p>`:''}${campos.length?`<p>Campos alterados: ${esc(campos.join(', '))}</p>`:''}</article>`;
+    const dados=[...(anotacoes.data || []),...(status.data || []).map(h=>({...h,acao:'status_qualidade'}))].sort((a,b)=>b.criado_em.localeCompare(a.criado_em) || Number(b.id)-Number(a.id)).slice(0,100);
+    const erros=[anotacoes.error?mensagemErro(anotacoes.error):'',status.error?'Histórico de status indisponível. Execute docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql.':''].filter(Boolean);
+    $('planHistorico').innerHTML=dados.map(h=>{
+      const campos=h.acao!=='status_qualidade' && h.antes && h.depois?['titulo','descricao','responsavel','prazo','status','prioridade','atencao','etapas','vinculos'].filter(k=>JSON.stringify(h.antes[k])!==JSON.stringify(h.depois[k])):[];
+      return `<article><strong>${h.acao==='status_qualidade'?'Status do Projeto Qualidade alterado':nomes[h.acao] || esc(h.acao)}</strong><small>${esc(h.usuario_email)} · ${esc(new Date(h.criado_em).toLocaleString('pt-BR'))}</small>${h.acao==='status_qualidade'?`<p>${esc(h.antes?.status || 'Sem status')} → ${esc(h.depois?.status)}</p>`:''}${h.comentario?`<p>${esc(h.comentario)}</p>`:''}${campos.length?`<p>Campos alterados: ${esc(campos.join(', '))}</p>`:''}</article>`;
     }).join('') || 'Nenhum registro de histórico.';
+    if(erros.length)$('planHistorico').insertAdjacentHTML('beforeend',`<p class="plan-error">${esc(erros.join(' '))}</p>`);
   }
   async function comentar() {
     if(!estado.draft?.id || estado.salvando) return;
@@ -388,7 +418,7 @@
     const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); const a=document.createElement('a');
     a.href=url;a.download=`Planejamento_${hoje()}.csv`;a.click();URL.revokeObjectURL(url);
   }
-  function contextoAtual() {return window.BI_PLANEJAMENTO_PROJETO?projetoRef(window.BI_PLANEJAMENTO_PROJETO):paginaRef(estado.pagina);}
+
   function configurarImportacaoQualidade() {
     const input=$('planArquivoQualidade');if(!input)return;
     input.addEventListener('change',async()=>{
@@ -420,8 +450,6 @@
     finally {estado.importando=false;$('planArquivoQualidade').disabled=false;$('planImportarQualidade').disabled=!estado.importacao || !estado.pronto;}
   }
   function instalarUI() {
-    const top=document.querySelector('.topbar');
-    if(top) top.insertAdjacentHTML('afterend', `<div id="planContexto" class="plan-context no-print"><span id="planContextoTexto"></span><div><button id="planVerAtencao" type="button" hidden>Ver tarefas de atenção</button><button id="planCriarContexto" type="button" disabled>+ Criar tarefa nesta área</button></div></div>`);
     document.body.insertAdjacentHTML('beforeend', `<dialog id="planDialog" class="plan-dialog"><form id="planForm">
       <header><div><small>Planejamento do processo</small><h2 id="planDialogTitulo">Nova tarefa</h2></div><button id="planFechar" type="button" aria-label="Fechar">×</button></header>
       <div class="plan-dialog-body"><div class="plan-dialog-main">
@@ -449,12 +477,10 @@
         case 'planAbrirQualidade': origem(estado.draft.qualidade?.ref);break;
         case 'planImportarQualidade': void importarQualidade();break;
         case 'planNova': void abrir();break;
-        case 'planCriarContexto': void abrir(null,contextoAtual());break;
         case 'planAtualizar': void carregar();break;
         case 'planModo': estado.lista=!estado.lista;render();break;
         case 'planExportar': exportar();break;
         case 'planFiltroArea': estado.filtroPagina='';render();break;
-        case 'planVerAtencao': estado.filtroPagina=estado.pagina;if($('planSomenteAtencao')) {$('planSomenteAtencao').checked=true;window.abrirPaginaBI?.('planejamento');render();}else location.href='index.html?areaPlanejamento='+encodeURIComponent(estado.pagina)+'#planejamento';break;
         case 'planAddEtapa': if(estado.draft.etapas.length<100){estado.draft.etapas.push({id:idNovo(),titulo:'',concluida:false,responsavel:'',prazo:''});renderEtapas();$('planEtapas').lastElementChild.querySelector('[data-step-field="titulo"]').focus();}break;
         case 'planCancelar':case 'planFechar': if(!estado.salvando)$('planDialog').close();break;
         case 'planComentar': void comentar();break;

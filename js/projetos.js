@@ -879,6 +879,9 @@
 
   function mensagemErro(error) {
     const bruto = texto(error?.message || error);
+    if (/pq_projetos_edicoes_status_edicao_check/i.test(bruto)) {
+      return "A regra de status das versões está desatualizada no banco. Execute docs/18_CORRIGIR_STATUS_EDICOES_PDF.sql no Supabase, recarregue a página e tente novamente. As versões existentes serão preservadas.";
+    }
     if (/bucket.*not found|pq-evidencias.*not found/i.test(bruto)) {
       return "O armazenamento de evidências ainda não foi instalado. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql no Supabase.";
     }
