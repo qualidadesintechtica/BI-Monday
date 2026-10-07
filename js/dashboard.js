@@ -332,6 +332,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const titulosPaginas = {
 
+    planejamento: "Planejamento",
+
     resumo:
       "Resumo Executivo",
 
@@ -721,6 +723,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     paginaAtual =
       nome;
 
+    window.biPlanejamento?.paginaAlterada(nome);
+
 
     // ----------------------------------------------------------
     // PAGE VIEW
@@ -818,9 +822,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
 
 
-    const paginaUc =
-      nome ===
-      "indicadores-uc";
+    const paginaUc = ["indicadores-uc", "planejamento"].includes(nome);
 
 
     filtrosGlobais
@@ -884,6 +886,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ============================================================
   // CLIQUE NO MENU
   // ============================================================
+
+  window.abrirPaginaBI = trocarPagina;
 
   document.addEventListener(
     "click",
@@ -1147,6 +1151,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       // --------------------------------------------------------
 
       await carregarResponsaveisNQ();
+
+      window.biPlanejamento?.definirDados(dadosCompletos, dadosOperacaoCompletos, dadosValidacaoMonday);
 
 
       // --------------------------------------------------------

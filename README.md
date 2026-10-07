@@ -1,3 +1,7 @@
+# Atualização V25.46.52 — Planejamento
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_52.md**. A instalação desta atualização usa apenas **docs/15_INSTALAR_PLANEJAMENTO.sql**.
+
 # BI-Monday V25.46.51 — Atualizar fila
 
 Consulte LEIA_AJUSTE_V25_46_51.md para instalar a correção do botão. Atualize index.html e js/certificados.js. Nenhuma alteração na configuração de envio é executada por esta atualização.

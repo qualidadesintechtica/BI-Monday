@@ -27,6 +27,7 @@
 
   
 
+  <link rel="stylesheet" href="css/planejamento.css?v=20261007-v25-46-52">
 </head>
 
 
@@ -51,7 +52,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.44 · Filtro de envio nos Certificados</small>
+        <small class="build-badge">v25.46.52 · Planejamento integrado</small>
 
       </div>
 
@@ -66,6 +67,7 @@
         <a href="#equipe" data-view="equipe">Equipe</a>
         <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
         <a href="#certificados" data-view="certificados">Certificados</a>
+        <a href="#planejamento" data-view="planejamento">Planejamento</a>
         <a href="projetos.html">Projeto Qualidade</a>
 
         <div class="nav-section-title">Indicadores</div>
@@ -329,6 +331,16 @@
 
       </section>
 
+
+      
+      <section id="viewPlanejamento" class="page-view plan-page" data-page="planejamento">
+        <div class="plan-hero"><div><small>Gestão do processo</small><h2>Tarefas do processo</h2><p>Transforme pontos de atenção do BI em tarefas com responsáveis, prazos e passos vinculados ao processo.</p></div>
+        <div class="plan-hero-actions"><button id="planAtualizar" type="button">Atualizar</button><button id="planExportar" type="button" disabled>Exportar CSV</button><button id="planNova" class="plan-primary" type="button" disabled>+ Nova tarefa</button></div></div>
+        <div class="plan-kpis"><article><span>Total de tarefas</span><strong id="planTotal">0</strong></article><article><span>Em andamento</span><strong id="planEmAndamento">0</strong></article><article><span>Atrasadas</span><strong id="planAtrasadas">0</strong></article><article class="plan-kpi-attention"><span>Exigem atenção</span><strong id="planAtencaoTotal">0</strong></article><article><span>Concluídas</span><strong id="planConcluidas">0</strong></article></div>
+        <div class="plan-toolbar"><label>Buscar tarefa<input id="planBusca" type="search" placeholder="Tarefa, responsável, UA, UC ou projeto"></label><label>Status<select id="planFiltroStatus"></select></label><label>Prioridade<select id="planFiltroPrioridade"></select></label><label>Responsável<select id="planFiltroResponsavel"><option value="">Todos os responsáveis</option></select></label><label class="plan-checkbox"><input type="checkbox" id="planSomenteAtencao">Só atenção</label><label class="plan-checkbox"><input type="checkbox" id="planArquivadas">Arquivadas</label></div>
+        <div class="plan-status-row"><span id="planContagem">0 tarefas</span><button id="planFiltroArea" type="button" hidden></button><button id="planModo" type="button">Ver lista</button></div>
+        <p id="planStatus" aria-live="polite">Carregando tarefas…</p><div id="planBoard" aria-label="Quadro de tarefas"></div>
+      </section>
 
       <section id="viewReuniaoNQ" class="page-view" data-page="reuniao-nq">
         <div class="meeting-hero">
@@ -1265,7 +1277,7 @@
             <table class="data-table">
               <thead><tr>
                 <th>Título</th><th>UA</th><th>Status</th><th>Bloco</th><th>Gestor</th><th>Revisor</th><th>Conteudista/DA</th><th>Modelagem</th><th>Tecnologia</th><th>Em ajuste</th>
-              </tr></thead>
+              <th>Planejamento</th></tr></thead>
               <tbody id="tbodyAjustes"></tbody>
             </table>
           </div>
@@ -1557,7 +1569,7 @@
 
   <script src="js/graficos.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script src="js/paginas.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
+  <script src="js/paginas.js?v=20261007-v25-46-52-planejamento"></script>
 
   <script src="js/indicadores.js?v=20260901-v20-ordenacao-colunas"></script>
 
@@ -1570,11 +1582,12 @@
   <script src="js/gestores-materiais.js?v=20260901-v20-ordenacao-colunas"></script>
   <script src="js/projeto-qualidade.js?v=20261002-v25-46-38-auditoria"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-  <script src="js/certificados.js?v=20261006-v25-46-51-atualizar-fila"></script>
-  <script src="js/dashboard.js?v=20261001-v25-46-34-linha-por-revisor"></script>
+  <script src="js/certificados.js?v=20261007-v25-46-52-planejamento"></script>
+  <script src="js/planejamento.js?v=20261007-v25-46-52"></script>
+  <script src="js/dashboard.js?v=20261007-v25-46-52-planejamento"></script>
 
 
-<div data-build-version="20261005-v25-46-41-certificados-auditoria-revisor-ua" style="display:none"></div>
+<div data-build-version="20261007-v25-46-52-planejamento" style="display:none"></div>
 
 
 

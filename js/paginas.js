@@ -265,7 +265,9 @@
         item?.formato,
         item?.area_cine,
         item?.semestre_oferta,
-        item?.monday_group_title
+        item?.monday_group_title,
+        item?.monday_item_validacao,
+        item?.monday_item_id
       ]
         .filter(v => v !== null && v !== undefined)
         .map(v => String(v))
@@ -438,14 +440,14 @@
             </div>
             <div class="monday-items-table-wrap">
               <table class="monday-items-table">
-                <thead><tr>${COLUNAS_OPERACAO.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+                <thead><tr>${COLUNAS_OPERACAO.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}<th>Planejamento</th></tr></thead>
                 <tbody>
                   ${amostra.map(item => `<tr>${COLUNAS_OPERACAO.map(c => {
                     const valor = c.get(item);
                     return c.label === "Status Validação"
                       ? `<td><span class="board-status board-status-${classeStatusOperacao(valor)}">${escapeHtml(valor)}</span></td>`
                       : `<td title="${escapeHtml(valor)}">${escapeHtml(valor)}</td>`;
-                  }).join("")}</tr>`).join("")}
+                  }).join("")}<td><button type="button" class="plan-inline" data-plan-ref="${escapeHtml(window.biPlanejamento?.registrarMaterial(item, "operacao") || "")}">Criar tarefa</button></td></tr>`).join("")}
                 </tbody>
               </table>
               ${itens.length > amostra.length ? `<div class="monday-more-row">Mostrando 300 de ${itens.length} registros neste grupo.</div>` : ""}
@@ -490,7 +492,7 @@
     if (contador) contador.textContent = `${dadosAjustesAtuais.length} material(is) atualmente em ajuste`;
 
     if (dadosAjustesAtuais.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="empty-table">Nenhum material em ajuste com os filtros atuais.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="empty-table">Nenhum material em ajuste com os filtros atuais.</td></tr>';
       return;
     }
 
@@ -506,6 +508,7 @@
         <td>${numero(item.qtd_ajustes_modelagem)}</td>
         <td>${numero(item.qtd_ajustes_tecnologia)}</td>
         <td>${numero(item.qtd_ajustes_total)}</td>
+        <td><button type="button" class="plan-inline" data-plan-ref="${escapeHtml(window.biPlanejamento?.registrarMaterial(item, "ajustes") || "")}">Criar tarefa</button></td>
       </tr>
     `).join("");
   }

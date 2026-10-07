@@ -2086,6 +2086,7 @@
           <td><small class="cert-pill">${esc(situacao)}</small></td>
           <td>
             <div class="cert-row-actions">
+              <button type="button" class="cert-btn plan-inline" data-plan-ref="${esc(window.biPlanejamento?.registrarCertificado(ua, r, situacao, cert?.chave) || "")}">Criar tarefa</button>
               <button
                 class="cert-btn cert-one"
                 data-li="${li}"

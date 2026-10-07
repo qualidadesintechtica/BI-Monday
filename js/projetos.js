@@ -945,6 +945,7 @@
 
       estado.projetos = projetosResp.data || [];
       estado.tarefas = tarefasResp.data || [];
+      window.biPlanejamento?.definirProjetos(estado.projetos, estado.tarefas);
       estado.edicoes = edicoesResp.data || [];
       // Se chegamos aqui, pq_projetos_edicoes respondeu pela API: o editor existe.
       editorTabelaConfirmada = true;
@@ -960,6 +961,8 @@
 
       $("loadingState").hidden = true;
       $("projectsApp").hidden = false;
+      const projetoLink = new URLSearchParams(location.search).get("projeto");
+      if (projetoLink && estado.projetos.some(p => String(p.id) === projetoLink)) selecionarProjeto(projetoLink);
     } catch (error) {
       $("loadingState").hidden = true;
       $("errorText").textContent = mensagemErro(error);
@@ -1140,6 +1143,8 @@
       $("editorWorkspace").hidden = true;
       return;
     }
+    window.BI_PLANEJAMENTO_PROJETO = projeto;
+    window.biPlanejamento?.atualizarSinais();
     $("selectedProjectTitle").textContent = projeto.nome || "Projeto da Qualidade";
     $("selectedProjectMeta").textContent = `ID ${projeto.azure_id || "—"} · ${projeto.status || "Sem status"}`;
     renderizarOrigem();
