@@ -1,8 +1,8 @@
-# BI-Monday V25.46.61 — Release visual e pacote limpo
+# BI-Monday V25.46.62 — Links das evidências e pacote limpo
 
 ## Publicar no sistema existente
 
-Esta entrega mantém o pacote limpo e adapta a prévia e o PDF do release à referência visual enviada: azul e roxo, cartões com ícones, seções numeradas, linha do tempo e produtos/evidências em destaque. O conteúdo vem dos campos existentes e da versão salva do projeto. Não há SQL novo nem função do Supabase nova para instalar.
+Esta entrega corrige os links dos anexos nos relatórios e mantém o layout do release: azul e roxo, cartões com ícones, seções numeradas, linha do tempo e produtos/evidências em destaque. O conteúdo vem dos campos existentes e da versão salva do projeto. Não há SQL novo nem função do Supabase nova para instalar.
 
 Para publicar a pasta completa do site, mantenha estes caminhos na hospedagem:
 
@@ -10,9 +10,17 @@ Para publicar a pasta completa do site, mantenha estes caminhos na hospedagem:
 - Pastas `js`, `css` e `data`.
 - `assets_certificado.png`, utilizado na geração dos certificados.
 
-Publique o conteúdo da pasta, mantendo a estrutura dos arquivos. Recarregue com **Ctrl + F5** e confira **v25.46.61**.
+Publique o conteúdo da pasta, mantendo a estrutura dos arquivos. Recarregue com **Ctrl + F5** e confira **v25.46.62**.
 
-Sobre a V25.46.60, publique estes cinco arquivos: `index.html`, `projetos.html`, `js/projetos.js`, `js/projetos-pdf.js` e **`css/projetos-release.css` (novo, obrigatório para o layout)**. Se você ainda não instalou a V25.46.59, publique também `css/projetos.css`. O módulo `js/projetos-pdf.js` é obrigatório para a paginação.
+Sobre a V25.46.61, publique estes sete arquivos: `index.html`, `projetos.html`, `login.html`, `js/auth.js`, `js/projetos.js`, `js/projetos-evidencias-fix.js` e `css/projetos-evidencias-fix.css`. Se você estiver em uma versão anterior, publique a pasta completa: `css/projetos-release.css` e `js/projetos-pdf.js` também são obrigatórios para o layout e a paginação.
+
+## Abrir evidências pelo relatório
+
+O cartão do anexo agora contém **Abrir PDF** ou **Abrir evidência** como link clicável, preservado na geração e na reimpressão. A inserção ocorre junto à montagem do relatório, antes da cópia para PDF. Os links externos continuam com seu destino original.
+
+O link do anexo abre o DataHub, que solicita um acesso temporário ao arquivo no momento da abertura. O PDF não contém um token temporário que expire depois de alguns minutos. É necessário entrar no BI com uma conta autorizada; quando a sessão não existe, o login retorna à evidência escolhida. O arquivo permanece privado.
+
+Depois de publicar, abra a versão salva e clique em **Reimprimir relatório**. PDFs já baixados sem links precisam ser gerados novamente. Não é necessário criar outra versão nem aprovar novamente. Links externos sujeitos a permissões de outros serviços continuam exigindo acesso nesses serviços.
 
 ## Relatórios e Planejamento
 
@@ -26,7 +34,7 @@ O histórico das versões salvas oferece **Reimprimir relatório**, também disp
 
 As quebras do PDF respeitam as linhas de texto, os passos da linha do tempo e os cartões que cabem em uma página. Conteúdos maiores continuam em outras páginas; as tabelas dos indicadores NQ repetem seus cabeçalhos. A partir da segunda página, o PDF repete o cabeçalho com a identificação do projeto e a marca. O rodapé acompanha o último conteúdo. A prévia se adapta ao celular; o PDF mantém a composição A4.
 
-A conferência local incluiu relatório de política, texto longo com indicadores NQ, imagem grande, geração pelo celular e projeto sem tarefas. A reimpressão foi verificada sem gravações na versão salva. Estes testes usam dados de conferência e serviços simulados; a publicação no seu sistema ainda precisa ser feita.
+A conferência local incluiu relatório de política, texto longo com indicadores NQ, imagem grande, geração pelo celular, projeto sem tarefas e anexo DOCX com espaços, acentos e & no caminho. Os PDFs foram conferidos quanto às áreas clicáveis e aos destinos, incluindo links externos. A abertura foi testada com sessão ativa e após login, preservando o destino da evidência. A reimpressão e a abertura foram verificadas sem gravações na versão salva. Estes testes usam dados de conferência e serviços simulados; a publicação no seu sistema ainda precisa ser feita.
 
 O Planejamento mantém os responsáveis cadastrados, os passos, os cartões com status editável e a associação aos dados importados do Projeto Qualidade. Os controles de tarefas ficam em Planejamento.
 
@@ -69,4 +77,4 @@ Uma tentativa com resultado desconhecido não é reenviada automaticamente. Para
 
 ## O que foi limpo
 
-Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização modifica a apresentação do release, preservando os arquivos das outras abas e das funções do Supabase.
+Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização corrige os links do release e o retorno à evidência após login. Os arquivos das funções do Supabase permanecem iguais.

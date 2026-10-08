@@ -1,3 +1,3 @@
-V25.46.61
+V25.46.62
 2026-10-08
-Adapta a prévia e o PDF ao release visual, com seções numeradas, cartões, linha do tempo e entregas; mantém os dados salvos, a reimpressão e o pacote limpo.
+Corrige links clicáveis das evidências na prévia e no PDF, preserva o destino após login e mantém o layout do release, os dados salvos e o pacote limpo.

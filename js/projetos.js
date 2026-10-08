@@ -1667,6 +1667,8 @@
         <div class="release-footer-audit"><span>Versão registrada por ${escapar(autor)}</span><span>Gerado em ${escapar(emitidoEm)}</span></div>
       </footer>`;
 
+    // O link precisa existir antes da cópia para PDF, sem depender do observer.
+    window.biProjetosEvidencias?.prepararRelatorio($("reportDocument"));
     void hidratarMiniaturasRelatorio();
     atualizarChecklist(dados);
   }
@@ -2218,7 +2220,7 @@
     const clone = origem.cloneNode(true);
     clone.removeAttribute("id");
     clone.classList.add("pdf-export-document");
-    clone.querySelectorAll(".evidence-open-file").forEach((botao) => {
+    clone.querySelectorAll("button.evidence-open-file").forEach((botao) => {
       const span = document.createElement("span");
       span.textContent = botao.dataset.fileName
         ? `Arquivo: ${botao.dataset.fileName}`

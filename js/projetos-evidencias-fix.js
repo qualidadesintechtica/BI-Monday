@@ -183,30 +183,26 @@
     return url.toString();
   }
 
-  function reforcarLinksRelatorio() {
-    const relatorio = document.getElementById("reportDocument");
+  function reforcarLinksRelatorio(relatorio = document.getElementById("reportDocument")) {
     if (!relatorio) return;
 
     relatorio.querySelectorAll(".report-evidence-file").forEach((bloco) => {
-      const botao = bloco.querySelector(".evidence-open-file[data-storage-path]");
-      if (!botao) return;
-
-      botao.disabled = false;
-      botao.removeAttribute("aria-disabled");
-      botao.style.pointerEvents = "auto";
+      const acionador = bloco.querySelector(".evidence-open-file[data-storage-path]");
+      if (!acionador) return;
 
       let link = bloco.querySelector(".pq-evidence-stable-link");
-      const caminho = texto(botao.dataset.storagePath);
-      const nome = texto(botao.dataset.fileName);
+      const caminho = texto(acionador.dataset.storagePath);
+      const nome = texto(acionador.dataset.fileName);
       if (!caminho) return;
 
       if (!link) {
         link = document.createElement("a");
-        link.className = "report-evidence-external-link pq-evidence-stable-link";
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        bloco.appendChild(link);
       }
+      link.classList.add("evidence-open-file", "report-evidence-external-link", "pq-evidence-stable-link");
+      link.dataset.storagePath = caminho;
+      link.dataset.fileName = nome;
 
       const tipo = tipoArquivo(nome);
       const hrefDesejado = urlEstavelEvidencia(caminho, nome, tipo);
@@ -225,6 +221,7 @@
       if (link.getAttribute("title") !== tituloDesejado) {
         link.setAttribute("title", tituloDesejado);
       }
+      if (acionador !== link) acionador.replaceWith(link);
     });
   }
 
@@ -394,8 +391,13 @@
     if (!caminho) return;
     const nome = texto(params.get(DEEP_NAME));
     const tipo = texto(params.get(DEEP_TYPE));
+    await esperarSupabase();
+    const usuario = await window.protegerDashboard();
+    if (!usuario) return;
     await mostrarArquivo(caminho, nome, tipo);
   }
+
+  window.biProjetosEvidencias = { prepararRelatorio: reforcarLinksRelatorio };
 
   function iniciar() {
     garantirModal();

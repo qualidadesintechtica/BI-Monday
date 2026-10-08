@@ -262,6 +262,22 @@
 
         "use strict";
 
+        function destinoDepoisLogin() {
+          const retorno = new URLSearchParams(window.location.search).get("retorno");
+          if (retorno) {
+            try {
+              const destino = new URL(retorno, window.location.href);
+              const projetos = new URL("projetos.html", window.location.href);
+              if (destino.origin === projetos.origin && destino.pathname === projetos.pathname
+                  && destino.searchParams.get("pq_evidence_path")) {
+                return destino.toString();
+              }
+            } catch {
+              // Destinos inválidos mantêm o fluxo habitual de entrada no BI.
+            }
+          }
+          return "index.html";
+        }
 
         /* ================================================
            ELEMENTOS
@@ -496,7 +512,7 @@
 
 
               window.location.assign(
-                "index.html"
+                destinoDepoisLogin()
               );
 
 

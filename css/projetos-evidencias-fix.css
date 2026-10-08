@@ -16,7 +16,7 @@ body.pq-evidence-modal-open {
   justify-content: center;
   min-height: 34px;
   padding: 7px 12px;
-  margin-left: 8px;
+  margin: 0;
   border-radius: 9px;
   border: 1px solid #4b226d;
   color: #3b1662;
@@ -29,6 +29,16 @@ body.pq-evidence-modal-open {
 
 .pq-evidence-stable-link:hover {
   background: #f4eef9;
+}
+
+.report-evidence-file .pq-evidence-stable-link {
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.pdf-export-document .report-evidence-file .pq-evidence-stable-link {
+  grid-column: auto;
 }
 
 .pq-history-evidence-button {
@@ -274,6 +284,6 @@ body.pq-evidence-modal-open {
   }
 
   .report-evidence-file .pq-evidence-stable-link {
-    margin: 8px 0 0;
+    margin: 0;
   }
 }

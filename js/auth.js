@@ -12,12 +12,21 @@
       .includes(dominio);
   }
 
+  function redirecionarParaLogin() {
+    const login = new URL("login.html", window.location.href);
+    const params = new URLSearchParams(window.location.search);
+    if (window.location.pathname.endsWith("/projetos.html") && params.get("pq_evidence_path")) {
+      login.searchParams.set("retorno", `projetos.html${window.location.search}`);
+    }
+    window.location.replace(login.toString());
+  }
+
   async function protegerDashboard() {
     const { data, error } =
       await window.biSupabase.auth.getSession();
 
     if (error || !data?.session) {
-      window.location.replace("login.html");
+      redirecionarParaLogin();
       return null;
     }
 
@@ -25,7 +34,7 @@
 
     if (!dominioPermitido(user.email)) {
       await window.biSupabase.auth.signOut();
-      window.location.replace("login.html");
+      redirecionarParaLogin();
       return null;
     }
 
