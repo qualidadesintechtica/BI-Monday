@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  function paginar(raiz, canvas, alturaPagina, escala = 1.6) {
+  function paginar(raiz, canvas, alturaPagina, escala = 1.6, reservaContinuacao = 0) {
     const base = raiz.getBoundingClientRect();
     const protegidos = [];
     const tabelas = [];
@@ -16,12 +16,15 @@
 
     // Elementos que cabem em uma página permanecem inteiros. Elementos maiores
     // são paginados pelas suas linhas de texto, sem reduzir a fonte.
-    raiz.querySelectorAll(".report-cover, .report-meta-grid, .report-meta, .report-section, .report-evidence-card, .report-evidence-image-wrap, .report-evidence-file, .report-footer, .report-nq-cards, tr, img").forEach((el) => proteger(el.getBoundingClientRect()));
+    raiz.querySelectorAll(".report-cover, .report-meta-grid, .report-meta, .report-evidence-card, .report-evidence-image-wrap, .report-evidence-file, .report-footer, .report-nq-cards, .release-step, .release-context-card, .release-callout, .release-points li, tr, img").forEach((el) => proteger(el.getBoundingClientRect()));
+    if (!raiz.classList.contains("report-release")) raiz.querySelectorAll(".report-section").forEach((el) => proteger(el.getBoundingClientRect()));
 
     raiz.querySelectorAll("h2, h3, h4").forEach((titulo) => {
       const rect = titulo.getBoundingClientRect();
-      const proximo = titulo.nextElementSibling?.getBoundingClientRect();
-      proteger({ ...rect.toJSON(), bottom: proximo ? Math.min(proximo.bottom, proximo.top + 35) : rect.bottom, height: proximo ? Math.min(proximo.bottom, proximo.top + 35) - rect.top : rect.height });
+      const primeiraEtapa = titulo.tagName === "H2" && titulo.parentElement.classList.contains("release-process") ? titulo.parentElement.querySelector(".release-step")?.getBoundingClientRect() : null;
+      const proximo = primeiraEtapa || titulo.nextElementSibling?.getBoundingClientRect();
+      const fim = proximo ? (primeiraEtapa ? proximo.bottom : Math.min(proximo.bottom, proximo.top + 35)) : rect.bottom;
+      proteger({ ...rect.toJSON(), bottom: fim, height: fim - rect.top });
     });
 
     raiz.querySelectorAll("table").forEach((table) => {
@@ -38,6 +41,9 @@
     const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
     const rodape = raiz.querySelector(".report-footer")?.getBoundingClientRect();
+    // A margem inferior vazia não deve criar uma página sem conteúdo.
+    const ultimoElemento = raiz.lastElementChild?.getBoundingClientRect();
+    const limiteAltura = ultimoElemento ? Math.min(canvas.height, Math.ceil((ultimoElemento.bottom - base.top) * escala) + 2) : canvas.height;
     let ultimaLinhaConteudo;
     while (walker.nextNode()) {
       if (!/\S/.test(walker.currentNode.textContent)) continue;
@@ -55,13 +61,14 @@
 
     const paginas = [];
     let inicio = 0;
-    while (inicio < canvas.height) {
+    while (inicio < limiteAltura) {
       const tabela = tabelas.find((t) => t.inicio < inicio && t.fim > inicio && t.cabecalho.fim <= inicio);
       const candidato = tabela?.cabecalho;
       const cabecalho = candidato && candidato.fim - candidato.inicio < alturaPagina / 4 ? candidato : null;
       const alturaCabecalho = cabecalho ? cabecalho.fim - cabecalho.inicio : 0;
-      const disponivel = alturaPagina - alturaCabecalho;
-      let fim = Math.min(canvas.height, inicio + disponivel);
+      const alturaContinuacao = inicio > 0 ? Math.max(0, Math.min(reservaContinuacao, alturaPagina / 5)) : 0;
+      const disponivel = alturaPagina - alturaCabecalho - alturaContinuacao;
+      let fim = Math.min(limiteAltura, inicio + disponivel);
       let anterior;
       do {
         anterior = fim;
@@ -75,7 +82,7 @@
       // Um intervalo muito grande ou sobreposto não pode impedir o avanço.
       // As linhas de texto continuam protegidas ao escolher a divisão.
       if (fim <= inicio) {
-        fim = Math.min(canvas.height, inicio + disponivel);
+        fim = Math.min(limiteAltura, inicio + disponivel);
         const linhas = protegidos.filter((t) => t.fim - t.inicio < 80 * escala);
         let anteriorLinha;
         do {
@@ -85,7 +92,7 @@
           }
         } while (fim !== anteriorLinha);
       }
-      paginas.push({ inicio, fim, cabecalho, alturaCabecalho });
+      paginas.push({ inicio, fim, cabecalho, alturaCabecalho, alturaContinuacao });
       inicio = fim;
     }
     return paginas;
@@ -106,7 +113,7 @@
             pagina: indice + 1,
             url: link.href,
             x: (rect.left - base.left) * escala,
-            y: inicioVisivel - pagina.inicio + pagina.alturaCabecalho,
+            y: inicioVisivel - pagina.inicio + pagina.alturaCabecalho + (pagina.alturaContinuacao || 0),
             largura: rect.width * escala,
             altura: fimVisivel - inicioVisivel,
           });

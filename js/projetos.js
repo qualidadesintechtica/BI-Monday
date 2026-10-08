@@ -1483,15 +1483,6 @@
       .join("");
   }
 
-  function blocoTexto(titulo, conteudo) {
-    const valor = texto(conteudo);
-    return `
-      <section class="report-section">
-        <h2>${escapar(titulo)}</h2>
-        <p class="${valor ? "" : "report-empty"}">${escapar(valor || "Não informado nesta versão.")}</p>
-      </section>`;
-  }
-
   function decisaoSalvaParaTarefa(tarefa, decisoes = []) {
     return decisoes.find((item) => {
       if (item?.tarefa_id != null && tarefa?.id != null && mesmoId(item.tarefa_id, tarefa.id)) return true;
@@ -1501,25 +1492,61 @@
     }) || null;
   }
 
-  function tabelaTarefas(tarefas, decisoes = []) {
+  function iconeRelease(nome) {
+    const desenhos = {
+      pessoa: '<circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/>',
+      calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 11h18M7 15h2M13 15h2M7 18h2"/>',
+      alvo: '<circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4"/><path d="m11 13 9-9M16 3h5v5"/>',
+      etapas: '<path d="M4 5h4v4H4zM4 15h4v4H4zM13 7h8M13 17h8M6 9v6"/>',
+      documento: '<path d="M6 2h9l5 5v15H6zM15 2v6h5M10 12h6M10 16h6"/>',
+      resultado: '<path d="M4 21V11h4v10M10 21V7h4v14M16 21V3h4v18M2 21h20"/>',
+      conversa: '<path d="M3 3h18v13H11l-6 5v-5H3zM7 7h10M7 11h6"/>',
+      seta: '<path d="M3 12h18m-6-6 6 6-6 6"/>',
+      folha: '<path d="M12 23V11M12 16C4 16 3 11 3 8c5 0 9 2 9 8ZM12 11c0-6 4-9 9-9 0 5-3 9-9 9Z"/>',
+    };
+    return `<svg class="release-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${desenhos[nome] || desenhos.documento}</svg>`;
+  }
+
+  function textoRelease(conteudo) {
+    const valor = texto(conteudo);
+    if (!valor) return '<p class="report-empty">Não informado nesta versão.</p>';
+    const linhas = valor.split(/\r?\n/).map((linha) => linha.trim()).filter(Boolean);
+    if (linhas.length && linhas.every((linha) => /^[-•*]\s+/.test(linha))) {
+      return `<ul class="release-points">${linhas.map((linha) => `<li>${escapar(linha.replace(/^[-•*]\s+/, ""))}</li>`).join("")}</ul>`;
+    }
+    return `<p>${escapar(valor)}</p>`;
+  }
+
+  function contextoRelease(conteudo) {
+    const valor = texto(conteudo);
+    const marcador = /(?:^|\n)\s*Objetivo\s*:\s*/i.exec(valor);
+    const contexto = marcador ? valor.slice(0, marcador.index).replace(/^\s*Contexto\s*:\s*/i, "").trim() : valor;
+    const objetivo = marcador ? valor.slice(marcador.index + marcador[0].length).trim() : "";
+    const card = (titulo, conteudo, icone) => `<div class="release-context-card">${iconeRelease(icone)}<div><h3>${escapar(titulo)}</h3>${textoRelease(conteudo)}</div></div>`;
+    return `${contexto || !objetivo ? card(marcador ? "Origem e contexto" : "Contexto e objetivo", contexto, "conversa") : ""}${objetivo ? card("Objetivo", objetivo, "alvo") : ""}`;
+  }
+
+  function identificacaoRelease(rotulo, valor, icone) {
+    return `<div class="report-meta">${iconeRelease(icone)}<div><span>${escapar(rotulo)}</span><strong>${escapar(valor == null || valor === "" ? "—" : valor)}</strong></div></div>`;
+  }
+
+  function linhaDoTempoTarefas(tarefas, decisoes = []) {
     if (!tarefas.length) return '<p class="report-empty">Nenhuma tarefa original vinculada.</p>';
     return `
-      <table class="report-task-table">
-        <thead><tr><th>ID</th><th>Ação original</th><th>Status original</th><th>Status no release</th><th>Período</th></tr></thead>
-        <tbody>${tarefas.map((t) => {
+      <ol class="release-timeline">${tarefas.map((t) => {
           const decisao = decisaoSalvaParaTarefa(t, decisoes);
           const statusRelease = decisao?.status_release || t.status || "—";
           const alterada = decisao && decisao.acao && decisao.acao !== "manter";
           return `
-          <tr>
-            <td>${escapar(t.azure_id || "—")}</td>
-            <td>${escapar(t.descricao || "—")}</td>
-            <td>${escapar(t.status || "—")}</td>
-            <td class="${alterada ? "report-task-status-changed" : ""}">${escapar(statusRelease)}</td>
-            <td>${escapar(formatarData(t.data_inicio))} a ${escapar(formatarData(t.data_fim))}</td>
-          </tr>`;
-        }).join("")}</tbody>
-      </table>`;
+          <li class="release-step" data-task-source-id="${escapar(t.azure_id || t.id || "")}">
+            <div class="release-step-icon">${iconeRelease(alterada ? "alvo" : "documento")}</div>
+            <div class="release-step-body">
+              <span class="release-step-period">${escapar(formatarData(dataTarefa(t, "inicio")))} a ${escapar(formatarData(dataTarefa(t, "fim")))}</span>
+              <h3>${escapar(t.descricao || t.nome || "Ação sem descrição")}</h3>
+              <p class="release-step-meta">ID ${escapar(t.azure_id || "—")} · Status original: ${escapar(t.status || "—")} · <span class="${alterada ? "report-task-status-changed" : ""}">Status no release: ${escapar(statusRelease)}</span></p>
+            </div>
+          </li>`;
+        }).join("")}</ol>`;
   }
 
   function blocoResumoTarefasRelease(decisoes = []) {
@@ -1533,21 +1560,11 @@
       </div>`;
   }
 
-  function tabelaEvidencias(evidencias) {
+  function evidenciasRelatorio(evidencias) {
     const validas = evidencias
       .filter((item) => evidenciaIncluida(item) && (item.titulo || item.url || item.descricao || evidenciaComArquivo(item)))
       .sort((a, b) => (Number(a?.ordem) || 9999) - (Number(b?.ordem) || 9999));
     if (!validas.length) return '<p class="report-empty">Nenhuma evidência selecionada para este relatório.</p>';
-
-    const resumo = `
-      <table class="report-evidence-table report-evidence-summary-table">
-        <thead><tr><th>Evidência</th><th>Tipo</th><th>O que comprova</th></tr></thead>
-        <tbody>${validas.map((item, indice) => `<tr>
-          <td>Evidência ${String(indice + 1).padStart(2, "0")}</td>
-          <td>${escapar(item.tipo || tipoPorArquivo(item.arquivo_nome, item.mime_type) || "—")}</td>
-          <td>${escapar(item.descricao || "—")}</td>
-        </tr>`).join("")}</tbody>
-      </table>`;
 
     const cards = validas.map((item, indice) => {
       const numero = String(indice + 1).padStart(2, "0");
@@ -1586,7 +1603,7 @@
         </article>`;
     }).join("");
 
-    return `${resumo}<div class="report-evidence-cards">${cards}</div>`;
+    return `<div class="report-evidence-cards">${cards}</div>`;
   }
 
   function atualizarPreview() {
@@ -1609,47 +1626,49 @@
       : `Prévia da próxima versão ${proximaVersao}`;
     const autor = edicao?.criado_por_email || estado.usuario?.email || "—";
     const emitidoEm = edicao?.criado_em ? formatarDataHora(edicao.criado_em) : formatarDataHora(new Date());
+    const sponsorOriginal = limparNome(projeto.sponsor);
+    const sponsors = Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.filter((nome) => !normalizar(sponsorOriginal).includes(normalizar(nome))) : [];
+    const sponsor = [sponsorOriginal, ...sponsors].filter(Boolean).join(", ");
+    const periodo = `${formatarData(dataProjeto(projeto, "inicio"))} a ${formatarData(dataProjeto(projeto, "fim"))}`;
+    const marca = '<span class="release-wordmark"><span>sintechtica</span> <b>ânima</b></span>';
 
+    $("reportDocument").classList.add("report-release");
     $("reportDocument").innerHTML = `
       <header class="report-cover">
-        <span class="report-brand">DataHub · Projetos da Qualidade</span>
-        <h1>${escapar(projeto.nome || "Projeto da Qualidade")}</h1>
-        <p class="report-subtitle">Relatório executivo de projeto</p>
+        <div class="release-heading">
+          <div class="release-title">
+            <span class="report-brand">Release de projeto</span>
+            <span class="release-project-id">ID ${escapar(projeto.azure_id || "—")} · ${escapar(projeto.work_item_type || "Projeto")}</span>
+            <h1>${escapar(projeto.nome || "Projeto da Qualidade")}</h1>
+          </div>
+          <div class="release-brand-block">${marca}<span class="release-brand-tagline">Conhecimento<br>que transforma<br>realidades</span></div>
+        </div>
+        <p class="report-subtitle">Resultados, entregas e evolução do projeto.</p>
         <span class="report-version">${escapar(versao)}</span>
       </header>
       ${faltantes.length ? `<div class="report-draft-warning">${escapar(edicao ? rotuloStatusEdicao(edicao.status_edicao) : "Rascunho")} · faltam: ${escapar(faltantes.join(", "))}.</div>` : ""}
       <div class="report-meta-grid">
-        ${metadadoRelatorio("ID Ajure", projeto.azure_id)}
-        ${metadadoRelatorio("Tipo", projeto.work_item_type)}
-        ${metadadoRelatorio("Status", projeto.status)}
-        ${metadadoRelatorio("Data inicial", formatarData(dataProjeto(projeto, "inicio")))}
-        ${metadadoRelatorio("Data final", formatarData(dataProjeto(projeto, "fim")))}
-        ${metadadoRelatorio("Sponsor original", limparNome(projeto.sponsor))}
-        ${metadadoRelatorio("Sponsors identificados", Array.isArray(projeto.sponsor_lista) ? projeto.sponsor_lista.join(", ") : "")}
-        ${metadadoRelatorio("Esforço", projeto.esforco)}
-        ${metadadoRelatorio("Prioridade", projeto.prioridade)}
-        ${metadadoRelatorio("Ações originais", tarefas.length)}
+        ${identificacaoRelease("Sponsor(s)", sponsor, "pessoa")}
+        ${identificacaoRelease("Período", periodo, "calendario")}
+        ${identificacaoRelease("Status", projeto.status, "alvo")}
+        ${identificacaoRelease("Esforço", projeto.esforco, "resultado")}
+        ${identificacaoRelease("Prioridade", projeto.prioridade, "alvo")}
+        ${identificacaoRelease("Ações originais", tarefas.length, "etapas")}
       </div>
-      ${blocoTexto("Contexto e objetivo", dados.contexto_objetivo)}
-      ${blocoTexto("Resultados esperados", dados.resultados_esperados)}
-      <section class="report-section"><h2>Ações e tarefas originais</h2>${blocoResumoTarefasRelease(dados.tarefas_release)}${tabelaTarefas(tarefas, dados.tarefas_release)}</section>
-      ${blocoTexto("Novas ações e complementos", dados.acoes_complementares)}
-      ${blocoTexto("Resultados alcançados", dados.resultados_alcancados)}
+      <section class="report-section release-context"><h2>1. Origem, contexto e objetivo</h2>${contextoRelease(dados.contexto_objetivo)}<div class="release-expected"><h3>Resultados esperados</h3>${textoRelease(dados.resultados_esperados)}</div></section>
+      <section class="report-section release-process"><h2>2. Como construímos</h2><p class="release-section-intro">Ações e tarefas originais do projeto</p>${blocoResumoTarefasRelease(dados.tarefas_release)}${linhaDoTempoTarefas(tarefas, dados.tarefas_release)}</section>
+      <section class="report-section release-results"><h2>3. Resultados alcançados</h2>${textoRelease(dados.resultados_alcancados)}</section>
       ${blocoIndicadoresNQ(estado.indicadoresNQAtual)}
-      ${blocoTexto("Impacto gerado", dados.impacto)}
-      <section class="report-section"><h2>Evidências</h2>${tabelaEvidencias(dados.evidencias)}</section>
-      ${dados.observacoes ? blocoTexto("Observações", dados.observacoes) : ""}
+      <section class="report-section release-delivery"><h2>4. Produto entregue e evidências</h2>${evidenciasRelatorio(dados.evidencias)}</section>
+      <section class="report-section release-value"><h2>5. Valor gerado</h2><div class="release-context-card">${iconeRelease("resultado")}<div><h3>Impacto gerado</h3>${textoRelease(dados.impacto)}</div></div></section>
+      ${dados.acoes_complementares || dados.observacoes ? `<section class="report-section release-next"><h2>6. Ações complementares e observações</h2>${dados.acoes_complementares ? `<div class="release-callout"><h3>Novas ações e complementos</h3>${textoRelease(dados.acoes_complementares)}</div>` : ""}${dados.observacoes ? `<div class="release-callout"><h3>Observações</h3>${textoRelease(dados.observacoes)}</div>` : ""}</section>` : ""}
       <footer class="report-footer">
-        <span>Versão registrada por ${escapar(autor)}</span>
-        <span>Gerado em ${escapar(emitidoEm)}</span>
+        <div class="release-footer-brand">${iconeRelease("folha")}<span>Conhecimento que transforma <strong>realidades.</strong></span>${marca}</div>
+        <div class="release-footer-audit"><span>Versão registrada por ${escapar(autor)}</span><span>Gerado em ${escapar(emitidoEm)}</span></div>
       </footer>`;
 
     void hidratarMiniaturasRelatorio();
     atualizarChecklist(dados);
-  }
-
-  function metadadoRelatorio(rotulo, valor) {
-    return `<div class="report-meta"><span>${escapar(rotulo)}</span><strong>${escapar(valor || "—")}</strong></div>`;
   }
 
   function renderizarHistorico() {
@@ -2234,7 +2253,19 @@
       const larguraUtil = 210 - (margemX * 2);
       const alturaUtil = 297 - (margemY * 2) - 6;
       const alturaPaginaPx = Math.max(1, Math.floor(canvas.width * (alturaUtil / larguraUtil)));
-      const paginas = window.biProjetosPdf.paginar(clone, canvas, alturaPaginaPx);
+      const reservaContinuacao = clone.classList.contains("report-release") ? Math.floor(canvas.width * (16 / larguraUtil)) : 0;
+      const tituloRelease = texto(clone.querySelector(".report-cover h1")?.textContent || "Projeto da Qualidade");
+      let imagemContinuacao = null;
+      if (reservaContinuacao) {
+        const cabecalho = document.createElement("header");
+        cabecalho.className = "release-continuation-header";
+        cabecalho.innerHTML = `<div><span>Release de projeto</span><strong>${escapar(tituloRelease)}</strong></div><span class="release-wordmark"><span>sintechtica</span> <b>ânima</b></span>`;
+        suporte.appendChild(cabecalho);
+        const captura = await html2canvas(cabecalho, { scale: 1.6, backgroundColor: "#ffffff", logging: false, windowWidth: window.innerWidth });
+        imagemContinuacao = captura.toDataURL("image/png");
+        cabecalho.remove();
+      }
+      const paginas = window.biProjetosPdf.paginar(clone, canvas, alturaPaginaPx, 1.6, reservaContinuacao);
 
       paginas.forEach((pagina, indice) => {
         const alturaConteudo = pagina.fim - pagina.inicio;
@@ -2251,8 +2282,12 @@
         ctx.drawImage(canvas, 0, pagina.inicio, canvas.width, alturaConteudo, 0, pagina.alturaCabecalho, canvas.width, alturaConteudo);
 
         if (indice > 0) doc.addPage("a4", "portrait");
+        if (pagina.alturaContinuacao && imagemContinuacao) {
+          doc.addImage(imagemContinuacao, "PNG", margemX, margemY, larguraUtil, (pagina.alturaContinuacao / canvas.width) * larguraUtil);
+        }
         const alturaMm = (alturaFatia / canvas.width) * larguraUtil;
-        doc.addImage(fatia.toDataURL("image/jpeg", 0.94), "JPEG", margemX, margemY, larguraUtil, alturaMm, undefined, "FAST");
+        const topoMm = margemY + ((pagina.alturaContinuacao || 0) / canvas.width) * larguraUtil;
+        doc.addImage(fatia.toDataURL("image/jpeg", 0.94), "JPEG", margemX, topoMm, larguraUtil, alturaMm, undefined, "FAST");
 
       });
 
@@ -2270,6 +2305,7 @@
       const totalPaginas = doc.getNumberOfPages();
       for (let i = 1; i <= totalPaginas; i += 1) {
         doc.setPage(i);
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(110, 98, 120);
         doc.text(`Página ${i} de ${totalPaginas}`, 200, 292, { align: "right" });

@@ -1,8 +1,8 @@
-# BI-Monday V25.46.60 — Pacote limpo
+# BI-Monday V25.46.61 — Release visual e pacote limpo
 
 ## Publicar no sistema existente
 
-Esta entrega limpa o pacote da V25.46.60. O código do site, as imagens, os dados auxiliares e as funções do Supabase foram preservados integralmente. Não há SQL novo nem função nova para instalar por causa desta limpeza.
+Esta entrega mantém o pacote limpo e adapta a prévia e o PDF do release à referência visual enviada: azul e roxo, cartões com ícones, seções numeradas, linha do tempo e produtos/evidências em destaque. O conteúdo vem dos campos existentes e da versão salva do projeto. Não há SQL novo nem função do Supabase nova para instalar.
 
 Para publicar a pasta completa do site, mantenha estes caminhos na hospedagem:
 
@@ -10,17 +10,23 @@ Para publicar a pasta completa do site, mantenha estes caminhos na hospedagem:
 - Pastas `js`, `css` e `data`.
 - `assets_certificado.png`, utilizado na geração dos certificados.
 
-Publique o conteúdo da pasta, mantendo a estrutura dos arquivos. Recarregue com **Ctrl + F5** e confira **v25.46.60**.
+Publique o conteúdo da pasta, mantendo a estrutura dos arquivos. Recarregue com **Ctrl + F5** e confira **v25.46.61**.
 
-Sobre a V25.46.59, a alteração funcional mais recente está em `index.html`, `projetos.html`, `js/projetos.js` e `js/projetos-pdf.js`. Se você ainda não instalou a V25.46.59, publique também `css/projetos.css`. O módulo `js/projetos-pdf.js` é obrigatório para a paginação.
+Sobre a V25.46.60, publique estes cinco arquivos: `index.html`, `projetos.html`, `js/projetos.js`, `js/projetos-pdf.js` e **`css/projetos-release.css` (novo, obrigatório para o layout)**. Se você ainda não instalou a V25.46.59, publique também `css/projetos.css`. O módulo `js/projetos-pdf.js` é obrigatório para a paginação.
 
 ## Relatórios e Planejamento
 
-A tabela repetida **Todas as informações disponíveis na planilha** foi retirada da prévia e dos PDFs. Os dados de identificação permanecem no início; contexto, objetivos, resultados e impacto permanecem nas seções próprias. As tabelas de tarefas e evidências continuam no relatório. Os dados completos da planilha permanecem em **Informações originais** no sistema.
+A tabela repetida **Todas as informações disponíveis na planilha** continua fora da prévia e dos PDFs. Os dados de identificação ficam no cabeçalho e em seis cartões, agrupando as datas no período e os sponsors em um campo. As tarefas agora aparecem em uma linha do tempo com descrição completa, ID, período e status original/no release. As evidências aparecem uma vez em cartões com descrição, arquivo, imagem quando disponível e link. Os dados completos da planilha permanecem em **Informações originais** no sistema.
+
+O relatório apresenta origem/contexto/objetivo, resultados esperados, como construímos, resultados alcançados, produto entregue/evidências e valor gerado. Ações complementares e observações aparecem quando preenchidas. O contexto e o objetivo só são separados em cartões quando o texto contém um marcador explícito de objetivo; nenhum texto é resumido ou inventado. Os indicadores NQ incluídos na versão continuam disponíveis.
+
+A identidade visual segue a referência, com a marca apresentada como texto vetorial. Sponsors, equipe e áreas contribuidoras não são preenchidos com nomes retirados da imagem: os dados de cada projeto são preservados. A quantidade de páginas depende do conteúdo; o modelo não limita o release a duas páginas nem reduz a fonte para fazê-lo caber.
 
 O histórico das versões salvas oferece **Reimprimir relatório**, também disponível no botão principal da versão finalizada. Reimprimir baixa um novo PDF da mesma versão, sem nova aprovação e sem alterar conteúdo, status ou auditoria. Use essa opção para obter o novo modelo; PDFs já baixados permanecem como estão.
 
-As quebras do PDF respeitam as linhas de texto e de tabela. Campos maiores que uma página continuam em outras páginas; cabeçalhos de tabelas são repetidos. O rodapé acompanha o último conteúdo.
+As quebras do PDF respeitam as linhas de texto, os passos da linha do tempo e os cartões que cabem em uma página. Conteúdos maiores continuam em outras páginas; as tabelas dos indicadores NQ repetem seus cabeçalhos. A partir da segunda página, o PDF repete o cabeçalho com a identificação do projeto e a marca. O rodapé acompanha o último conteúdo. A prévia se adapta ao celular; o PDF mantém a composição A4.
+
+A conferência local incluiu relatório de política, texto longo com indicadores NQ, imagem grande, geração pelo celular e projeto sem tarefas. A reimpressão foi verificada sem gravações na versão salva. Estes testes usam dados de conferência e serviços simulados; a publicação no seu sistema ainda precisa ser feita.
 
 O Planejamento mantém os responsáveis cadastrados, os passos, os cartões com status editável e a associação aos dados importados do Projeto Qualidade. Os controles de tarefas ficam em Planejamento.
 
@@ -63,4 +69,4 @@ Uma tentativa com resultado desconhecido não é reenviada automaticamente. Para
 
 ## O que foi limpo
 
-Foram retirados guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais foram reunidas neste único guia. Os arquivos usados pelo site e pelas funções do Supabase não foram modificados.
+Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização modifica a apresentação do release, preservando os arquivos das outras abas e das funções do Supabase.
