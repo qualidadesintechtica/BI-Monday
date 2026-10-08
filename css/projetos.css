@@ -819,6 +819,26 @@
 .pdf-export-document .all-source-table th {
   position: static !important;
 }
+/* Linhas legíveis e colunas contidas na largura do PDF. A paginação efetiva
+   respeita os limites medidos pelo módulo projetos-pdf.js. */
+.pdf-export-document table { width: 100%; table-layout: fixed; }
+.pdf-export-document .report-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.pdf-export-document th,
+.pdf-export-document td { overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.5; }
+.pdf-export-document .all-source-table th { width: 28%; }
+.pdf-export-document .report-task-table th:nth-child(1) { width: 12%; }
+.pdf-export-document .report-task-table th:nth-child(2) { width: 40%; }
+.pdf-export-document .report-task-table th:nth-child(3) { width: 14%; }
+.pdf-export-document .report-task-table th:nth-child(4) { width: 16%; }
+.pdf-export-document .report-task-table th:nth-child(5) { width: 18%; }
+.pdf-export-document .report-evidence-table th:nth-child(1) { width: 18%; }
+.pdf-export-document .report-evidence-table th:nth-child(2) { width: 18%; }
+.pdf-export-document .report-evidence-table th:nth-child(3) { width: 64%; }
+@media print {
+  .report-document .all-source-table-wrap { max-height: none; overflow: visible; }
+  .report-document table tr { break-inside: avoid; page-break-inside: avoid; }
+  .report-document table thead { display: table-header-group; }
+}
 .pdf-export-document .report-section,
 .pdf-export-document .report-meta,
 .pdf-export-document .report-task-table tr,

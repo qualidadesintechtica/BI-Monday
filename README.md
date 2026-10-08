@@ -1,3 +1,7 @@
+# Atualização V25.46.59 — Tabelas do PDF e reimpressão
+
+Comece pelo arquivo **COMECE_AQUI_V25_46_59.md**. Esta versão corrige as quebras de página do PDF e inclui **Reimprimir relatório** nas versões salvas. Não exige SQL novo. Atualize os cinco arquivos do site indicados no guia.
+
 # Atualização V25.46.58 — Aprovação e PDF com ID UUID
 
 Comece pelo arquivo **COMECE_AQUI_V25_46_58.md**. Execute **docs/19_CORRIGIR_APROVACAO_PDF_UUID.sql** e atualize as páginas indicadas no guia. O SQL 19 resolve a incompatibilidade entre IDs UUID e funções bigint e já inclui a correção de status do SQL 18. As versões e seus identificadores são preservados.

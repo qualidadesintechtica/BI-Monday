@@ -1136,6 +1136,7 @@
   }
 
   function selecionarProjeto(id) {
+    if (estado.salvando) return;
     estado.projetoId = id || null;
     estado.edicaoVisualizada = null;
     estado.origemPreview = null;
@@ -1686,6 +1687,7 @@
         <div class="history-actions">
           <button type="button" data-action="view">Ver versão</button>
           <button type="button" data-action="base">Usar como base</button>
+          <button type="button" data-action="reprint">Reimprimir relatório</button>
           ${workflow}
         </div>
       </article>`;
@@ -1696,6 +1698,7 @@
       if (!edicao) return;
       item.querySelector('[data-action="view"]')?.addEventListener("click", () => visualizarEdicao(edicao));
       item.querySelector('[data-action="base"]')?.addEventListener("click", () => usarComoBase(edicao));
+      item.querySelector('[data-action="reprint"]')?.addEventListener("click", () => void reimprimirEdicao(edicao));
       item.querySelector('[data-action="review"]')?.addEventListener("click", () => void enviarEdicaoParaRevisao(edicao));
       item.querySelector('[data-action="finalize"]')?.addEventListener("click", () => void finalizarEdicaoEmRevisao(edicao));
     });
@@ -1756,14 +1759,15 @@
 
     salvar.disabled = estado.salvando || visualizandoSnapshot;
     revisar.disabled = estado.salvando || (visualizandoSnapshot && status !== "rascunho");
-    finalizar.disabled = estado.salvando || !visualizandoSnapshot || status !== "em_revisao";
+    finalizar.disabled = estado.salvando || !visualizandoSnapshot || !["em_revisao", "finalizada"].includes(status);
     if (visualizarPdf) visualizarPdf.disabled = estado.salvando;
 
     salvar.textContent = estado.salvando ? "Processando…" : "Salvar rascunho";
     revisar.textContent = estado.salvando
       ? "Processando…"
       : (visualizandoSnapshot && status === "rascunho" ? "Enviar rascunho para revisão" : "Enviar para revisão");
-    finalizar.textContent = estado.salvando ? "Processando…" : "Aprovar e gerar PDF";
+    finalizar.textContent = estado.salvando ? "Processando…" : (status === "finalizada" ? "Reimprimir relatório" : "Aprovar e gerar PDF");
+    document.querySelectorAll(".history-actions button").forEach((botao) => { botao.disabled = estado.salvando; });
 
     const badge = $("editionBadge");
     badge.classList.remove("workflow-rascunho", "workflow-em-revisao", "workflow-finalizada");
@@ -2112,11 +2116,30 @@
 
   function acaoFinalizarRevisao() {
     const edicao = estado.edicaoVisualizada;
+    if (edicao && statusEdicaoNormalizado(edicao.status_edicao) === "finalizada") {
+      void reimprimirEdicao(edicao);
+      return;
+    }
     if (!edicao || !edicaoEmRevisao(edicao)) {
       mostrarFeedback("Abra uma versão com status Em revisão para aprová-la e finalizar.", "warning");
       return;
     }
     void finalizarEdicaoEmRevisao(edicao);
+  }
+
+  async function reimprimirEdicao(edicao) {
+    if (!edicao || estado.salvando) return;
+    visualizarEdicao(edicao);
+    definirSalvando(true);
+    mostrarFeedback(`Gerando novamente o PDF da versão ${edicao.versao}…`);
+    try {
+      await gerarPdfRelatorio("download");
+      mostrarFeedback(`PDF da versão ${edicao.versao} gerado novamente. Abra o arquivo baixado para imprimir.`, "success");
+    } catch (error) {
+      mostrarFeedback(mensagemErro(error), "error");
+    } finally {
+      definirSalvando(false);
+    }
   }
 
   function nomeArquivoPdf() {
@@ -2148,10 +2171,11 @@
 
   async function gerarPdfRelatorio(modo = "preview") {
     atualizarPreview();
+    const nome = nomeArquivoPdf();
 
     const html2canvas = window.html2canvas;
     const JsPDF = window.jspdf?.jsPDF;
-    if (!html2canvas || !JsPDF) {
+    if (!html2canvas || !JsPDF || !window.biProjetosPdf) {
       imprimirRelatorioFallback();
       throw new Error("Gerador direto de PDF não carregado. Foi aberta a impressão do navegador como alternativa.");
     }
@@ -2192,25 +2216,15 @@
       await hidratarMiniaturasRelatorio(clone);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const cloneRect = clone.getBoundingClientRect();
-      const linksPdf = [...clone.querySelectorAll("a.report-evidence-external-link[href]")].map((link) => {
-        const rect = link.getBoundingClientRect();
-        return {
-          url: link.href,
-          x: rect.left - cloneRect.left,
-          y: rect.top - cloneRect.top,
-          width: rect.width,
-          height: rect.height,
-        };
-      });
-
       const canvas = await html2canvas(clone, {
         scale: 1.6,
         backgroundColor: "#ffffff",
         logging: false,
         useCORS: true,
         allowTaint: false,
-        windowWidth: 840,
+        // Medição e captura precisam usar o mesmo viewport; alterar aqui a
+        // largura mudava as regras responsivas e deslocava as linhas no PDF.
+        windowWidth: window.innerWidth,
       });
 
       if (!canvas.width || !canvas.height) throw new Error("O relatório ficou vazio durante a geração do PDF.");
@@ -2221,42 +2235,35 @@
       const larguraUtil = 210 - (margemX * 2);
       const alturaUtil = 297 - (margemY * 2) - 6;
       const alturaPaginaPx = Math.max(1, Math.floor(canvas.width * (alturaUtil / larguraUtil)));
+      const paginas = window.biProjetosPdf.paginar(clone, canvas, alturaPaginaPx);
 
-      let y = 0;
-      let pagina = 0;
-      while (y < canvas.height) {
-        const alturaFatia = Math.min(alturaPaginaPx, canvas.height - y);
+      paginas.forEach((pagina, indice) => {
+        const alturaConteudo = pagina.fim - pagina.inicio;
+        const alturaFatia = alturaConteudo + pagina.alturaCabecalho;
         const fatia = document.createElement("canvas");
         fatia.width = canvas.width;
         fatia.height = alturaFatia;
         const ctx = fatia.getContext("2d");
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, fatia.width, fatia.height);
-        ctx.drawImage(canvas, 0, y, canvas.width, alturaFatia, 0, 0, canvas.width, alturaFatia);
+        if (pagina.cabecalho) {
+          ctx.drawImage(canvas, 0, pagina.cabecalho.inicio, canvas.width, pagina.alturaCabecalho, 0, 0, canvas.width, pagina.alturaCabecalho);
+        }
+        ctx.drawImage(canvas, 0, pagina.inicio, canvas.width, alturaConteudo, 0, pagina.alturaCabecalho, canvas.width, alturaConteudo);
 
-        if (pagina > 0) doc.addPage("a4", "portrait");
+        if (indice > 0) doc.addPage("a4", "portrait");
         const alturaMm = (alturaFatia / canvas.width) * larguraUtil;
         doc.addImage(fatia.toDataURL("image/jpeg", 0.94), "JPEG", margemX, margemY, larguraUtil, alturaMm, undefined, "FAST");
 
-        pagina += 1;
-        y += alturaFatia;
-      }
+      });
 
-      const escalaCanvas = canvas.width / Math.max(1, cloneRect.width);
-      linksPdf.forEach((link) => {
-        const xPx = link.x * escalaCanvas;
-        const yPx = link.y * escalaCanvas;
-        const wPx = link.width * escalaCanvas;
-        const hPx = link.height * escalaCanvas;
-        const paginaLink = Math.floor(yPx / alturaPaginaPx) + 1;
-        const yNaPagina = yPx - ((paginaLink - 1) * alturaPaginaPx);
-        if (paginaLink < 1 || paginaLink > doc.getNumberOfPages()) return;
-        doc.setPage(paginaLink);
+      window.biProjetosPdf.links(clone, paginas).forEach((link) => {
+        doc.setPage(link.pagina);
         doc.link(
-          margemX + (xPx / canvas.width) * larguraUtil,
-          margemY + (yNaPagina / canvas.width) * larguraUtil,
-          Math.max(1, (wPx / canvas.width) * larguraUtil),
-          Math.max(1, (hPx / canvas.width) * larguraUtil),
+          margemX + (link.x / canvas.width) * larguraUtil,
+          margemY + (link.y / canvas.width) * larguraUtil,
+          Math.max(1, (link.largura / canvas.width) * larguraUtil),
+          Math.max(1, (link.altura / canvas.width) * larguraUtil),
           { url: link.url },
         );
       });
@@ -2269,7 +2276,6 @@
         doc.text(`Página ${i} de ${totalPaginas}`, 200, 292, { align: "right" });
       }
 
-      const nome = nomeArquivoPdf();
       if (modo === "download") {
         doc.save(nome);
       } else {
