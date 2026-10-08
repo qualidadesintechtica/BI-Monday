@@ -1,8 +1,0 @@
-V25.46.26 — FILTROS CERTIFICADOS CORRIGIDOS
-
-- Semestre: filtra imediatamente.
-- Revisor: filtra por nome normalizado em caixa alta.
-- E-mail: Todos / Com e-mail / Sem e-mail.
-- Pesquisa: busca UA, UC, matriz, semestre, revisor e e-mail em tempo real.
-- KPIs acompanham os filtros.
-- Edições manuais de revisor atualizam a lista do filtro.

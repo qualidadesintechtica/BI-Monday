@@ -1,8 +1,0 @@
-V25.46.31 — Correção dos filtros de Certificados
-
-Correções:
-- Corrigido ReferenceError: listaComGlobais is not defined.
-- Filtros globais agora são aplicados antes dos filtros específicos da aba Certificados.
-- Mantida a regra de 1 certificado por revisor quando uma UA possui múltiplos revisores.
-- Mantidos relatório, histórico, PDF e envio individual por revisor.
-- Cache-busting do certificados.js atualizado para v25.46.31.

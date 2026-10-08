@@ -1,7 +1,0 @@
-V25.46.29 — CERTIFICADOS COM FILTROS SINCRONIZADOS
-
-- Todos os filtros globais do BI passam a afetar a aba Certificados.
-- Filtros locais continuam: Semestre, Revisor, E-mail e Pesquisa.
-- KPIs, tabela, seleção e relatório usam exatamente o mesmo universo filtrado.
-- Quando os filtros globais mudam, o dashboard chama novamente Certificados no mesmo ciclo de atualização.
-- O universo continua vindo da Monday/Supabase, apenas UAs validadas.

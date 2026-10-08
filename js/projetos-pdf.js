@@ -37,12 +37,21 @@
 
     const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
+    const rodape = raiz.querySelector(".report-footer")?.getBoundingClientRect();
+    let ultimaLinhaConteudo;
     while (walker.nextNode()) {
       if (!/\S/.test(walker.currentNode.textContent)) continue;
       range.selectNodeContents(walker.currentNode);
-      [...range.getClientRects()].forEach((rect) => proteger(rect, true));
+      [...range.getClientRects()].forEach((rect) => {
+        proteger(rect, true);
+        if (rodape && rect.width > 0 && rect.height > 0 && rect.bottom <= rodape.top && (!ultimaLinhaConteudo || rect.bottom > ultimaLinhaConteudo.bottom)) ultimaLinhaConteudo = rect;
+      });
     }
     range.detach();
+
+    // O rodapé acompanha ao menos a última linha do conteúdo, evitando uma
+    // página que contenha somente os dados de emissão.
+    if (rodape && ultimaLinhaConteudo) proteger({ ...ultimaLinhaConteudo.toJSON(), bottom: rodape.bottom, height: rodape.bottom - ultimaLinhaConteudo.top }, true);
 
     const paginas = [];
     let inicio = 0;

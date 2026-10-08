@@ -1,3 +1,0 @@
-V25.46.17
-2026-09-30
-Somente aba Certificados: reconhecimento ampliado de UA 01–08, cruzamento de UC normalizado com a Base Oficial e diagnóstico de UAs/UCs sem correspondência. Demais abas preservadas.

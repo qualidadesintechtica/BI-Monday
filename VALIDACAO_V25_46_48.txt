@@ -1,4 +1,0 @@
-23 verificações locais aprovadas.
-SQL executado em PostgreSQL embarcado (PGlite). Worker com respostas simuladas. Integração frontend em DOM simulado.
-Cenários: limites 25/h e 200/24h, saldo mensal restante, renovação do ciclo, concorrência de worker, duplicidade, histórico transacional, proteção dos 61 pendentes, interrupção de tentativa, autenticação do worker, HTTP200 com falha e perda de conexão.
-Nenhum e-mail real foi enviado. Instalação e teste de entrega no ambiente de produção ainda necessários.

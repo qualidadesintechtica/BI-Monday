@@ -1,2 +1,0 @@
-Validação aprovada: remoção dos textos destacados; rótulo Enviado no filtro e na tabela; registro ENVIADO no relatório; seleção correta nas cinco opções do filtro, sem classificar entradas na fila ou para conferência como enviadas.
-Verificação por DOM simulado e sintaxe JavaScript. Funções e SQLs da versão anterior preservados.

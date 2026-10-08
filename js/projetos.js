@@ -1630,7 +1630,6 @@
         ${metadadoRelatorio("Prioridade", projeto.prioridade)}
         ${metadadoRelatorio("Ações originais", tarefas.length)}
       </div>
-      ${tabelaDadosDisponiveis(projeto.dados_origem)}
       ${blocoTexto("Contexto e objetivo", dados.contexto_objetivo)}
       ${blocoTexto("Resultados esperados", dados.resultados_esperados)}
       <section class="report-section"><h2>Ações e tarefas originais</h2>${blocoResumoTarefasRelease(dados.tarefas_release)}${tabelaTarefas(tarefas, dados.tarefas_release)}</section>

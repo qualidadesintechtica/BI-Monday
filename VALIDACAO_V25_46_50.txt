@@ -1,3 +1,0 @@
-Verificações aprovadas: Processando em filtro próprio; Na fila automática seleciona somente aguardando; demais filtros e histórico preservados; consulta indisponível distinguida de retorno vazio; fallback após Failed to fetch.
-SQL 14 executado em PostgreSQL embarcado: leitura por usuário institucional confirmado; bloqueio de usuário externo/não confirmado/anônimo; retorno de 1050 registros; ausência de PDF e token no resultado; leitura direta da tabela permanece bloqueada; orientação quando faltam tabelas.
-Frontend validado em DOM simulado. Não houve envio real de e-mails nem instalação no ambiente de produção.
