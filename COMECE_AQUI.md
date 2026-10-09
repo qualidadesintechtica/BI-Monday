@@ -1,18 +1,41 @@
-# BI-Monday V25.46.62 — Links das evidências e pacote limpo
+# BI-Monday V25.46.63 — Arquivamento e conclusão de tarefas
 
-## Publicar no sistema existente
+## Ativar no sistema existente
 
-Esta entrega corrige os links dos anexos nos relatórios e mantém o layout do release: azul e roxo, cartões com ícones, seções numeradas, linha do tempo e produtos/evidências em destaque. O conteúdo vem dos campos existentes e da versão salva do projeto. Não há SQL novo nem função do Supabase nova para instalar.
+Esta versão permite arquivar e restaurar qualquer card de tarefa ou projeto no Planejamento, inclusive os importados que ainda não possuem anotações salvas. Arquivar modifica a visibilidade do card, preservando status, responsáveis, prazos, passos, vínculos, evidências e versões dos relatórios. A operação fica registrada no histórico com usuário e data.
 
-Para publicar a pasta completa do site, mantenha estes caminhos na hospedagem:
+1. No SQL Editor do Supabase do BI, execute **`docs/20_ARQUIVAR_CARDS.sql`** inteiro. Ele usa a estrutura já instalada pelos SQLs 15 e 16, é reaplicável e não exclui dados. Se o Planejamento já funciona, não precisa repetir os SQLs 15 e 16. O SQL 17 continua responsável pela edição de status.
+2. Publique o conteúdo desta pasta no site existente, mantendo a estrutura. Os arquivos alterados sobre a V25.46.62 são `index.html`, `projetos.html`, `js/planejamento.js`, `js/planejamento-qualidade.js`, `js/projeto-qualidade.js` e `css/planejamento.css`, além do guia, da identificação de versão e do novo SQL. Se estiver numa versão anterior, publique a pasta completa.
+3. Recarregue com **Ctrl + F5** e confira **v25.46.63**.
 
-- `index.html`, `projetos.html`, `importar.html` e `login.html`.
-- Pastas `js`, `css` e `data`.
-- `assets_certificado.png`, utilizado na geração dos certificados.
+Copiar o SQL para o GitHub não o executa. Não há nova Edge Function nem ajuste na fila de certificados.
 
-Publique o conteúdo da pasta, mantendo a estrutura dos arquivos. Recarregue com **Ctrl + F5** e confira **v25.46.62**.
+## Arquivar, consultar e restaurar
 
-Sobre a V25.46.61, publique estes sete arquivos: `index.html`, `projetos.html`, `login.html`, `js/auth.js`, `js/projetos.js`, `js/projetos-evidencias-fix.js` e `css/projetos-evidencias-fix.css`. Se você estiver em uma versão anterior, publique a pasta completa: `css/projetos-release.css` e `js/projetos-pdf.js` também são obrigatórios para o layout e a paginação.
+- Em **Planejamento**, use **Arquivar card** no próprio card, na coluna Ações da lista ou no detalhe. Não precisa salvar anotações antes. A ação usa os dados já salvos; alterações ainda abertas no formulário devem ser guardadas com Salvar antes.
+- Marque **Arquivados** para consultar os cards, usar a busca e os filtros e escolher **Restaurar card**. O filtro mostra a quantidade arquivada. O aviso também oferece **Desfazer arquivamento** após uma ação.
+- O card sai do quadro ativo e, no caso de um projeto, da lista normal de cards da aba Projeto Qualidade. As ações de arquivar e restaurar ficam exclusivamente em Planejamento. Os indicadores gerais do BI e os dados usados nos relatórios continuam representando a base importada.
+- A atualização da planilha mantém a escolha de arquivamento pelo identificador estável do item e atualiza suas informações de origem. Mantenha os mesmos IDs na planilha; um ID diferente representa outro item.
+- **Abrir Projeto Qualidade**, no detalhe do card arquivado, permite consultar seu projeto de origem. Relatórios salvos e evidências continuam disponíveis para consulta e reimpressão.
+- Itens que saíram da base ativa após uma importação mantêm suas anotações e histórico na consulta de arquivados. Eles poderão ser restaurados quando voltarem à base ativa; restaurar um card não reativa uma linha ausente da planilha.
+
+O arquivamento não usa o status de conclusão nem altera `status_edicao`. Se outra pessoa modificou o card, a operação solicita atualizar o quadro. Uma falha de gravação não oculta o card. As permissões seguem a mesma sessão institucional já exigida pelo Planejamento.
+
+A conferência local incluiu o SQL real em banco de teste e a navegação com serviços simulados: marcação e reabertura dos passos, progresso e histórico, preservação de rascunhos, tarefas manuais, projetos importados sem anotações, tarefas sem projeto, quadro, lista, detalhe, desfazer, busca, restauração após recarga, atualização da planilha, conflitos, fonte inativa e acesso institucional. A publicação e a execução do SQL no seu ambiente ainda precisam ser feitas.
+
+## Marcar tarefas como feitas
+
+No detalhe do card, em **Passos do Projeto Qualidade**, marque a caixa ao lado da tarefa para salvá-la como **Finalizado** na base compartilhada. O passo recebe a identificação **Feita** e a contagem de passos concluídos é atualizada. A marcação é salva imediatamente, sem precisar clicar em Salvar alterações; desmarcar reabre a tarefa em **A Fazer**.
+
+O histórico do card inclui as mudanças dos seus passos, com tarefa, status anterior, novo status, usuário e data. Marcar um passo não conclui automaticamente o projeto nem outros passos e não salva alterações ainda abertas nas anotações. Nos passos adicionais ou de tarefas manuais, use a caixa existente e **Salvar tarefa/alterações** para guardar a edição.
+
+Essa opção usa a mesma função de alteração de status já instalada pelo **SQL 17**. Se a edição de status ainda não foi ativada, execute `docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql` após os SQLs 15 e 16. Não há nova função de envio ou Edge Function. Uma tarefa alterada por outra pessoa exige atualizar o quadro; uma falha não deixa a caixa marcada sem confirmação. Cards arquivados precisam ser restaurados antes de alterar seus passos.
+
+Os status acompanham a base atual de Projeto Qualidade. Uma nova importação aplica os status da planilha; mantenha o status também na planilha se desejar preservar a conclusão na próxima importação.
+
+## Relatórios e links mantidos
+
+Os arquivos de geração do PDF, o layout do release, os links das evidências e o fluxo de aprovação permanecem com as correções da V25.46.62. Para publicar a pasta completa, mantenha `index.html`, `projetos.html`, `importar.html`, `login.html`, as pastas `js`, `css`, `data` e `assets_certificado.png`.
 
 ## Abrir evidências pelo relatório
 
@@ -77,4 +100,4 @@ Uma tentativa com resultado desconhecido não é reenviada automaticamente. Para
 
 ## O que foi limpo
 
-Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização corrige os links do release e o retorno à evidência após login. Os arquivos das funções do Supabase permanecem iguais.
+Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização acrescenta o arquivamento de cards e o SQL 20. Os arquivos das funções do Supabase permanecem iguais.

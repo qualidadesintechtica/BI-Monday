@@ -22,7 +22,7 @@
   const chaveRef = r => `${r.tipo}|${r.id}|${r.pagina}`;
   const estado = {tarefas: [], refs: new Map(), pagina: location.pathname.endsWith('projetos.html') ? 'projeto-qualidade' : 'resumo',
     pronto: false, carregando: false, salvando: false, lista: false, draft: null, fontes: new Map(), projetos: [], tarefasProjeto: [],
-    persistidas: [], qualidadeFonte: null, qualidadeErro: '', importando: false, importacao: null, importacaoToken: 0, recarregarDepois: false, pessoas: [], extrasCarregados: false, buscaRefs: [], filtroPagina: '', historicoToken: 0};
+    persistidas: [], qualidadeFonte: null, qualidadeErro: '', importando: false, importacao: null, importacaoToken: 0, recarregarDepois: false, pessoas: [], extrasCarregados: false, buscaRefs: [], filtroPagina: '', historicoToken: 0, ultimoArquivado: null};
   const atraso = t => !t.arquivada && t.status !== 'concluida' && !!t.prazo && t.prazo < hoje();
   const exigeAtencao = t => !t.arquivada && t.status !== 'concluida' && (t.atencao || t.status === 'bloqueada' || atraso(t));
   const opcoes = (obj, atual, vazio = '') => (vazio ? `<option value="">${esc(vazio)}</option>` : '') +
@@ -137,6 +137,13 @@
       linhas.push(...(data || [])); if ((data || []).length < 1000) return linhas;
     }
   }
+  function estaArquivadoQualidade(fonte,tipo='projeto') {
+    const chave=window.biPlanejamentoQualidade.chave(fonte,tipo);
+    return estado.persistidas.some(t=>t.qualidade_chave===chave && t.arquivada);
+  }
+  function notificarArquivos() {
+    window.dispatchEvent(new CustomEvent('bi:planejamento-atualizado'));
+  }
   function montarTarefas() {
     estado.tarefas=window.biPlanejamentoQualidade.projetar(estado.persistidas,estado.qualidadeFonte || {projetos:[],tarefas:[],lidoEm:new Date().toISOString()});
   }
@@ -152,7 +159,7 @@
       estado.persistidas=res[0].value;
       if(res[1].status==='fulfilled') {estado.qualidadeFonte=res[1].value;estado.qualidadeErro='';}
       else estado.qualidadeErro=res[1].reason?.message || 'Projeto Qualidade indisponível.';
-      montarTarefas(); estado.pronto=true;
+      montarTarefas(); estado.pronto=true; notificarArquivos();
       aviso(estado.qualidadeErro ? `Tarefas carregadas. ${estado.qualidadeErro} ${estado.qualidadeFonte?'Exibindo a última leitura completa.':''}` : 'Projeto Qualidade conectado · Atualização automática a cada 60 segundos, ao abrir a aba e após importar.',!!estado.qualidadeErro);
       if($('planFonteQualidade')) $('planFonteQualidade').textContent=estado.qualidadeFonte ? `Última leitura: ${new Date(estado.qualidadeFonte.lidoEm).toLocaleString('pt-BR')}` : 'Aguardando a base de Projeto Qualidade.';
     } catch(error) {estado.pronto=false; aviso(mensagemErro(error),true);}
@@ -162,22 +169,29 @@
     const q=norm($('planBusca')?.value), status=$('planFiltroStatus')?.value, prio=$('planFiltroPrioridade')?.value,
       resp=$('planFiltroResponsavel')?.value, atencao=$('planSomenteAtencao')?.checked, arquivo=$('planArquivadas')?.checked;
     return estado.tarefas.filter(t => t.arquivada === !!arquivo && (!status || t.status===status) && (!prio || t.prioridade===prio) &&
-      (!resp || window.biPlanejamentoQualidade.nomes(t.responsavel).some(n=>chaveNome(n)===chaveNome(resp)) || (t.etapas || []).some(e=>window.biPlanejamentoQualidade.nomes(e.responsavel).some(n=>chaveNome(n)===chaveNome(resp)))) && (!atencao || exigeAtencao(t)) && (!estado.filtroPagina || paginasDaTarefa(t).has(estado.filtroPagina)) &&
+      (!resp || window.biPlanejamentoQualidade.nomes(t.responsavel).some(n=>chaveNome(n)===chaveNome(resp)) || (t.etapas || []).some(e=>window.biPlanejamentoQualidade.nomes(e.responsavel).some(n=>chaveNome(n)===chaveNome(resp)))) && (!atencao || arquivo || exigeAtencao(t)) && (!estado.filtroPagina || paginasDaTarefa(t).has(estado.filtroPagina)) &&
       (!q || norm([t.titulo,t.descricao,t.qualidade?.fonte?.contexto_objetivo_original,t.responsavel,...(t.vinculos || []).map(r=>r.label),...(t.etapas || []).map(e=>e.titulo)].join(' ')).includes(q)))
       .sort((a,b) => Number(exigeAtencao(b))-Number(exigeAtencao(a)) || ['critica','alta','media','baixa'].indexOf(a.prioridade)-['critica','alta','media','baixa'].indexOf(b.prioridade) ||
         (a.prazo || '9999').localeCompare(b.prazo || '9999') || b.atualizado_em.localeCompare(a.atualizado_em));
+  }
+  function botaoArquivo(t) {
+    const indisponivel=t.qualidade && !t.qualidade.ativo;
+    const acao=t.arquivada?'Restaurar':'Arquivar';
+    return `<button type="button" class="plan-card-archive" data-plan-archive="${esc(t.id)}"
+      aria-label="${acao} card: ${esc(t.titulo)}" ${estado.salvando || indisponivel?'disabled':''}
+      ${indisponivel?'title="Este item saiu da base ativa. Restaure após ele voltar ao Projeto Qualidade."':''}>${acao} card</button>`;
   }
   function card(t) {
     const etapas=t.etapas || [], feitas=etapas.filter(e=>e.concluida).length;
     return `<article class="plan-task ${exigeAtencao(t)?'plan-task-attention':''}" draggable="${!t.arquivada}" data-plan-drag="${esc(t.id)}">
       <div class="plan-card-top"><span class="plan-priority plan-priority-${t.prioridade}">${PRIORIDADES[t.prioridade]}</span>
-      ${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${t.atencao && t.status!=='concluida'?'<span class="plan-tag">Atenção</span>':''}${atraso(t)?'<span class="plan-tag plan-late">Atrasada</span>':''}</div>
+      ${t.arquivada?'<span class="plan-archive-tag">Arquivado</span>':''}${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${t.atencao && t.status!=='concluida'?'<span class="plan-tag">Atenção</span>':''}${atraso(t)?'<span class="plan-tag plan-late">Atrasada</span>':''}</div>
       <button type="button" class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>
       ${t.descricao?`<p class="plan-task-description">${esc(t.descricao.slice(0,130))}</p>`:''}
       <p class="plan-task-meta">${esc(t.responsavel || 'Sem responsável')}<br><span class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</span></p>
       ${etapas.length?`<div class="plan-progress"><span style="width:${Math.round(feitas/etapas.length*100)}%"></span></div><small>${feitas}/${etapas.length} passos concluídos</small>`:'<small>Sem passos cadastrados</small>'}
       <div class="plan-card-links">${(t.vinculos || []).slice(0,2).map(r=>`<span title="${esc(r.label)}">${esc(TIPOS[r.tipo])}: ${esc(r.label.slice(0,75))}</span>`).join('')}${(t.vinculos || []).length>2?`<small>+${t.vinculos.length-2} vínculos</small>`:''}</div>
-      <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label></article>`;
+      <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label><div class="plan-card-actions">${botaoArquivo(t)}</div></article>`;
   }
   function render() {
     if (!$('planBoard')) return;
@@ -186,19 +200,26 @@
     const resp=$('planFiltroResponsavel'), prev=resp.value;
     const nomes=listaResponsaveis();
     resp.innerHTML='<option value="">Todos os responsáveis</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join(''); resp.value=nomes.find(n=>chaveNome(n)===chaveNome(prev)) || '';
+    const arquivo=!!$('planArquivadas')?.checked;
+    $('planSomenteAtencao').disabled=arquivo;
+    if($('planArquivoRotulo')) $('planArquivoRotulo').textContent=`Arquivados (${estado.tarefas.filter(t=>t.arquivada).length})`;
     const lista=filtradas(), abertas=estado.tarefas.filter(t=>!t.arquivada);
     $('planTotal').textContent=abertas.length;
     $('planEmAndamento').textContent=abertas.filter(t=>t.status==='em_andamento').length;
     $('planAtrasadas').textContent=abertas.filter(atraso).length;
     $('planAtencaoTotal').textContent=abertas.filter(exigeAtencao).length;
     $('planConcluidas').textContent=abertas.filter(t=>t.status==='concluida').length;
-    $('planContagem').textContent=`${lista.length} ${lista.length===1?'item':'itens'} nesta visão`;
+    $('planContagem').textContent=`${lista.length} ${lista.length===1?'card':'cards'} ${arquivo?(lista.length===1?'arquivado':'arquivados'):'nesta visão'}`;
     $('planFiltroArea').hidden=!estado.filtroPagina;
     $('planFiltroArea').textContent=estado.filtroPagina?`Área: ${PAGINAS[estado.filtroPagina]} · Limpar`:'';
     if (!estado.pronto) {$('planBoard').innerHTML='<div class="plan-empty">O Planejamento estará disponível após a instalação da estrutura de tarefas.</div>';return;}
+    $('planBoard').classList.toggle('plan-archive-board',arquivo && !estado.lista);
     if (estado.lista) {
       $('planBoard').classList.add('plan-list');
-      $('planBoard').innerHTML=lista.length?`<div class="plan-table-scroll"><table class="plan-table"><thead><tr><th>Tarefa</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Passos</th></tr></thead><tbody>${lista.map(t=>`<tr><td><button class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${exigeAtencao(t)?'<span class="plan-tag">Atenção</span>':''}</td><td>${STATUS[t.status]}</td><td>${esc(t.responsavel || '—')}</td><td class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</td><td>${PRIORIDADES[t.prioridade]}</td><td>${(t.etapas||[]).filter(e=>e.concluida).length}/${(t.etapas||[]).length}</td></tr>`).join('')}</tbody></table></div>`:'<div class="plan-empty">Nenhuma tarefa corresponde aos filtros.</div>';
+      $('planBoard').innerHTML=lista.length?`<div class="plan-table-scroll"><table class="plan-table"><thead><tr><th>Tarefa</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Passos</th><th>Ações</th></tr></thead><tbody>${lista.map(t=>`<tr><td><button class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${exigeAtencao(t)?'<span class="plan-tag">Atenção</span>':''}</td><td>${STATUS[t.status]}</td><td>${esc(t.responsavel || '—')}</td><td class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</td><td>${PRIORIDADES[t.prioridade]}</td><td>${(t.etapas||[]).filter(e=>e.concluida).length}/${(t.etapas||[]).length}</td><td>${botaoArquivo(t)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="plan-empty">Nenhuma tarefa corresponde aos filtros.</div>';
+    } else if(arquivo) {
+      $('planBoard').classList.remove('plan-list');
+      $('planBoard').innerHTML=lista.length?lista.map(card).join(''):'<div class="plan-empty">Nenhum card arquivado corresponde aos filtros.</div>';
     } else {
       $('planBoard').classList.remove('plan-list');
       $('planBoard').innerHTML=Object.entries(STATUS).map(([s,l])=>{
@@ -244,15 +265,19 @@
   }
   function renderQualidade() {
     const q=estado.draft.qualidade, box=$('planQualidadeDetalhe');box.hidden=!q;
+    const scroll=box.querySelector('.plan-source-steps')?.scrollTop || 0;
+    const detalhes=[...box.querySelectorAll('details')].map(e=>e.open);
     ['titulo','responsavel','prazo','prioridade'].forEach(k=>{const el=$('planCampo_'+k);el.disabled=!!q;});
-    $('planCampo_status').disabled=!!q && !q.ativo;
+    $('planCampo_status').disabled=estado.salvando || !!estado.draft.arquivada || (!!q && !q.ativo);
     if(!q) {box.innerHTML='';return;}
     const fonte=q.fonte;
-    box.innerHTML=`<p class="plan-source-note">${q.ativo?'Você pode alterar o status neste cartão: ele será salvo também no Projeto Qualidade. Responsáveis, prazos e passos acompanham a fonte. As anotações e passos adicionais ficam salvos neste cartão.':'Este item saiu da base ativa de Projeto Qualidade. Suas anotações e seu histórico foram preservados.'}</p>
+    box.innerHTML=`<p class="plan-source-note">${q.ativo?'Você pode alterar o status neste cartão: ele será salvo também no Projeto Qualidade. Responsáveis, prazos e passos acompanham a fonte. Marque os passos como feitos para atualizar a tarefa no Projeto Qualidade. A marcação é salva na hora; desmarcar devolve a tarefa para A Fazer. As anotações e passos adicionais ficam salvos neste cartão.':'Este item saiu da base ativa de Projeto Qualidade. Suas anotações e seu histórico foram preservados.'}</p>
       <button type="button" id="planAbrirQualidade">Abrir Projeto Qualidade</button>
       ${fonte?`<details><summary>Objetivo, resultados e dados da planilha</summary>${contextoLegivel({projeto:fonte.projeto,azure_id:fonte.id_azure,status:fonte.status,sponsor:fonte.sponsor,data_inicio:fonte.data_inicio,data_fim:fonte.data_fim,objetivo:fonte.contexto_objetivo_original,resultados_esperados:fonte.resultados_esperados_original,acoes:fonte.acoes_tarefas_original,impacto:fonte.impacto_original,resultados_alcancados:fonte.resultados_alcancados_original,link_evidencias:fonte.link_evidencias,aba_origem:fonte.aba_origem})}
       <details><summary>Todas as colunas originais</summary><pre>${esc(JSON.stringify(fonte.dados_origem || {},null,2))}</pre></details></details>`:''}
-      ${q.etapas.length?`<h3>Passos do Projeto Qualidade · ${q.etapas.filter(e=>e.concluida).length}/${q.etapas.length}</h3><div class="plan-source-steps">${q.etapas.map(e=>`<article><span aria-label="${e.concluida?'Concluído':'Pendente'}">${e.concluida?'✓':'○'}</span><div><strong>${esc(e.titulo)}</strong><small>${esc(e.statusOriginal || 'Status não informado')} · ${esc(e.responsavel || 'Sem responsável')} · ${dataBR(e.prazo)}</small><details><summary>Dados originais deste passo</summary><pre>${esc(JSON.stringify(e.fonte.dados_origem || e.fonte,null,2))}</pre></details></div></article>`).join('')}</div>`:''}`;
+      ${q.etapas.length?`<h3 id="planSourceStepsHeading">Passos do Projeto Qualidade · ${q.etapas.filter(e=>e.concluida).length}/${q.etapas.length}</h3><div class="plan-source-steps">${q.etapas.map(e=>`<article class="${e.concluida?'plan-source-step-done':''}"><input type="checkbox" data-plan-source-step="${esc(e.id)}" aria-label="Marcar tarefa como feita: ${esc(e.titulo)}" ${e.concluida?'checked':''} ${estado.salvando || estado.draft.arquivada || !q.ativo || e.fonte?.ativo===false?'disabled':''}><div><strong>${esc(e.titulo)}</strong><span class="plan-step-done-label" ${e.concluida?'':'hidden'}>Feita</span><small data-source-step-meta>${esc(e.statusOriginal || 'Status não informado')} · ${esc(e.responsavel || 'Sem responsável')} · ${dataBR(e.prazo)}</small><details><summary>Dados originais deste passo</summary><pre>${esc(JSON.stringify(e.fonte.dados_origem || e.fonte,null,2))}</pre></details></div></article>`).join('')}</div>`:''}`;
+    const passos=box.querySelector('.plan-source-steps');if(passos)passos.scrollTop=scroll;
+    [...box.querySelectorAll('details')].forEach((e,i)=>{if(detalhes[i]!==undefined)e.open=detalhes[i];});
   }
   function renderVinculos() {
     $('planVinculos').innerHTML=estado.draft.vinculos.map((r,i)=>{
@@ -280,6 +305,7 @@
     if (estado.salvando) return;
     estado.draft=clone(tarefa || {titulo:'',descricao:'',responsavel:'',prazo:'',status:'a_fazer',prioridade:'media',atencao:!!referencia,etapas:[],vinculos:[],arquivada:false});
     const d=estado.draft;
+    d.cardId=tarefa?.id;
     if(d.qualidade) {d.id=d.qualidade.salvo?.id;d.versao=d.qualidade.salvo?.versao;d.etapas=clone(d.qualidade.salvo?.etapas || []);}
     $('planDialogTitulo').textContent=d.qualidade?'Projeto Qualidade':d.id?'Editar tarefa':'Nova tarefa';
     $('planSalvar').textContent=d.qualidade?'Salvar alterações':'Salvar tarefa';
@@ -290,7 +316,11 @@
     $('planCampo_prioridade').innerHTML=opcoes(PRIORIDADES,d.prioridade);
     $('planCampo_atencao').checked=d.atencao;
     $('planDialogErro').textContent=''; $('planComentario').value='';
-    $('planArquivar').hidden=!d.id || (d.qualidade && !d.qualidade.ativo); $('planArquivar').textContent=d.arquivada?'Restaurar tarefa':'Arquivar tarefa';
+    $('planArquivar').hidden=!d.cardId;
+    $('planArquivar').disabled=!!(d.qualidade && !d.qualidade.ativo);
+    $('planArquivar').textContent=d.arquivada?'Restaurar card':'Arquivar card';
+    $('planArquivoAviso').hidden=!d.cardId;
+    $('planArquivoAviso').textContent=d.qualidade && !d.qualidade.ativo?'Este item saiu da base ativa. Restaure após ele voltar ao Projeto Qualidade.':'Arquivar ou restaurar preserva os dados já salvos. Para guardar alterações deste formulário, use Salvar antes.';
     $('planHistorico').innerHTML=d.id || d.qualidade?'Carregando histórico…':'O histórico será registrado após salvar a tarefa.';
     $('planComentar').disabled=!d.id; $('planComentario').disabled=!d.id;
     $('planBuscaVinculo').value=''; $('planTipoVinculo').value='';
@@ -309,7 +339,7 @@
   }
   function alterarLocal(t) {
     const i=estado.persistidas.findIndex(x=>x.id===t.id); if(i<0) estado.persistidas.push(t); else estado.persistidas[i]=t;montarTarefas();
-    render(); atualizarSinais();
+    render(); atualizarSinais(); notificarArquivos();
   }
   function erroStatusQualidade(error) {
     if(['PGRST202','PGRST205','42883','42P01'].includes(error?.code)) return new Error('Execute docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql no Supabase para habilitar a alteração de status dos cartões importados.');
@@ -352,7 +382,7 @@
   }
   function bloqueio(valor) {
     estado.salvando=valor;
-    ['planSalvar','planArquivar','planFechar','planCancelar','planComentar'].forEach(id=>{if($(id)) $(id).disabled=valor || (id==='planComentar' && !estado.draft?.id);});
+    ['planSalvar','planArquivar','planFechar','planCancelar','planComentar'].forEach(id=>{if($(id)) $(id).disabled=valor || (id==='planComentar' && !estado.draft?.id) || (id==='planArquivar' && estado.draft?.qualidade && !estado.draft.qualidade.ativo);});
     if (!valor) render();
   }
   async function salvarFormulario(event) {
@@ -361,6 +391,37 @@
     try {await salvar(lerFormulario()); $('planDialog').close(); aviso('Tarefa salva.');}
     catch(error) {$('planDialogErro').textContent=mensagemErro(error);}
     finally {bloqueio(false);}
+  }
+  async function mudarArquivamento(id, peloDialog=false) {
+    if(estado.salvando || !estado.pronto) return;
+    const t=peloDialog?estado.draft:estado.tarefas.find(x=>x.id===id);
+    if(!t || (t.qualidade && !t.qualidade.ativo)) return;
+    const arquivada=!t.arquivada;
+    const salvo=t.qualidade?t.qualidade.salvo:t;
+    bloqueio(true); render(); aviso(arquivada?'Arquivando card…':'Restaurando card…');
+    if(peloDialog) $('planDialogErro').textContent='';
+    try {
+      const {data,error}=await window.biSupabase.rpc('bi_planejamento_arquivar',{
+        p_id:salvo?.id || null,p_versao:salvo?.versao || null,
+        p_chave:t.qualidade?.chave || null,p_arquivada:arquivada
+      });
+      if(error) {
+        if(['PGRST202','42883','42P01'].includes(error.code))
+          throw new Error('Execute docs/20_ARQUIVAR_CARDS.sql no Supabase para habilitar o arquivamento de todos os cards.');
+        throw error;
+      }
+      const registro=Array.isArray(data)?data[0]:data;
+      if(!registro?.id || registro.arquivada!==arquivada) throw new Error('O banco não confirmou o arquivamento. Atualize o quadro.');
+      alterarLocal(registro);
+      if(peloDialog) $('planDialog').close();
+      estado.ultimoArquivado=arquivada?registro.id:null;
+      $('planDesfazer').hidden=!arquivada;
+      $('planDesfazer').title=arquivada?`Restaurar ${t.titulo}`:'';
+      aviso(arquivada?'Card arquivado. Consulte e restaure em Arquivados.':'Card restaurado para o quadro ativo.');
+    } catch(error) {
+      aviso(mensagemErro(error),true);
+      if(peloDialog) $('planDialogErro').textContent=mensagemErro(error);
+    } finally {bloqueio(false);}
   }
   async function mudarStatus(id,status) {
     if(estado.salvando) return;
@@ -376,10 +437,62 @@
     } catch(error) {aviso(mensagemErro(error),true);}
     finally {estado.salvando=false;render();}
   }
+  async function marcarPassoQualidade(chave,concluida) {
+    const d=estado.draft,q=d?.qualidade,passo=q?.etapas.find(e=>e.id===chave);
+    if(estado.salvando || !passo || d.arquivada || !q.ativo) {if(q)atualizarPassosQualidade();return;}
+    const manterFoco=document.activeElement?.dataset.planSourceStep===chave;
+    const tarefa={tipo:'tarefa',chave,fonte:passo.fonte,ativo:passo.fonte?.ativo!==false};
+    bloqueio(true);
+    $('planQualidadeDetalhe').querySelectorAll('[data-plan-source-step]').forEach(input=>{input.disabled=true;});
+    $('planCampo_status').disabled=true;$('planDialogErro').textContent='';
+    try {
+      const {data,error}=await window.biSupabase.rpc('bi_planejamento_qualidade_alterar_status',argumentosStatus(tarefa,concluida?'concluida':'a_fazer'));
+      if(error)throw erroStatusQualidade(error);
+      atualizarFonteQualidade(tarefa,data);
+      const atual=estado.tarefas.find(t=>t.qualidade?.chave===q.chave);
+      if(atual?.qualidade)q.etapas=clone(atual.qualidade.etapas);
+      atualizarPassosQualidade();
+      atualizarSinais();
+      aviso(concluida?'Tarefa marcada como feita no Planejamento e no Projeto Qualidade.':'Tarefa reaberta em A Fazer no Projeto Qualidade.');
+      await historico(d.id);
+    } catch(error) {$('planDialogErro').textContent=mensagemErro(error);}
+    finally {
+      bloqueio(false);atualizarPassosQualidade();
+      if(manterFoco) [...$('planQualidadeDetalhe').querySelectorAll('[data-plan-source-step]')].find(e=>e.dataset.planSourceStep===chave)?.focus({preventScroll:true});
+    }
+  }
+  function atualizarPassosQualidade() {
+    const d=estado.draft,q=d?.qualidade;if(!q)return;
+    if($('planSourceStepsHeading')) $('planSourceStepsHeading').textContent=`Passos do Projeto Qualidade · ${q.etapas.filter(e=>e.concluida).length}/${q.etapas.length}`;
+    const passos=new Map(q.etapas.map(e=>[e.id,e]));
+    $('planQualidadeDetalhe').querySelectorAll('[data-plan-source-step]').forEach(input=>{
+      const e=passos.get(input.dataset.planSourceStep);if(!e)return;
+      input.checked=e.concluida;
+      input.disabled=estado.salvando || d.arquivada || !q.ativo || e.fonte?.ativo===false;
+      const artigo=input.closest('article');artigo.classList.toggle('plan-source-step-done',e.concluida);
+      artigo.querySelector('.plan-step-done-label').hidden=!e.concluida;
+      artigo.querySelector('[data-source-step-meta]').textContent=`${e.statusOriginal || 'Status não informado'} · ${e.responsavel || 'Sem responsável'} · ${dataBR(e.prazo)}`;
+      artigo.querySelector('pre').textContent=JSON.stringify(e.fonte.dados_origem || e.fonte,null,2);
+    });
+    $('planCampo_status').disabled=estado.salvando || d.arquivada || !q.ativo;
+  }
+  async function historicoStatusQualidade(d) {
+    if(!d.qualidade)return {data:[]};
+    const chaves=[...new Set([d.qualidade.chave,...d.qualidade.etapas.map(e=>e.id)])];
+    const lotes=[];let lote=[],tamanho=0;
+    for(const chave of chaves) {
+      const bytes=encodeURIComponent(chave).length;
+      if(lote.length && (lote.length>=40 || tamanho+bytes>3500)){lotes.push(lote);lote=[];tamanho=0;}
+      lote.push(chave);tamanho+=bytes;
+    }
+    if(lote.length)lotes.push(lote);
+    const respostas=await Promise.all(lotes.map(chaves=>window.biSupabase.from('bi_planejamento_qualidade_status_historico').select('*').in('qualidade_chave',chaves).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100)));
+    return {data:respostas.flatMap(r=>r.data || []),error:respostas.find(r=>r.error)?.error};
+  }
   async function historico(id) {
     const token=++estado.historicoToken,d=estado.draft;
     const consultas=[id?window.biSupabase.from('bi_planejamento_historico').select('*').eq('tarefa_id',id).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100):Promise.resolve({data:[]}),
-      d.qualidade?window.biSupabase.from('bi_planejamento_qualidade_status_historico').select('*').eq('qualidade_chave',d.qualidade.chave).order('criado_em',{ascending:false}).order('id',{ascending:false}).limit(100):Promise.resolve({data:[]})];
+      historicoStatusQualidade(d)];
     const [anotacoes,status]=await Promise.all(consultas);
     if(token!==estado.historicoToken || estado.draft!==d) return;
     const nomes={criada:'Tarefa criada',alterada:'Tarefa alterada',arquivada:'Tarefa arquivada',restaurada:'Tarefa restaurada',comentario:'Comentário'};
@@ -387,7 +500,7 @@
     const erros=[anotacoes.error?mensagemErro(anotacoes.error):'',status.error?'Histórico de status indisponível. Execute docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql.':''].filter(Boolean);
     $('planHistorico').innerHTML=dados.map(h=>{
       const campos=h.acao!=='status_qualidade' && h.antes && h.depois?['titulo','descricao','responsavel','prazo','status','prioridade','atencao','etapas','vinculos'].filter(k=>JSON.stringify(h.antes[k])!==JSON.stringify(h.depois[k])):[];
-      return `<article><strong>${h.acao==='status_qualidade'?'Status do Projeto Qualidade alterado':nomes[h.acao] || esc(h.acao)}</strong><small>${esc(h.usuario_email)} · ${esc(new Date(h.criado_em).toLocaleString('pt-BR'))}</small>${h.acao==='status_qualidade'?`<p>${esc(h.antes?.status || 'Sem status')} → ${esc(h.depois?.status)}</p>`:''}${h.comentario?`<p>${esc(h.comentario)}</p>`:''}${campos.length?`<p>Campos alterados: ${esc(campos.join(', '))}</p>`:''}</article>`;
+      return `<article><strong>${h.acao==='status_qualidade'?(h.fonte_tipo==='tarefa'?'Tarefa do Projeto Qualidade alterada':'Status do Projeto Qualidade alterado'):nomes[h.acao] || esc(h.acao)}</strong><small>${esc(h.usuario_email)} · ${esc(new Date(h.criado_em).toLocaleString('pt-BR'))}</small>${h.acao==='status_qualidade'?`${h.fonte_tipo==='tarefa'?`<p>${esc(h.depois?.acao || h.antes?.acao || 'Tarefa')}</p>`:''}<p>${esc(h.antes?.status || 'Sem status')} → ${esc(h.depois?.status)}</p>`:''}${h.comentario?`<p>${esc(h.comentario)}</p>`:''}${campos.length?`<p>Campos alterados: ${esc(campos.join(', '))}</p>`:''}</article>`;
     }).join('') || 'Nenhum registro de histórico.';
     if(erros.length)$('planHistorico').insertAdjacentHTML('beforeend',`<p class="plan-error">${esc(erros.join(' '))}</p>`);
   }
@@ -402,7 +515,7 @@
   }
   function origem(r) {
     if (!r) return;
-    if(r.dados?.planejamento_qualidade) {window.open('index.html?projetoQualidade='+encodeURIComponent(r.dados.projeto || r.label)+'#projeto-qualidade','_blank','noopener');return;}
+    if(r.dados?.planejamento_qualidade) {window.open('index.html?projetoQualidade='+encodeURIComponent(r.dados.projeto || r.label)+'&consultarCard='+encodeURIComponent(r.dados.qualidade_chave)+'#projeto-qualidade','_blank','noopener');return;}
     if (r.tipo==='projeto' || r.tipo==='tarefa_projeto') {
       const id=r.tipo==='projeto'?r.id:r.dados.projeto_id;
       window.open('projetos.html'+(id?'?projeto='+encodeURIComponent(id):''),'_blank','noopener'); return;
@@ -460,12 +573,14 @@
       <section><div class="plan-section-head"><h3 id="planPassosTitulo">Passos da tarefa</h3><button id="planAddEtapa" type="button">+ Adicionar passo</button></div><small id="planEtapasContagem"></small><div id="planEtapas"></div></section>
       <section><h3>Vínculos com o BI</h3><div id="planVinculos"></div><div class="plan-ref-search"><label>Tipo de registro<select id="planTipoVinculo">${opcoes(TIPOS,'','Todos')}</select></label><label>Buscar registro<input id="planBuscaVinculo" type="search" placeholder="Nome, UA, UC, pessoa ou ID"></label></div><small id="planFonteAviso"></small><small id="planBuscaContagem"></small><div id="planResultadosVinculos"></div></section>
       </div><aside class="plan-dialog-history"><h3>Histórico e comentários</h3><textarea id="planComentario" maxlength="4000" rows="3" placeholder="Registre uma atualização após salvar a tarefa."></textarea><button id="planComentar" type="button">Adicionar comentário</button><div id="planHistorico"></div><small>Exibe os 100 registros mais recentes.</small></aside></div>
-      <p id="planDialogErro" class="plan-error" role="alert"></p><footer><button id="planArquivar" type="button" hidden>Arquivar tarefa</button><div><button id="planCancelar" type="button">Cancelar</button><button id="planSalvar" class="plan-primary" type="submit">Salvar tarefa</button></div></footer></form></dialog>`);
+      <p id="planArquivoAviso" class="plan-archive-note" hidden></p><p id="planDialogErro" class="plan-error" role="alert"></p><footer><button id="planArquivar" type="button" hidden>Arquivar tarefa</button><div><button id="planCancelar" type="button">Cancelar</button><button id="planSalvar" class="plan-primary" type="submit">Salvar tarefa</button></div></footer></form></dialog>`);
+    $('planStatus')?.insertAdjacentHTML('afterend','<button id="planDesfazer" type="button" class="plan-undo" hidden>Desfazer arquivamento</button>');
     $('planForm').addEventListener('submit',salvarFormulario);
     $('planDialog').addEventListener('cancel',e=>{if(estado.salvando)e.preventDefault();});
     document.addEventListener('click',event=>{
       const b=event.target.closest('button');if(!b)return;
       const has=k=>Object.prototype.hasOwnProperty.call(b.dataset,k);
+      if(has('planArchive')) {void mudarArquivamento(b.dataset.planArchive);return;}
       if(has('planOpen')) {void abrir(estado.tarefas.find(t=>t.id===b.dataset.planOpen));return;}
       if(has('planRef')) {void abrir(null,estado.refs.get(b.dataset.planRef));return;}
       if(has('planAddRef')) {const r=estado.buscaRefs[Number(b.dataset.planAddRef)]; adicionarRef(r?.tipo==='visao'?paginaRef(r.pagina):r);return;}
@@ -484,7 +599,12 @@
         case 'planAddEtapa': if(estado.draft.etapas.length<100){estado.draft.etapas.push({id:idNovo(),titulo:'',concluida:false,responsavel:'',prazo:''});renderEtapas();$('planEtapas').lastElementChild.querySelector('[data-step-field="titulo"]').focus();}break;
         case 'planCancelar':case 'planFechar': if(!estado.salvando)$('planDialog').close();break;
         case 'planComentar': void comentar();break;
-        case 'planArquivar': if(!estado.salvando) {estado.draft.arquivada=!estado.draft.arquivada;void salvarFormulario(new Event('submit',{cancelable:true}));}break;
+        case 'planArquivar': void mudarArquivamento(estado.draft?.cardId,true);break;
+        case 'planDesfazer': {
+          const t=estado.tarefas.find(t=>(t.qualidade?.salvo?.id || t.id)===estado.ultimoArquivado);
+          if(t?.arquivada) void mudarArquivamento(t.id);
+          break;
+        }
       }
     });
     document.addEventListener('input',event=>{
@@ -494,7 +614,7 @@
       if(e.id==='planBuscaVinculo')buscarRefs();if(e.id==='planBusca')render();
     });
     document.addEventListener('change',event=>{
-      const e=event.target;if(e.dataset.planStatus)void mudarStatus(e.dataset.planStatus,e.value);
+      const e=event.target;if(e.dataset.planSourceStep){void marcarPassoQualidade(e.dataset.planSourceStep,e.checked);return;}if(e.dataset.planStatus)void mudarStatus(e.dataset.planStatus,e.value);
       if(e.id==='planTipoVinculo')buscarRefs();if(['planFiltroStatus','planFiltroPrioridade','planFiltroResponsavel','planSomenteAtencao','planArquivadas'].includes(e.id))render();
     });
     document.addEventListener('dragstart',e=>{const card=e.target.closest('[data-plan-drag]');if(card)e.dataTransfer.setData('text/plain',card.dataset.planDrag);});
@@ -514,6 +634,6 @@
   }
   window.biPlanejamento={definirDados,definirProjetos,paginaAlterada,registrarMaterial:(x,p)=>registrar(materialRef(x,p)),
     registrarCertificado:(ua,r,s,k)=>registrar(certificadoRef(ua,r,s,k)),registrarProjeto:x=>registrar(projetoRef(x)),
-    abrirTarefa:(r)=>abrir(null,r),atualizarSinais};
+    abrirTarefa:(r)=>abrir(null,r),atualizarSinais,estaArquivadoQualidade};
   document.addEventListener('DOMContentLoaded',instalarUI);
 })();

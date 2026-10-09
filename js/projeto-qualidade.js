@@ -169,6 +169,8 @@
     const sponsor = txt($("pqFiltroSponsor")?.value);
 
     return projetos.filter(p => {
+      const consulta=new URLSearchParams(location.search).get('consultarCard');
+      if(window.biPlanejamento?.estaArquivadoQualidade(p,'projeto') && consulta!==window.biPlanejamentoQualidade?.chave(p,'projeto')) return false;
       const tp = tarefasDoProjeto(p);
       const haystack = norm([
         nomeProjeto(p),
@@ -215,7 +217,7 @@
     const filtrados = aplicarFiltros();
 
     if ($("pqResumoFiltro")) {
-      $("pqResumoFiltro").textContent = `${filtrados.length} de ${projetos.length} projetos exibidos`;
+      $("pqResumoFiltro").textContent = `${filtrados.length} de ${projetos.length} projetos exibidos${projetos.some(p=>window.biPlanejamento?.estaArquivadoQualidade(p,'projeto'))?' · Os cards arquivados estão em Planejamento → Arquivados.':''}`;
     }
 
     if (!filtrados.length) {
@@ -498,6 +500,7 @@
     }
   }
 
+  window.addEventListener('bi:planejamento-atualizado',()=>{if(carregado)renderLista();});
   window.invalidarProjetoQualidade = () => { carregado = false; };
   window.atualizarProjetoQualidade = atualizarProjetoQualidade;
 })();

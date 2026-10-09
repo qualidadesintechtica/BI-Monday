@@ -83,5 +83,5 @@
       throw new Error('Projeto Qualidade mudou durante a leitura. A próxima atualização buscará a base completa.');
     return {projetos,tarefas,lidoEm:new Date().toISOString()};
   }
-  window.biPlanejamentoQualidade={nomes,status,prioridade,projetar,ler};
+  window.biPlanejamentoQualidade={nomes,status,prioridade,chave,projetar,ler};
 })();
