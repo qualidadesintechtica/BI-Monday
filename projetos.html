@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/dashboard.css?v=20260908-v24-6">
     <link rel="stylesheet" href="css/projetos.css?v=20261007-v25-46-59-pdf-tabelas">
     <link rel="stylesheet" href="css/projetos-evidencias-fix.css?v=20261008-v25-46-62-links-evidencias">
-    <link rel="stylesheet" href="css/planejamento.css?v=20261009-v25-46-63-arquivar-cards">
+    <link rel="stylesheet" href="css/planejamento.css?v=20261009-v25-46-64-status-persistente">
     <link rel="stylesheet" href="css/projetos-release.css?v=20261008-v25-46-61-release-visual">
   </head>
 
@@ -18,7 +18,7 @@
         <div class="brand">
           <small>DataHub</small>
           <strong>Validação de Materiais</strong>
-          <small class="build-badge">v25.46.63 · Cards e tarefas</small>
+          <small class="build-badge">v25.46.64 · Status e planilhas</small>
         </div>
 
         <nav class="nav" aria-label="Navegação principal">
@@ -171,9 +171,11 @@
                 <span id="editionBadge" class="edition-badge">Nova edição</span>
                 <h2 id="selectedProjectTitle">—</h2>
                 <p id="selectedProjectMeta">—</p>
+                <p id="currentProjectStatus" aria-live="polite">Status atual do projeto: —</p>
               </div>
               <div class="toolbar-actions">
                 <button id="attachEvidenceButton" class="secondary-action attachment-action" type="button">Anexar arquivo</button>
+                <button id="attachSpreadsheetButton" class="secondary-action attachment-action" type="button">Anexar planilha</button>
                 <button id="printDraftButton" class="secondary-action" type="button">Visualizar PDF</button>
                 <button id="saveDraftButton" class="secondary-action strong" type="button">Salvar rascunho</button>
                 <button id="reviewButton" class="review-action" type="button">Enviar para revisão</button>
@@ -225,7 +227,7 @@
                       <div id="releaseTaskSummary" class="release-task-summary"></div>
                       <div id="releaseTaskList" class="release-task-list"></div>
                       <div id="releaseTaskUpdateNote" class="release-task-update-note"></div>
-                      <small class="release-task-warning">A opção de atualizar o Projeto Qualidade só é aplicada ao finalizar a versão. Uma futura importação continuará refletindo o status que vier na planilha de origem.</small>
+                      <small class="release-task-warning">A opção de atualizar o Projeto Qualidade só é aplicada ao finalizar a versão. O status escolhido no sistema será mantido nas próximas importações; os dados originais da planilha continuam preservados.</small>
                     </fieldset>
                     <label class="field full">
                       <span>Novas ações ou complementos</span>
@@ -264,7 +266,7 @@
 
                     <fieldset class="evidence-fieldset">
                       <legend>Evidências <b>*</b></legend>
-                      <p>Adicione links ou envie arquivos PDF, Word (DOC/DOCX) e imagens JPG/JPEG de até 20 MB.</p>
+                      <p>Adicione links ou anexe PDF, Word (DOC/DOCX), imagens JPG/JPEG e planilhas XLSX, XLS, CSV ou ODS de até 20 MB por arquivo.</p>
                       <div id="evidenceList" class="evidence-list"></div>
                       <button id="addEvidenceButton" class="secondary-action small attachment-action" type="button">+ Anexar arquivo / adicionar evidência</button>
                     </fieldset>
@@ -322,13 +324,13 @@
           </div>
         </div>
         <label><span>Título</span><input data-evidence="titulo" type="text" placeholder="Ex.: Apresentação executiva"></label>
-        <label><span>Tipo</span><select data-evidence="tipo"><option value="PDF">PDF</option><option value="Documento">Documento</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
+        <label><span>Tipo</span><select data-evidence="tipo"><option value="PDF">PDF</option><option value="Documento">Documento</option><option value="Planilha">Planilha</option><option value="Apresentação">Apresentação</option><option value="Painel">Painel</option><option value="Imagem">Imagem</option><option value="Ata/registro">Ata/registro</option><option value="Outro">Outro</option></select></label>
         <label class="wide evidence-file-field">
           <span>Arquivo do computador</span>
           <input
             data-evidence-file
             type="file"
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.xlsx,.xls,.csv,.ods,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.oasis.opendocument.spreadsheet"
           >
           <small class="evidence-file-status">Nenhum arquivo selecionado.</small>
           <div class="evidence-editor-preview" hidden>
@@ -348,10 +350,10 @@
     <script src="js/config.js?v=20260908-v24-6"></script>
     <script src="js/supabase.js?v=20260908-v24-6"></script>
     <script src="js/auth.js?v=20261008-v25-46-62-links-evidencias"></script>
-    <script src="js/planejamento-qualidade.js?v=20261009-v25-46-63-arquivar-cards"></script>
-  <script src="js/planejamento.js?v=20261009-v25-46-63-arquivar-cards"></script>
+    <script src="js/planejamento-qualidade.js?v=20261009-v25-46-64-status-persistente"></script>
+  <script src="js/planejamento.js?v=20261009-v25-46-64-status-persistente"></script>
     <script src="js/projetos-pdf.js?v=20261008-v25-46-61-release-visual"></script>
-    <script src="js/projetos.js?v=20261008-v25-46-62-links-evidencias"></script>
-    <script src="js/projetos-evidencias-fix.js?v=20261008-v25-46-62-links-evidencias"></script>
+    <script src="js/projetos.js?v=20261009-v25-46-64-status-persistente"></script>
+    <script src="js/projetos-evidencias-fix.js?v=20261009-v25-46-64-status-e-planilhas"></script>
   </body>
 </html>

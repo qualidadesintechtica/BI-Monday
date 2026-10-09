@@ -1,2 +1,2 @@
-BI-Monday V25.46.63 — Arquivamento de cards e conclusão de tarefas
+BI-Monday V25.46.64 — Status persistente e anexos de planilhas
 2026-10-09

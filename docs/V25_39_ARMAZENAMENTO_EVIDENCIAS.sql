@@ -17,6 +17,10 @@ values (
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'text/csv',
+    'application/vnd.oasis.opendocument.spreadsheet',
     'image/jpeg'
   ]
 )

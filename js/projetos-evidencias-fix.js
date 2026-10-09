@@ -32,6 +32,7 @@
     if (ext === "pdf" || t === "pdf" || t.includes("application/pdf")) return "PDF";
     if (["jpg", "jpeg", "png", "webp"].includes(ext) || t === "imagem" || t.startsWith("image/")) return "Imagem";
     if (["doc", "docx"].includes(ext) || t === "documento" || t.includes("word")) return "Documento";
+    if (["xlsx", "xls", "csv", "ods"].includes(ext) || t === "planilha" || t.includes("spreadsheet") || t === "application/vnd.ms-excel" || t === "text/csv") return "Planilha";
     return texto(tipoInformado) || "Arquivo";
   }
 
@@ -140,7 +141,7 @@
             <small>${escapar(arquivoTipo)} · acesso temporário autenticado</small>
           </div>
           <a class="pq-evidence-open-new" href="${escapar(url)}" target="_blank" rel="noopener noreferrer">
-            Abrir em nova guia
+            ${arquivoTipo === "Planilha" ? "Baixar planilha" : "Abrir em nova guia"}
           </a>
         </div>
       `;
@@ -161,8 +162,8 @@
 
       body.innerHTML = `${cabecalho}
         <div class="pq-evidence-generic-file">
-          <strong>O navegador não possui pré-visualização interna para este tipo de arquivo.</strong>
-          <p>Use “Abrir em nova guia” para visualizar ou baixar a evidência.</p>
+          <strong>${arquivoTipo === "Planilha" ? "Planilha anexada ao relatório." : "O navegador não possui pré-visualização interna para este tipo de arquivo."}</strong>
+          <p>${arquivoTipo === "Planilha" ? "Use “Baixar planilha” para abrir o arquivo no aplicativo de planilhas." : "Use “Abrir em nova guia” para visualizar ou baixar a evidência."}</p>
         </div>`;
     } catch (error) {
       body.innerHTML = `
@@ -206,7 +207,7 @@
 
       const tipo = tipoArquivo(nome);
       const hrefDesejado = urlEstavelEvidencia(caminho, nome, tipo);
-      const textoDesejado = tipo === "PDF" ? "Abrir PDF" : "Abrir evidência";
+      const textoDesejado = tipo === "PDF" ? "Abrir PDF" : (tipo === "Planilha" ? "Abrir planilha" : "Abrir evidência");
       const tituloDesejado = "Abre a evidência no DataHub com acesso autenticado.";
 
       // IMPORTANTE: só altera o DOM quando o valor realmente mudou.

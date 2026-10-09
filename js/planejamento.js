@@ -342,8 +342,24 @@
     render(); atualizarSinais(); notificarArquivos();
   }
   function erroStatusQualidade(error) {
-    if(['PGRST202','PGRST205','42883','42P01'].includes(error?.code)) return new Error('Execute docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql no Supabase para habilitar a alteração de status dos cartões importados.');
+    if(['PGRST202','PGRST205','42883','42P01'].includes(error?.code)) return new Error('Execute docs/21_PRESERVAR_STATUS_QUALIDADE.sql no Supabase para habilitar a persistência do status dos cartões importados.');
     return error;
+  }
+  async function validarPersistenciaStatus() {
+    const {data,error}=await window.biSupabase.rpc('bi_planejamento_qualidade_status_disponivel');
+    if(error) throw erroStatusQualidade(error);
+    if(!data?.ok || data.versao!=='25.46.64') throw new Error('Execute docs/21_PRESERVAR_STATUS_QUALIDADE.sql no Supabase antes de alterar o status.');
+  }
+  async function confirmarStatusQualidade(q,resposta,status) {
+    const tabela=q.tipo==='projeto'?'pq_projetos_atual':'pq_tarefas_atual';
+    if(txt(resposta?.id)!==txt(q.fonte.id) || resposta?.status == null || window.biPlanejamentoQualidade.status(resposta.status)!==status)
+      throw new Error('O banco não confirmou o status solicitado. Atualize o quadro.');
+    const {data,error}=await window.biSupabase.from(tabela).select('*').eq('id',q.fonte.id).maybeSingle();
+    if(error || !data) throw new Error('A gravação foi enviada, mas não foi possível confirmar o status salvo. Atualize o quadro antes de tentar novamente.');
+    atualizarFonteQualidade(q,data);
+    if(window.biPlanejamentoQualidade.status(data.status)!==status)
+      throw new Error('O status atual no banco difere do solicitado. Atualize o quadro para conferir a alteração da equipe.');
+    return data;
   }
   function argumentosStatus(q,status) {
     if(!q?.fonte || !q.ativo) throw new Error('O item não está ativo no Projeto Qualidade. Atualize o quadro.');
@@ -351,6 +367,7 @@
   }
   function atualizarFonteQualidade(q,fonte) {
     if(!fonte?.id || fonte.status == null) throw new Error('O banco não confirmou o novo status.');
+    q.fonte=clone(fonte);
     const campo=q.tipo==='projeto'?'projetos':'tarefas',arr=estado.qualidadeFonte?.[campo];
     if(arr) {const i=arr.findIndex(x=>txt(x.id)===txt(fonte.id));if(i>=0)arr[i]=fonte;}
     window.invalidarProjetoQualidade?.();montarTarefas();
@@ -367,9 +384,10 @@
     const alterouStatus=d.qualidade && d.status!==window.biPlanejamentoQualidade.status(d.qualidade.fonte?.status);
     let resposta;
     if(alterouStatus) {
+      await validarPersistenciaStatus();
       resposta=await window.biSupabase.rpc('bi_planejamento_qualidade_acompanhar',{...args,...argumentosStatus(d.qualidade,d.status)});
       if(resposta.error) throw erroStatusQualidade(resposta.error);
-      atualizarFonteQualidade(d.qualidade,resposta.data?.fonte);
+
     } else {
       resposta=await window.biSupabase.rpc(d.qualidade?'bi_planejamento_qualidade_salvar':'bi_planejamento_salvar',args);
       if(resposta.error && d.qualidade && ['PGRST202','42883'].includes(resposta.error.code)) throw new Error('Execute docs/16_ANOTACOES_PLANEJAMENTO_QUALIDADE.sql no Supabase para salvar o acompanhamento dos projetos.');
@@ -378,7 +396,16 @@
     const data=alterouStatus?resposta.data?.anotacao:resposta.data;
     const t=Array.isArray(data)?data[0]:data;
     if(!t?.id) throw new Error('O banco não confirmou o salvamento.');
-    alterarLocal(t); return t;
+    alterarLocal(t);
+    if(alterouStatus) {
+      // The annotation has committed too: retain its version even if a later read fails.
+      if(estado.draft?.qualidade?.chave===d.qualidade.chave) {
+        estado.draft.id=t.id;estado.draft.versao=t.versao;
+        estado.draft.qualidade.salvo=clone(t);
+      }
+      await confirmarStatusQualidade(d.qualidade,resposta.data?.fonte,d.status);
+    }
+    return t;
   }
   function bloqueio(valor) {
     estado.salvando=valor;
@@ -429,9 +456,10 @@
     estado.salvando=true;aviso('Salvando status…');render();
     try {
       if(t.qualidade) {
+        await validarPersistenciaStatus();
         const {data,error}=await window.biSupabase.rpc('bi_planejamento_qualidade_alterar_status',argumentosStatus(t.qualidade,status));
         if(error)throw erroStatusQualidade(error);
-        atualizarFonteQualidade(t.qualidade,data);atualizarSinais();
+        await confirmarStatusQualidade(t.qualidade,data,status);atualizarSinais();
         aviso('Status salvo no Planejamento e no Projeto Qualidade.');
       } else {await salvar({...clone(t),status});aviso('Status atualizado.');}
     } catch(error) {aviso(mensagemErro(error),true);}
@@ -446,9 +474,10 @@
     $('planQualidadeDetalhe').querySelectorAll('[data-plan-source-step]').forEach(input=>{input.disabled=true;});
     $('planCampo_status').disabled=true;$('planDialogErro').textContent='';
     try {
+      await validarPersistenciaStatus();
       const {data,error}=await window.biSupabase.rpc('bi_planejamento_qualidade_alterar_status',argumentosStatus(tarefa,concluida?'concluida':'a_fazer'));
       if(error)throw erroStatusQualidade(error);
-      atualizarFonteQualidade(tarefa,data);
+      await confirmarStatusQualidade(tarefa,data,concluida?'concluida':'a_fazer');
       const atual=estado.tarefas.find(t=>t.qualidade?.chave===q.chave);
       if(atual?.qualidade)q.etapas=clone(atual.qualidade.etapas);
       atualizarPassosQualidade();

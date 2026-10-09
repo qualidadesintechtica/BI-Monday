@@ -1,14 +1,33 @@
-# BI-Monday V25.46.63 — Arquivamento e conclusão de tarefas
+# BI-Monday V25.46.64 — Status persistente e anexos de planilhas
 
-## Ativar no sistema existente
+## Ativar esta correção
 
-Esta versão permite arquivar e restaurar qualquer card de tarefa ou projeto no Planejamento, inclusive os importados que ainda não possuem anotações salvas. Arquivar modifica a visibilidade do card, preservando status, responsáveis, prazos, passos, vínculos, evidências e versões dos relatórios. A operação fica registrada no histórico com usuário e data.
+1. No **Supabase > SQL Editor** do BI, execute inteiro `docs/21_PRESERVAR_STATUS_QUALIDADE.sql`. Ele utiliza os SQLs 15, 16 e 17 já instalados. Não repita esses arquivos se o Planejamento já funciona.
+2. Execute inteiro `docs/22_CONFIRMAR_FINALIZACAO_RELATORIO.sql`. Ele utiliza o editor e o fluxo dos SQLs 03 e 08, inclui a correção da constraint e aceita o tipo real do ID da versão, UUID ou bigint. Não precisa repetir o SQL 19.
+3. Execute inteiro `docs/23_PERMITIR_PLANILHAS_EVIDENCIAS.sql` para permitir o envio dos novos formatos ao armazenamento existente.
+4. Publique o conteúdo desta pasta no site existente, mantendo a estrutura. Recarregue com **Ctrl + F5** e confira **v25.46.64**.
 
-1. No SQL Editor do Supabase do BI, execute **`docs/20_ARQUIVAR_CARDS.sql`** inteiro. Ele usa a estrutura já instalada pelos SQLs 15 e 16, é reaplicável e não exclui dados. Se o Planejamento já funciona, não precisa repetir os SQLs 15 e 16. O SQL 17 continua responsável pela edição de status.
-2. Publique o conteúdo desta pasta no site existente, mantendo a estrutura. Os arquivos alterados sobre a V25.46.62 são `index.html`, `projetos.html`, `js/planejamento.js`, `js/planejamento-qualidade.js`, `js/projeto-qualidade.js` e `css/planejamento.css`, além do guia, da identificação de versão e do novo SQL. Se estiver numa versão anterior, publique a pasta completa.
-3. Recarregue com **Ctrl + F5** e confira **v25.46.63**.
+Os três novos SQLs são reaplicáveis. Copiá-los para o GitHub não os executa. Não há nova Edge Function nem alteração na fila de certificados. Se o arquivamento ainda não foi instalado, execute também o SQL 20.
 
-Copiar o SQL para o GitHub não o executa. Não há nova Edge Function nem ajuste na fila de certificados.
+## O que muda na finalização
+
+O status escolhido pela equipe no Planejamento fica associado ao identificador estável do projeto ou tarefa. A importação atualiza responsáveis, prazos, títulos e os demais dados, preservando essa escolha. Os itens sem alteração manual continuam acompanhando o status da planilha. Para reabrir um item, mude seu status no Planejamento; a nova escolha também será mantida.
+
+A instalação do SQL 21 recupera a última escolha registrada no histórico de status, inclusive uma conclusão que tenha sido sobrescrita pela planilha. Recupera também decisões registradas de atualizar tarefas pelo release, quando essa auditoria existe. Mantenha os IDs estáveis da planilha: um identificador diferente representa outro item. Os dados originais e os snapshots dos relatórios são preservados.
+
+O sistema consulta novamente a linha salva antes de informar sucesso. O relatório só gera o PDF de aprovação depois de confirmar status e data de finalização. Uma regra do banco que desfaça o status cancela a transação com erro explícito. Uma falha de confirmação após a gravação pede a atualização do quadro ou histórico para conferir o resultado, sem anunciar sucesso indevido.
+
+O editor mostra **Status atual do projeto** separadamente de **Status nesta versão** nos relatórios já salvos. Uma versão antiga mantém a fotografia da época. Aprovar um relatório finaliza aquela versão; a conclusão do projeto continua sendo feita em Planejamento.
+
+A validação local utiliza os SQLs reais em banco de teste e navegação com serviços simulados. Não foi feita alteração no banco de produção nem publicação automática do site.
+
+## Anexar planilhas ao relatório
+
+No editor do relatório, clique em **Anexar planilha** e selecione um arquivo **XLSX, XLS, CSV ou ODS**, de até **20 MB por arquivo**. O sistema preenche o tipo **Planilha** e sugere o título pelo nome do arquivo. Você pode ajustar o título, escrever uma descrição e escolher se a evidência entra no PDF. Os mesmos formatos estão disponíveis no seletor geral de anexos.
+
+O arquivo é enviado ao salvar o rascunho ou enviar a versão para revisão, ficando vinculado àquela versão. **Abrir planilha**, no relatório e no PDF, abre o acesso autenticado com **Baixar planilha**. Ao baixar, o conteúdo original do arquivo é preservado. Em uma versão protegida, use **Usar como base** para criar outra versão com anexos novos; isso mantém o histórico anterior.
+
+Os anexos usam o armazenamento privado de evidências já existente. O SQL 23 acrescenta os formatos permitidos, mantendo as permissões e o limite configurado. Se esse armazenamento ainda não existe, instale primeiro `docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql`, que também está atualizado com os formatos de planilha.
 
 ## Arquivar, consultar e restaurar
 
@@ -29,13 +48,13 @@ No detalhe do card, em **Passos do Projeto Qualidade**, marque a caixa ao lado d
 
 O histórico do card inclui as mudanças dos seus passos, com tarefa, status anterior, novo status, usuário e data. Marcar um passo não conclui automaticamente o projeto nem outros passos e não salva alterações ainda abertas nas anotações. Nos passos adicionais ou de tarefas manuais, use a caixa existente e **Salvar tarefa/alterações** para guardar a edição.
 
-Essa opção usa a mesma função de alteração de status já instalada pelo **SQL 17**. Se a edição de status ainda não foi ativada, execute `docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql` após os SQLs 15 e 16. Não há nova função de envio ou Edge Function. Uma tarefa alterada por outra pessoa exige atualizar o quadro; uma falha não deixa a caixa marcada sem confirmação. Cards arquivados precisam ser restaurados antes de alterar seus passos.
+Essa opção usa a função de alteração de status do **SQL 17**, atualizada pelo **SQL 21**. Se a edição de status ainda não foi ativada, execute `docs/17_STATUS_PLANEJAMENTO_QUALIDADE.sql` após os SQLs 15 e 16. Não há nova função de envio ou Edge Function. Uma tarefa alterada por outra pessoa exige atualizar o quadro; uma falha não deixa a caixa marcada sem confirmação. Cards arquivados precisam ser restaurados antes de alterar seus passos.
 
-Os status acompanham a base atual de Projeto Qualidade. Uma nova importação aplica os status da planilha; mantenha o status também na planilha se desejar preservar a conclusão na próxima importação.
+Os status escolhidos no sistema são preservados pelo SQL 21 nas próximas importações. A planilha continua disponível integralmente nos dados originais.
 
 ## Relatórios e links mantidos
 
-Os arquivos de geração do PDF, o layout do release, os links das evidências e o fluxo de aprovação permanecem com as correções da V25.46.62. Para publicar a pasta completa, mantenha `index.html`, `projetos.html`, `importar.html`, `login.html`, as pastas `js`, `css`, `data` e `assets_certificado.png`.
+O layout do release, a reimpressão e os links das evidências mantêm as correções anteriores. O fluxo de aprovação agora confirma o estado salvo antes de gerar o PDF. Para publicar a pasta completa, mantenha `index.html`, `projetos.html`, `importar.html`, `login.html`, as pastas `js`, `css`, `data` e `assets_certificado.png`.
 
 ## Abrir evidências pelo relatório
 
@@ -65,8 +84,8 @@ O Planejamento mantém os responsáveis cadastrados, os passos, os cartões com 
 
 Os arquivos de `docs`, `supabase` e `INSTALAR_PELO_PAINEL` são materiais de instalação e manutenção. Copiá-los para o GitHub não executa SQL nem publica funções no Supabase. A limpeza do pacote não exige reinstalar o banco ou reativar a fila de certificados.
 
-- **Planejamento:** os SQLs 15, 16 e 17 mantêm a estrutura, as anotações e as alterações de status. Se já estão instalados, mantenha a instalação existente.
-- **Aprovação e PDF:** se a correção de identificadores UUID ainda não foi instalada, execute `docs/19_CORRIGIR_APROVACAO_PDF_UUID.sql` no SQL Editor. O SQL 19 usa o tipo real do identificador, preserva as versões e já inclui a correção de status do antigo SQL 18.
+- **Planejamento:** os SQLs 15, 16 e 17 mantêm a estrutura e as anotações; o SQL 20 permite arquivar e o novo SQL 21 preserva os status nas importações.
+- **Aprovação e PDF:** execute o novo SQL 22. Ele inclui a correção da constraint e a compatibilidade com UUID ou bigint, sem apagar versões ou converter seus identificadores. O SQL 19 permanece para manutenção de clientes antigos; não é preciso reaplicá-lo.
 - **Revisores de certificados:** o SQL 07 e `supabase/functions/monday-revisores/index.ts` permanecem para manutenção dessa integração.
 - Os demais SQLs de estrutura e manutenção continuam em `docs`, junto às funções canônicas em `supabase/functions` e à configuração em `supabase/config.toml`.
 
@@ -100,4 +119,4 @@ Uma tentativa com resultado desconhecido não é reenviada automaticamente. Para
 
 ## O que foi limpo
 
-Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização acrescenta o arquivamento de cards e o SQL 20. Os arquivos das funções do Supabase permanecem iguais.
+Continuam fora do pacote os guias de versões antigas, relatórios de validação antigos, diagnósticos de planilhas antigas e a correção SQL 18 já incorporada ao SQL 19. As instruções atuais estão reunidas neste único guia. Esta atualização acrescenta os SQLs 21, 22 e 23 para persistência, confirmação de status e anexos de planilhas, mantendo o arquivamento e a conclusão de passos. Os arquivos das funções do Supabase permanecem iguais.

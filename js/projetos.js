@@ -32,11 +32,15 @@
   const EVIDENCE_BUCKET = "pq-evidencias";
   let editorTabelaConfirmada = false;
   const TAMANHO_MAXIMO_EVIDENCIA = 20 * 1024 * 1024;
-  const EXTENSOES_EVIDENCIA = new Set(["pdf", "doc", "docx", "jpg", "jpeg"]);
+  const EXTENSOES_EVIDENCIA = new Set(["pdf", "doc", "docx", "jpg", "jpeg", "xlsx", "xls", "csv", "ods"]);
   const MIME_EVIDENCIA = {
     pdf: "application/pdf",
     doc: "application/msword",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    xls: "application/vnd.ms-excel",
+    csv: "text/csv",
+    ods: "application/vnd.oasis.opendocument.spreadsheet",
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
   };
@@ -270,7 +274,7 @@
     if (!file) return "Selecione um arquivo.";
     const ext = extensaoArquivo(file.name);
     if (!EXTENSOES_EVIDENCIA.has(ext)) {
-      return "Formato não permitido. Use PDF, DOC, DOCX, JPG ou JPEG.";
+      return "Formato não permitido. Use PDF, DOC, DOCX, JPG, JPEG ou planilhas XLSX, XLS, CSV e ODS.";
     }
     if (file.size <= 0) return "O arquivo está vazio.";
     if (file.size > TAMANHO_MAXIMO_EVIDENCIA) {
@@ -285,6 +289,7 @@
     if (ext === "pdf" || m === "application/pdf") return "PDF";
     if (ext === "jpg" || ext === "jpeg" || m === "image/jpeg") return "Imagem";
     if (ext === "doc" || ext === "docx" || m.includes("word")) return "Documento";
+    if (["xlsx", "xls", "csv", "ods"].includes(ext) || m.includes("spreadsheet") || m === "application/vnd.ms-excel" || m === "text/csv") return "Planilha";
     return "Outro";
   }
 
@@ -879,17 +884,20 @@
 
   function mensagemErro(error) {
     const bruto = texto(error?.message || error);
-    if (/pq_transicionar_edicao_compativel|invalid input syntax for type bigint/i.test(bruto)) {
-      return "A aprovação ainda usa uma função incompatível com o identificador desta versão. Execute docs/19_CORRIGIR_APROVACAO_PDF_UUID.sql no Supabase e atualize projetos.html e js/projetos.js da V25.46.58. Depois recarregue a página e tente novamente.";
+    if (/pq_transicionar_edicao_confirmada|invalid input syntax for type bigint/i.test(bruto)) {
+      return "A função de confirmação da aprovação não está disponível ou é incompatível com o identificador desta versão. Execute docs/22_CONFIRMAR_FINALIZACAO_RELATORIO.sql no Supabase e atualize projetos.html e js/projetos.js da V25.46.64. Depois recarregue a página e tente novamente.";
     }
     if (/pq_projetos_edicoes_status_edicao_check/i.test(bruto)) {
-      return "A regra de status das versões está desatualizada no banco. Execute docs/18_CORRIGIR_STATUS_EDICOES_PDF.sql no Supabase, recarregue a página e tente novamente. As versões existentes serão preservadas.";
+      return "A regra de status das versões está desatualizada no banco. Execute docs/22_CONFIRMAR_FINALIZACAO_RELATORIO.sql no Supabase, recarregue a página e tente novamente. As versões existentes serão preservadas.";
     }
     if (/bucket.*not found|pq-evidencias.*not found/i.test(bruto)) {
       return "O armazenamento de evidências ainda não foi instalado. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql no Supabase.";
     }
-    if (/mime type|maximum allowed size|payload too large|entity too large/i.test(bruto)) {
-      return "O arquivo foi recusado. Confirme o formato permitido e o limite de 20 MB.";
+    if (/mime type/i.test(bruto)) {
+      return "O formato não está habilitado no armazenamento. Para anexar planilhas, execute docs/23_PERMITIR_PLANILHAS_EVIDENCIAS.sql no Supabase e tente novamente.";
+    }
+    if (/maximum allowed size|payload too large|entity too large/i.test(bruto)) {
+      return "O arquivo excede o limite permitido pelo armazenamento. Use um arquivo de até 20 MB.";
     }
     if (/evidência.*(?:row-level|policy|permission|unauthorized|jwt)/i.test(bruto)) {
       return "O armazenamento de evidências não autorizou a operação. Execute docs/V25_39_ARMAZENAMENTO_EVIDENCIAS.sql e entre novamente no sistema.";
@@ -1233,6 +1241,8 @@
 
   function renderizarOrigem() {
     const origem = origemAtual();
+    const statusAtual=$('currentProjectStatus');
+    if(statusAtual) statusAtual.textContent=`Status atual do projeto: ${projetoAtual()?.status || '—'}`;
     const projeto = {
       ...(projetoAtual() || {}),
       ...(origem.projeto || {})
@@ -1243,7 +1253,7 @@
     $("sourceMetadata").innerHTML = [
       metadado("ID", projeto.azure_id),
       metadado("Tipo", projeto.work_item_type),
-      metadado("Status", projeto.status),
+      metadado(estado.edicaoVisualizada ? "Status nesta versão" : "Status atual", projeto.status),
       metadado("Data inicial", formatarData(dataProjeto(projeto, "inicio"))),
       metadado("Data final", formatarData(dataProjeto(projeto, "fim"))),
       metadado("Sponsor original", limparNome(projeto.sponsor)),
@@ -1756,6 +1766,7 @@
       "#evidenceList button",
       "#addEvidenceButton",
       "#attachEvidenceButton",
+      "#attachSpreadsheetButton",
       "#loadNqIndicatorsButton",
     ];
     document.querySelectorAll(seletores.join(",")).forEach((el) => {
@@ -1938,6 +1949,9 @@
         .eq("id", data.id)
         .single();
       if (edicaoError) throw edicaoError;
+      if (edicao?.status_edicao !== (enviarRevisao ? "em_revisao" : "rascunho")) {
+        throw new Error("O banco não confirmou o status da nova versão. Atualize o histórico para conferir o registro salvo.");
+      }
 
       substituirEdicaoNoEstado(edicao);
       estado.edicaoVisualizada = edicao;
@@ -1967,6 +1981,23 @@
     } finally {
       definirSalvando(false);
     }
+  }
+
+  async function confirmarEdicaoSalva(edicaoId,resposta,status) {
+    const registro=Array.isArray(resposta)?resposta[0]:resposta;
+    if(!mesmoId(registro?.id,edicaoId) || registro.status_edicao!==status)
+      throw new Error('O banco não confirmou a transição do relatório. Execute docs/22_CONFIRMAR_FINALIZACAO_RELATORIO.sql e atualize o histórico.');
+    const {data,error}=await window.biSupabase.from('pq_projetos_edicoes').select('*').eq('id',edicaoId).maybeSingle();
+    if(error || !data) throw new Error('A transição foi enviada, mas não foi possível confirmar a versão salva. Atualize o histórico antes de tentar novamente.');
+    if(data.status_edicao!==status) {
+      substituirEdicaoNoEstado(data);
+      estado.edicaoVisualizada=data;estado.origemPreview=data.dados_origem || null;
+      carregarCampos(data);renderizarOrigem();renderizarHistorico();atualizarPreview();atualizarControlesWorkflow();
+      $('editionBadge').textContent=`Versão ${data.versao} · ${rotuloStatusEdicao(data.status_edicao)}`;
+      throw new Error('O status do relatório no banco difere do solicitado. Atualize o histórico para conferir a alteração.');
+    }
+    if(status==='finalizada' && !data.finalizado_em) throw new Error('O banco não confirmou a data de finalização. Confira a instalação do SQL 22.');
+    return data;
   }
 
   async function enviarEdicaoParaRevisao(edicao) {
@@ -2000,13 +2031,13 @@
     definirSalvando(true);
     mostrarFeedback(`Enviando a versão ${edicao.versao} para revisão…`);
     try {
-      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_compativel", {
+      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_confirmada", {
         p_edicao_id: texto(edicao.id),
         p_status_edicao: "em_revisao",
       });
       if (error) throw error;
 
-      const atualizada = data;
+      const atualizada = await confirmarEdicaoSalva(edicao.id,data,"em_revisao");
       substituirEdicaoNoEstado(atualizada);
       estado.edicaoVisualizada = atualizada;
       estado.origemPreview = atualizada.dados_origem || null;
@@ -2073,13 +2104,13 @@
     mostrarFeedback(`Finalizando a versão ${edicao.versao}…`);
 
     try {
-      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_compativel", {
+      const { data, error } = await window.biSupabase.rpc("pq_transicionar_edicao_confirmada", {
         p_edicao_id: texto(edicao.id),
         p_status_edicao: "finalizada",
       });
       if (error) throw error;
 
-      const atualizada = data;
+      const atualizada = await confirmarEdicaoSalva(edicao.id,data,"finalizada");
       substituirEdicaoNoEstado(atualizada);
       estado.edicaoVisualizada = atualizada;
       estado.origemPreview = atualizada.dados_origem || null;
@@ -2384,6 +2415,18 @@
       const inputArquivo = ultimaLinha?.querySelector("[data-evidence-file]");
       document.querySelector(".evidence-fieldset")?.scrollIntoView({ behavior: "smooth", block: "center" });
       window.setTimeout(() => inputArquivo?.click(), 350);
+    });
+    $("attachSpreadsheetButton")?.addEventListener("click", () => {
+      if (estado.salvando || estado.edicaoVisualizada) return;
+      adicionarEvidencia({tipo: "Planilha"});
+      const linha = $("evidenceList").lastElementChild;
+      const input = linha?.querySelector("[data-evidence-file]");
+      if (input) {
+        input.accept = ".xlsx,.xls,.csv,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.oasis.opendocument.spreadsheet";
+        input.click();
+      }
+      document.querySelector(".evidence-fieldset")?.scrollIntoView({behavior: "smooth", block: "center"});
+      atualizarPreview();
     });
     Object.values(campos).forEach((id) => $(id).addEventListener("input", atualizarPreview));
     $("saveDraftButton").addEventListener("click", () => salvarNovaVersao("rascunho"));
