@@ -1,11 +1,30 @@
-# BI-Monday V25.46.64 — Status persistente e anexos de planilhas
+# BI-Monday V25.46.65 — Alertas de prazo no Planejamento
 
-## Ativar esta correção
+## Ativar os avisos
+
+Publique o conteúdo desta pasta no site existente e recarregue com **Ctrl + F5**. Confira **v25.46.65**. Sobre a V25.46.64, os arquivos alterados são `js/planejamento.js`, `css/planejamento.css`, `index.html`, `projetos.html`, este guia e `VERSAO.txt`.
+
+**Esta correção de prazo não exige novo SQL nem Edge Function.** Se a V25.46.64 já está instalada, mantenha o banco como está. Os arquivos de banco abaixo permanecem disponíveis para instalações anteriores ainda não atualizadas.
+
+## Entregas com prazo acabando
+
+- **5 dias ou menos:** o Planejamento sinaliza a entrega pendente em amarelo, com os dias restantes, **Vence amanhã** ou **Vence hoje**.
+- **Prazo vencido:** o aviso aparece em vermelho, indicando há quantos dias a entrega está atrasada.
+- **Passos pendentes:** recebem o próprio aviso no detalhe. O card também mostra a quantidade de passos com prazo próximo ou atrasados, mesmo quando o prazo geral do projeto está mais distante.
+- **Concluídos ou arquivados:** não recebem aviso automático de prazo. Passos já feitos também deixam de ser sinalizados.
+
+A contagem usa dias corridos e a data de São Paulo, incluindo o dia de hoje e o limite de cinco dias. Itens sem prazo não recebem aviso de data. Os avisos aparecem no quadro, na lista e no detalhe; também entram no indicador **Exigem atenção** e no filtro **Somente atenção**.
+
+Ao editar a data ou marcar um passo como feito, a sinalização no detalhe acompanha a alteração. O quadro reflete os dados salvos. As leituras automáticas existentes, a cada 60 segundos com a página visível e ao retornar ao sistema, também recalculam os avisos. As datas continuam sendo obtidas da base atual de Projeto Qualidade ou das tarefas manuais, conforme o tipo de card.
+
+Os avisos são visuais no Planejamento. O sistema mantém responsáveis, datas, status, anotações e histórico; o aviso não altera esses dados. A conferência local verificou os limites de cinco/seis dias, hoje/amanhã, atraso, conclusão, arquivamento, passos, filtros, edição e viradas de data, mês, ano e ano bissexto.
+
+## Correções anteriores: status e anexos (V25.46.64)
 
 1. No **Supabase > SQL Editor** do BI, execute inteiro `docs/21_PRESERVAR_STATUS_QUALIDADE.sql`. Ele utiliza os SQLs 15, 16 e 17 já instalados. Não repita esses arquivos se o Planejamento já funciona.
 2. Execute inteiro `docs/22_CONFIRMAR_FINALIZACAO_RELATORIO.sql`. Ele utiliza o editor e o fluxo dos SQLs 03 e 08, inclui a correção da constraint e aceita o tipo real do ID da versão, UUID ou bigint. Não precisa repetir o SQL 19.
 3. Execute inteiro `docs/23_PERMITIR_PLANILHAS_EVIDENCIAS.sql` para permitir o envio dos novos formatos ao armazenamento existente.
-4. Publique o conteúdo desta pasta no site existente, mantendo a estrutura. Recarregue com **Ctrl + F5** e confira **v25.46.64**.
+4. Publique o conteúdo da pasta atual, mantendo a estrutura. Recarregue com **Ctrl + F5** e confira a identificação da versão atual.
 
 Os três novos SQLs são reaplicáveis. Copiá-los para o GitHub não os executa. Não há nova Edge Function nem alteração na fila de certificados. Se o arquivamento ainda não foi instalado, execute também o SQL 20.
 

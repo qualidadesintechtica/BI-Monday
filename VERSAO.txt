@@ -1,2 +1,2 @@
-BI-Monday V25.46.64 — Status persistente e anexos de planilhas
+BI-Monday V25.46.65 — Alertas de prazo no Planejamento
 2026-10-09

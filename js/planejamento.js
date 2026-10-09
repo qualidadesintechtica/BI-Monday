@@ -16,15 +16,72 @@
   const chaveNome = v => norm(v).replace(/\s+/g, ' ');
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone = v => JSON.parse(JSON.stringify(v));
-  const hoje = () => new Intl.DateTimeFormat('sv-SE', {timeZone: 'America/Sao_Paulo'}).format(new Date());
+  const calendarioBrasil = new Intl.DateTimeFormat('sv-SE', {timeZone: 'America/Sao_Paulo'});
+  const hoje = () => calendarioBrasil.format(new Date());
   const dataBR = v => v ? v.slice(0, 10).split('-').reverse().join('/') : 'Sem prazo';
   const idNovo = () => crypto.randomUUID();
   const chaveRef = r => `${r.tipo}|${r.id}|${r.pagina}`;
   const estado = {tarefas: [], refs: new Map(), pagina: location.pathname.endsWith('projetos.html') ? 'projeto-qualidade' : 'resumo',
     pronto: false, carregando: false, salvando: false, lista: false, draft: null, fontes: new Map(), projetos: [], tarefasProjeto: [],
     persistidas: [], qualidadeFonte: null, qualidadeErro: '', importando: false, importacao: null, importacaoToken: 0, recarregarDepois: false, pessoas: [], extrasCarregados: false, buscaRefs: [], filtroPagina: '', historicoToken: 0, ultimoArquivado: null};
-  const atraso = t => !t.arquivada && t.status !== 'concluida' && !!t.prazo && t.prazo < hoje();
-  const exigeAtencao = t => !t.arquivada && t.status !== 'concluida' && (t.atencao || t.status === 'bloqueada' || atraso(t));
+  function diaDoCalendario(valor) {
+    const iso=txt(valor).slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    const data=new Date(`${iso}T00:00:00Z`);
+    if(Number.isNaN(data.getTime()) || data.toISOString().slice(0,10)!==iso) return null;
+    return data.getTime()/86400000;
+  }
+  function alertaPrazo(t,referencia=hoje()) {
+    if(t.arquivada || t.status==='concluida' || t.concluida || t.fonte?.ativo===false) return null;
+    const fim=diaDoCalendario(t.prazo),inicio=diaDoCalendario(referencia);
+    if(fim===null || inicio===null) return null;
+    const dias=fim-inicio;
+    if(dias>5) return null;
+    if(dias<0) return {tipo:'atrasado',texto:`Atrasada · há ${-dias} ${dias===-1?'dia':'dias'}`};
+    return {tipo:'proximo',texto:dias===0?'Vence hoje':dias===1?'Prazo acabando · vence amanhã':`Prazo acabando · faltam ${dias} dias`};
+  }
+  function prazosDaTarefa(t) {
+    const resumo={principal:null,proximos:0,atrasados:0};
+    if(t.arquivada || t.status==='concluida') return resumo;
+    const referencia=hoje();resumo.principal=alertaPrazo(t,referencia);
+    (t.etapas || []).forEach(e=>{
+      const aviso=alertaPrazo(e,referencia);
+      if(aviso?.tipo==='proximo') resumo.proximos++;
+      if(aviso?.tipo==='atrasado') resumo.atrasados++;
+    });
+    return resumo;
+  }
+  const atraso = t => alertaPrazo(t)?.tipo==='atrasado';
+  const exigeAtencao = t => {
+    if(t.arquivada || t.status==='concluida') return false;
+    const prazos=prazosDaTarefa(t);
+    return !!(t.atencao || t.status==='bloqueada' || prazos.principal || prazos.proximos || prazos.atrasados);
+  };
+  function seloPrazo(aviso) {
+    return aviso?`<span class="plan-deadline ${aviso.tipo==='atrasado'?'plan-deadline-overdue':'plan-deadline-warning'}" data-plan-deadline="${aviso.tipo}">${esc(aviso.texto)}</span>`:'';
+  }
+  function avisosPrazos(t) {
+    const p=prazosDaTarefa(t),avisos=[seloPrazo(p.principal)];
+    if(p.atrasados) avisos.push(seloPrazo({tipo:'atrasado',texto:`${p.atrasados} ${p.atrasados===1?'passo atrasado':'passos atrasados'}`}));
+    if(p.proximos) avisos.push(seloPrazo({tipo:'proximo',texto:`${p.proximos} ${p.proximos===1?'passo com prazo acabando':'passos com prazo acabando'}`}));
+    return avisos.some(Boolean)?`<div class="plan-deadline-group">${avisos.join('')}</div>`:'';
+  }
+  function atualizarAvisosDialogo() {
+    const d=estado.draft;if(!d)return;
+    const tarefa={...d,prazo:$('planCampo_prazo').value,status:$('planCampo_status').value,
+      etapas:[...(d.qualidade?.etapas || []),...d.etapas]};
+    const aviso=$('planPrazoAviso');aviso.innerHTML=avisosPrazos(tarefa);aviso.hidden=!aviso.innerHTML;
+    const arquivada=d.arquivada || tarefa.status==='concluida';
+    $('planEtapas').querySelectorAll('[data-plan-step]').forEach(linha=>{
+      const e=d.etapas[Number(linha.dataset.planStep)];
+      linha.querySelector('[data-step-prazo-aviso]').innerHTML=seloPrazo(alertaPrazo({...e,arquivada}));
+    });
+    const passos=new Map((d.qualidade?.etapas || []).map(e=>[e.id,e]));
+    $('planQualidadeDetalhe').querySelectorAll('[data-plan-source-step]').forEach(input=>{
+      const e=passos.get(input.dataset.planSourceStep);
+      input.closest('article').querySelector('[data-source-step-prazo-aviso]').innerHTML=seloPrazo(alertaPrazo({...e,arquivada}));
+    });
+  }
   const opcoes = (obj, atual, vazio = '') => (vazio ? `<option value="">${esc(vazio)}</option>` : '') +
     Object.entries(obj).map(([v, l]) => `<option value="${esc(v)}" ${v === atual ? 'selected' : ''}>${esc(l)}</option>`).join('');
   function listaResponsaveis() {
@@ -183,12 +240,14 @@
   }
   function card(t) {
     const etapas=t.etapas || [], feitas=etapas.filter(e=>e.concluida).length;
-    return `<article class="plan-task ${exigeAtencao(t)?'plan-task-attention':''}" draggable="${!t.arquivada}" data-plan-drag="${esc(t.id)}">
+    const prazos=prazosDaTarefa(t),urgencia=prazos.principal?.tipo==='atrasado' || prazos.atrasados?'plan-task-overdue':prazos.principal || prazos.proximos?'plan-task-due-soon':'';
+    return `<article class="plan-task ${exigeAtencao(t)?'plan-task-attention':''} ${urgencia}" draggable="${!t.arquivada}" data-plan-drag="${esc(t.id)}">
       <div class="plan-card-top"><span class="plan-priority plan-priority-${t.prioridade}">${PRIORIDADES[t.prioridade]}</span>
-      ${t.arquivada?'<span class="plan-archive-tag">Arquivado</span>':''}${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${t.atencao && t.status!=='concluida'?'<span class="plan-tag">Atenção</span>':''}${atraso(t)?'<span class="plan-tag plan-late">Atrasada</span>':''}</div>
+      ${t.arquivada?'<span class="plan-archive-tag">Arquivado</span>':''}${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${t.atencao && t.status!=='concluida'?'<span class="plan-tag">Atenção</span>':''}</div>
       <button type="button" class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>
       ${t.descricao?`<p class="plan-task-description">${esc(t.descricao.slice(0,130))}</p>`:''}
       <p class="plan-task-meta">${esc(t.responsavel || 'Sem responsável')}<br><span class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</span></p>
+      ${avisosPrazos(t)}
       ${etapas.length?`<div class="plan-progress"><span style="width:${Math.round(feitas/etapas.length*100)}%"></span></div><small>${feitas}/${etapas.length} passos concluídos</small>`:'<small>Sem passos cadastrados</small>'}
       <div class="plan-card-links">${(t.vinculos || []).slice(0,2).map(r=>`<span title="${esc(r.label)}">${esc(TIPOS[r.tipo])}: ${esc(r.label.slice(0,75))}</span>`).join('')}${(t.vinculos || []).length>2?`<small>+${t.vinculos.length-2} vínculos</small>`:''}</div>
       <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label><div class="plan-card-actions">${botaoArquivo(t)}</div></article>`;
@@ -216,7 +275,7 @@
     $('planBoard').classList.toggle('plan-archive-board',arquivo && !estado.lista);
     if (estado.lista) {
       $('planBoard').classList.add('plan-list');
-      $('planBoard').innerHTML=lista.length?`<div class="plan-table-scroll"><table class="plan-table"><thead><tr><th>Tarefa</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Passos</th><th>Ações</th></tr></thead><tbody>${lista.map(t=>`<tr><td><button class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${exigeAtencao(t)?'<span class="plan-tag">Atenção</span>':''}</td><td>${STATUS[t.status]}</td><td>${esc(t.responsavel || '—')}</td><td class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}</td><td>${PRIORIDADES[t.prioridade]}</td><td>${(t.etapas||[]).filter(e=>e.concluida).length}/${(t.etapas||[]).length}</td><td>${botaoArquivo(t)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="plan-empty">Nenhuma tarefa corresponde aos filtros.</div>';
+      $('planBoard').innerHTML=lista.length?`<div class="plan-table-scroll"><table class="plan-table"><thead><tr><th>Tarefa</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Passos</th><th>Ações</th></tr></thead><tbody>${lista.map(t=>`<tr><td><button class="plan-task-title" data-plan-open="${esc(t.id)}">${esc(t.titulo)}</button>${t.qualidade?'<span class="plan-source-tag">Projeto Qualidade</span>':''}${exigeAtencao(t)?'<span class="plan-tag">Atenção</span>':''}</td><td>${STATUS[t.status]}</td><td>${esc(t.responsavel || '—')}</td><td class="${atraso(t)?'plan-late':''}">${dataBR(t.prazo)}${avisosPrazos(t)}</td><td>${PRIORIDADES[t.prioridade]}</td><td>${(t.etapas||[]).filter(e=>e.concluida).length}/${(t.etapas||[]).length}</td><td>${botaoArquivo(t)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="plan-empty">Nenhuma tarefa corresponde aos filtros.</div>';
     } else if(arquivo) {
       $('planBoard').classList.remove('plan-list');
       $('planBoard').innerHTML=lista.length?lista.map(card).join(''):'<div class="plan-empty">Nenhum card arquivado corresponde aos filtros.</div>';
@@ -228,6 +287,7 @@
       }).join('');
     }
     $('planModo').textContent=estado.lista?'Ver quadro':'Ver lista';
+    if($('planDialog')?.open) atualizarAvisosDialogo();
   }
   async function fontesExtras() {
     if (estado.extrasCarregados) return;
@@ -259,9 +319,10 @@
     $('planEtapas').innerHTML=estado.draft.etapas.map((e,i)=>`<div class="plan-step" data-plan-step="${i}">
       <input type="checkbox" data-step-field="concluida" aria-label="Concluir passo ${i+1}" ${e.concluida?'checked':''}>
       <div><input data-step-field="titulo" aria-label="Título do passo ${i+1}" maxlength="300" value="${esc(e.titulo)}" placeholder="O que precisa ser feito?" required>
-      <div class="plan-step-extra"><input data-step-field="responsavel" list="planResponsaveis" aria-label="Responsável pelo passo ${i+1}" maxlength="300" value="${esc(e.responsavel || '')}" placeholder="Responsável"><input data-step-field="prazo" type="date" aria-label="Prazo do passo ${i+1}" value="${esc(e.prazo || '')}"></div></div>
+      <div class="plan-step-extra"><input data-step-field="responsavel" list="planResponsaveis" aria-label="Responsável pelo passo ${i+1}" maxlength="300" value="${esc(e.responsavel || '')}" placeholder="Responsável"><input data-step-field="prazo" type="date" aria-label="Prazo do passo ${i+1}" value="${esc(e.prazo || '')}"></div><div data-step-prazo-aviso></div></div>
       <div class="plan-step-actions"><button type="button" data-plan-step-up="${i}" aria-label="Mover passo ${i+1} para cima" ${!i?'disabled':''}>↑</button><button type="button" data-plan-step-delete="${i}" aria-label="Remover passo ${i+1}">×</button></div></div>`).join('');
     $('planEtapasContagem').textContent=`${estado.draft.etapas.filter(e=>e.concluida).length}/${estado.draft.etapas.length} passos concluídos`;
+    atualizarAvisosDialogo();
   }
   function renderQualidade() {
     const q=estado.draft.qualidade, box=$('planQualidadeDetalhe');box.hidden=!q;
@@ -275,7 +336,7 @@
       <button type="button" id="planAbrirQualidade">Abrir Projeto Qualidade</button>
       ${fonte?`<details><summary>Objetivo, resultados e dados da planilha</summary>${contextoLegivel({projeto:fonte.projeto,azure_id:fonte.id_azure,status:fonte.status,sponsor:fonte.sponsor,data_inicio:fonte.data_inicio,data_fim:fonte.data_fim,objetivo:fonte.contexto_objetivo_original,resultados_esperados:fonte.resultados_esperados_original,acoes:fonte.acoes_tarefas_original,impacto:fonte.impacto_original,resultados_alcancados:fonte.resultados_alcancados_original,link_evidencias:fonte.link_evidencias,aba_origem:fonte.aba_origem})}
       <details><summary>Todas as colunas originais</summary><pre>${esc(JSON.stringify(fonte.dados_origem || {},null,2))}</pre></details></details>`:''}
-      ${q.etapas.length?`<h3 id="planSourceStepsHeading">Passos do Projeto Qualidade · ${q.etapas.filter(e=>e.concluida).length}/${q.etapas.length}</h3><div class="plan-source-steps">${q.etapas.map(e=>`<article class="${e.concluida?'plan-source-step-done':''}"><input type="checkbox" data-plan-source-step="${esc(e.id)}" aria-label="Marcar tarefa como feita: ${esc(e.titulo)}" ${e.concluida?'checked':''} ${estado.salvando || estado.draft.arquivada || !q.ativo || e.fonte?.ativo===false?'disabled':''}><div><strong>${esc(e.titulo)}</strong><span class="plan-step-done-label" ${e.concluida?'':'hidden'}>Feita</span><small data-source-step-meta>${esc(e.statusOriginal || 'Status não informado')} · ${esc(e.responsavel || 'Sem responsável')} · ${dataBR(e.prazo)}</small><details><summary>Dados originais deste passo</summary><pre>${esc(JSON.stringify(e.fonte.dados_origem || e.fonte,null,2))}</pre></details></div></article>`).join('')}</div>`:''}`;
+      ${q.etapas.length?`<h3 id="planSourceStepsHeading">Passos do Projeto Qualidade · ${q.etapas.filter(e=>e.concluida).length}/${q.etapas.length}</h3><div class="plan-source-steps">${q.etapas.map(e=>`<article class="${e.concluida?'plan-source-step-done':''}"><input type="checkbox" data-plan-source-step="${esc(e.id)}" aria-label="Marcar tarefa como feita: ${esc(e.titulo)}" ${e.concluida?'checked':''} ${estado.salvando || estado.draft.arquivada || !q.ativo || e.fonte?.ativo===false?'disabled':''}><div><strong>${esc(e.titulo)}</strong><span class="plan-step-done-label" ${e.concluida?'':'hidden'}>Feita</span><small data-source-step-meta>${esc(e.statusOriginal || 'Status não informado')} · ${esc(e.responsavel || 'Sem responsável')} · ${dataBR(e.prazo)}</small><div data-source-step-prazo-aviso></div><details><summary>Dados originais deste passo</summary><pre>${esc(JSON.stringify(e.fonte.dados_origem || e.fonte,null,2))}</pre></details></div></article>`).join('')}</div>`:''}`;
     const passos=box.querySelector('.plan-source-steps');if(passos)passos.scrollTop=scroll;
     [...box.querySelectorAll('details')].forEach((e,i)=>{if(detalhes[i]!==undefined)e.open=detalhes[i];});
   }
@@ -504,6 +565,7 @@
       artigo.querySelector('pre').textContent=JSON.stringify(e.fonte.dados_origem || e.fonte,null,2);
     });
     $('planCampo_status').disabled=estado.salvando || d.arquivada || !q.ativo;
+    atualizarAvisosDialogo();
   }
   async function historicoStatusQualidade(d) {
     if(!d.qualidade)return {data:[]};
@@ -598,6 +660,7 @@
       <label>Tarefa<input id="planCampo_titulo" maxlength="200" required placeholder="Qual ação precisa ser realizada?"></label>
       <div id="planQualidadeDetalhe" hidden></div><label><span id="planDescricaoRotulo">Descrição</span><textarea id="planCampo_descricao" maxlength="12000" rows="3" placeholder="Explique o problema e o resultado esperado."></textarea></label>
       <div class="plan-fields"><label>Responsável<input id="planCampo_responsavel" maxlength="300" list="planResponsaveis" placeholder="Nome da pessoa"><datalist id="planResponsaveis"></datalist></label><label>Prazo<input id="planCampo_prazo" type="date"></label><label>Status<select id="planCampo_status"></select></label><label>Prioridade<select id="planCampo_prioridade"></select></label></div>
+      <div id="planPrazoAviso" aria-live="polite" hidden></div>
       <label class="plan-checkbox"><input id="planCampo_atencao" type="checkbox">Sinalizar atenção no processo</label>
       <section><div class="plan-section-head"><h3 id="planPassosTitulo">Passos da tarefa</h3><button id="planAddEtapa" type="button">+ Adicionar passo</button></div><small id="planEtapasContagem"></small><div id="planEtapas"></div></section>
       <section><h3>Vínculos com o BI</h3><div id="planVinculos"></div><div class="plan-ref-search"><label>Tipo de registro<select id="planTipoVinculo">${opcoes(TIPOS,'','Todos')}</select></label><label>Buscar registro<input id="planBuscaVinculo" type="search" placeholder="Nome, UA, UC, pessoa ou ID"></label></div><small id="planFonteAviso"></small><small id="planBuscaContagem"></small><div id="planResultadosVinculos"></div></section>
@@ -639,7 +702,8 @@
     document.addEventListener('input',event=>{
       const e=event.target, step=e.closest('[data-plan-step]');
       if(step && e.dataset.stepField) {estado.draft.etapas[Number(step.dataset.planStep)][e.dataset.stepField]=e.type==='checkbox'?e.checked:e.value;
-        $('planEtapasContagem').textContent=`${estado.draft.etapas.filter(x=>x.concluida).length}/${estado.draft.etapas.length} passos concluídos`;}
+        $('planEtapasContagem').textContent=`${estado.draft.etapas.filter(x=>x.concluida).length}/${estado.draft.etapas.length} passos concluídos`;atualizarAvisosDialogo();}
+      if(e.id==='planCampo_prazo' || e.id==='planCampo_status')atualizarAvisosDialogo();
       if(e.id==='planBuscaVinculo')buscarRefs();if(e.id==='planBusca')render();
     });
     document.addEventListener('change',event=>{

@@ -39,3 +39,15 @@
 .plan-source-step-done{background:#f7fcf9}
 .plan-source-steps .plan-step-done-label{display:inline-block;margin:5px 0 0;font-size:10px;padding:2px 6px;background:#e2f4e9;color:#216c49;border-radius:4px;font-weight:700}
 .plan-source-steps .plan-step-done-label[hidden]{display:none}
+
+/* V25.46.65: prazos em dias corridos, com texto além da cor. */
+.plan-task-due-soon{border-left:4px solid #d89618;background:#fffdf6}
+.plan-task-overdue{border-left:4px solid #bd3550}
+.plan-deadline-group{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.plan-deadline{display:inline-block;max-width:100%;padding:5px 8px;border:1px solid;border-radius:6px;font-size:11px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.plan-deadline-warning{color:#775000;background:#fff2cd;border-color:#eac66f}
+.plan-deadline-overdue{color:#9d263e;background:#fce8ed;border-color:#e9b5c0}
+.plan-table .plan-deadline-group{min-width:145px;max-width:220px;margin:7px 0 0}
+[data-step-prazo-aviso],[data-source-step-prazo-aviso]{margin-top:6px}
+[data-step-prazo-aviso]:empty,[data-source-step-prazo-aviso]:empty{display:none}
+#planPrazoAviso[hidden]{display:none}

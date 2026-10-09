@@ -27,7 +27,7 @@
 
   
 
-  <link rel="stylesheet" href="css/planejamento.css?v=20261009-v25-46-64-status-persistente">
+  <link rel="stylesheet" href="css/planejamento.css?v=20261009-v25-46-65-alertas-prazo">
 </head>
 
 
@@ -52,7 +52,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.64 · Status e planilhas</small>
+        <small class="build-badge">v25.46.65 · Alertas de prazo</small>
 
       </div>
 
@@ -334,12 +334,12 @@
 
       
       <section id="viewPlanejamento" class="page-view plan-page" data-page="planejamento">
-        <div class="plan-hero"><div><small>Gestão do processo</small><h2>Tarefas do processo</h2><p>Transforme pontos de atenção do BI em tarefas com responsáveis, prazos e passos vinculados ao processo.</p></div>
+        <div class="plan-hero"><div><small>Gestão do processo</small><h2>Tarefas do processo</h2><p>Organize tarefas com responsáveis, prazos e passos vinculados ao BI. Entregas pendentes recebem um aviso quando faltam 5 dias ou menos.</p></div>
         <div class="plan-hero-actions"><button id="planAtualizar" type="button">Atualizar</button><button id="planExportar" type="button" disabled>Exportar CSV</button><button id="planNova" class="plan-primary" type="button" disabled>+ Nova tarefa</button></div></div>
         <details class="plan-import"><summary>Importar planilha de Projeto Qualidade</summary><p>Envie a planilha completa: ela atualiza a base compartilhada da aba Projeto Qualidade. Os projetos aparecem como cartões e suas tarefas como passos. Itens ausentes da nova planilha saem da base ativa.</p><div class="plan-import-actions"><label>Planilha Excel<input id="planArquivoQualidade" type="file" accept=".xlsx,.xls"></label><button id="planImportarQualidade" type="button" disabled>Atualizar Projeto Qualidade e Planejamento</button></div><p id="planImportResumo" aria-live="polite">Selecione uma planilha Excel para conferir os itens.</p></details>
         <p class="plan-muted" id="planFonteQualidade">Aguardando a base de Projeto Qualidade.</p>
         <div class="plan-kpis"><article><span>Itens no quadro</span><strong id="planTotal">0</strong></article><article><span>Em andamento</span><strong id="planEmAndamento">0</strong></article><article><span>Atrasadas</span><strong id="planAtrasadas">0</strong></article><article class="plan-kpi-attention"><span>Exigem atenção</span><strong id="planAtencaoTotal">0</strong></article><article><span>Concluídas</span><strong id="planConcluidas">0</strong></article></div>
-        <div class="plan-toolbar"><label>Buscar tarefa<input id="planBusca" type="search" placeholder="Tarefa, responsável, UA, UC ou projeto"></label><label>Status<select id="planFiltroStatus"></select></label><label>Prioridade<select id="planFiltroPrioridade"></select></label><label>Responsável<select id="planFiltroResponsavel"><option value="">Todos os responsáveis</option></select></label><label class="plan-checkbox"><input type="checkbox" id="planSomenteAtencao">Só atenção</label><label class="plan-checkbox"><input type="checkbox" id="planArquivadas"><span id="planArquivoRotulo">Arquivados</span></label></div>
+        <div class="plan-toolbar"><label>Buscar tarefa<input id="planBusca" type="search" placeholder="Tarefa, responsável, UA, UC ou projeto"></label><label>Status<select id="planFiltroStatus"></select></label><label>Prioridade<select id="planFiltroPrioridade"></select></label><label>Responsável<select id="planFiltroResponsavel"><option value="">Todos os responsáveis</option></select></label><label class="plan-checkbox"><input type="checkbox" id="planSomenteAtencao">Somente atenção</label><label class="plan-checkbox"><input type="checkbox" id="planArquivadas"><span id="planArquivoRotulo">Arquivados</span></label></div>
         <div class="plan-status-row"><span id="planContagem">0 tarefas</span><button id="planFiltroArea" type="button" hidden></button><button id="planModo" type="button">Ver lista</button></div>
         <p id="planStatus" aria-live="polite">Carregando tarefas…</p><div id="planBoard" aria-label="Quadro de tarefas"></div>
       </section>
@@ -1587,11 +1587,11 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <script src="js/certificados.js?v=20261007-v25-46-57-planejamento-pdf"></script>
   <script src="js/planejamento-qualidade.js?v=20261009-v25-46-64-status-persistente"></script>
-  <script src="js/planejamento.js?v=20261009-v25-46-64-status-persistente"></script>
+  <script src="js/planejamento.js?v=20261009-v25-46-65-alertas-prazo"></script>
   <script src="js/dashboard.js?v=20261007-v25-46-52-planejamento"></script>
 
 
-<div data-build-version="20261009-v25-46-64-status-persistente" style="display:none"></div>
+<div data-build-version="20261009-v25-46-65-alertas-prazo" style="display:none"></div>
 
 
 
