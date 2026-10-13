@@ -2356,3 +2356,7 @@
 .cert-restaurar-revisor {
   white-space: nowrap;
 }
+
+/* V25.46.67: tabela de certificados com todas as linhas acessíveis por página. */
+.cert-pagination{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:16px 8px;color:#2d1553;font-size:13px}
+.cert-pagination .cert-btn:disabled{opacity:.45;cursor:default}

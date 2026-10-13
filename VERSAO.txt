@@ -1,4 +1,4 @@
-BI-Monday V25.46.66 — Carregamento otimizado
+BI-Monday V25.46.67 — Reunião NQ e Certificados
 2026-10-13
-Fontes e renderização por aba, scripts em paralelo e Excel/PDF sob demanda.
+Consultas paralelas, professores sob demanda e paginação de Certificados.
 Sem novo SQL ou Edge Function.

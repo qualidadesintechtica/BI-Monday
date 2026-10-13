@@ -572,6 +572,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const pagina = paginaAtual, versao = ++versaoRender;
     if (pagina === 'planejamento') return;
     mostrarCargaPagina(pagina, 'Carregando dados desta aba…');
+    const preparacaoCert = pagina === 'certificados' && window.prepararCertificados
+      ? window.prepararCertificados().then(() => null, error => error) : Promise.resolve(null);
     try {
       // Essas abas têm fontes próprias e podem abrir antes da base de materiais.
       if (pagina === 'projeto-qualidade') {
@@ -585,7 +587,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       await cargaBase;
       if (!dadosProntos) return;
       if (pagina === 'operacao') await garantirOperacao();
-      if (pagina === 'certificados') await garantirMonday();
+      if (pagina === 'certificados') {
+        const [, erro] = await Promise.all([garantirMonday(), preparacaoCert]); if (erro) throw erro;
+      }
       if (versao !== versaoRender || pagina !== paginaAtual) return;
 
       const filtrados = typeof window.aplicarFiltros === 'function'
@@ -1012,7 +1016,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
       console.log(
-        "Dashboard V25.46.66 carregado."
+        "Dashboard V25.46.67 carregado."
       );
 
 

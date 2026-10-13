@@ -29,6 +29,8 @@
   let ppsValidadosAtual = 0;
   let campoApontamosInconformidade = null;
   let carregandoCoberturaNQ = null;
+  let coberturaCarregada = false, historicoNQCarregado = false, cargaHistoricoNQ = null;
+  let ppsFonte = null, cargaPps = null, nqIniciado = false, versaoNQ = 0;
 
   const fmt = new Intl.NumberFormat("pt-BR");
 
@@ -186,215 +188,33 @@
   }
 
   async function carregar() {
-    if (
-      resumo &&
-      naoConformidades &&
-      criteriosDetalhe
-    ) {
-      return;
-    }
-
-    if (carregando) {
-      return carregando;
-    }
-
+    if (criteriosDetalhe !== null) return;
+    if (carregando) return carregando;
     carregando = (async () => {
-      const resumoView =
-        window.BI_CONFIG
-          ?.REUNIAO_RESUMO_VIEW_NAME ||
-        "vw_nq_reuniao_resumo";
-
-      const ncView =
-        window.BI_CONFIG
-          ?.REUNIAO_NC_VIEW_NAME ||
-        "vw_nq_reuniao_criterios_resumo";
-
-      const detalheView =
-        window.BI_CONFIG
-          ?.REUNIAO_DETALHE_VIEW_NAME ||
-        "vw_nq_reuniao_criterios_detalhe";
-
-      const [r1, r2] =
-        await Promise.all([
-          window.biSupabase
-            .from(resumoView)
-            .select("*")
-            .limit(1),
-
-          window.biSupabase
-            .from(ncView)
-            .select("*")
-            .order(
-              "percentual_nao_conformidade",
-              {
-                ascending: false
-              }
-            )
-        ]);
-
-      if (r1.error) throw r1.error;
-      if (r2.error) throw r2.error;
-
-      resumo =
-        r1.data?.[0] || {};
-
-      naoConformidades =
-        r2.data || [];
-
-      /*
-       * V25.17
-       * Lemos a view completa para garantir a coluna
-       * “Apontamos inconformidade?” mesmo quando o alias da view
-       * for diferente entre versões do banco.
-       */
-      const camposDetalhe = "*";
-
-      const statusCarga =
-        document.getElementById(
-          "nqStatus"
-        );
-
-      if (statusCarga) {
-        statusCarga.textContent =
-          "Carregando critérios da reunião...";
-      }
-
-      const contagem =
-        await window.biSupabase
-          .from(detalheView)
-          .select(
-            "parent_item_id",
-            {
-              count: "exact",
-              head: true
-            }
-          );
-
-      if (contagem.error) {
-        throw contagem.error;
-      }
-
-      const totalDetalhe =
-        Number(
-          contagem.count || 0
-        );
-
-      const loteDetalhe = 1000;
-
-      const paginas =
-        Math.ceil(
-          totalDetalhe /
-          loteDetalhe
-        );
-
-      criteriosDetalhe = [];
-
-      for (
-        let basePagina = 0;
-        basePagina < paginas;
-        basePagina += 6
-      ) {
-        const grupo = [];
-
-        for (
-          let pagina = basePagina;
-          pagina <
-          Math.min(
-            basePagina + 6,
-            paginas
-          );
-          pagina++
-        ) {
-          const inicio =
-            pagina *
-            loteDetalhe;
-
-          grupo.push(
-            window.biSupabase
-              .from(detalheView)
-              .select(
-                camposDetalhe
-              )
-              .order(
-                "subitem_id",
-                { ascending: true }
-              )
-              .range(
-                inicio,
-                Math.min(
-                  inicio +
-                    loteDetalhe -
-                    1,
-                  totalDetalhe - 1
-                )
-              )
-          );
-        }
-
-        const respostas =
-          await Promise.all(
-            grupo
-          );
-
-        respostas.forEach(
-          resp => {
-            if (resp.error) {
-              throw resp.error;
-            }
-
-            criteriosDetalhe.push(
-              ...(resp.data || [])
-            );
-          }
-        );
-
-        if (statusCarga) {
-          const carregados =
-            Math.min(
-              (
-                basePagina +
-                grupo.length
-              ) *
-                loteDetalhe,
-              totalDetalhe
-            );
-
-          statusCarga.textContent =
-            `Carregando critérios da reunião... ` +
-            `${fmt.format(carregados)} de ` +
-            `${fmt.format(totalDetalhe)}`;
+      const view = window.BI_CONFIG?.REUNIAO_DETALHE_VIEW_NAME || 'vw_nq_reuniao_criterios_detalhe';
+      const linhas = [], lote = 1000;
+      const ler = async inicio => {
+        const {data, error} = await window.biSupabase.from(view).select('*')
+          .order('subitem_id', {ascending: true}).range(inicio, inicio + lote - 1);
+        if (error) throw error;
+        return data || [];
+      };
+      // A leitura segue até o último lote; nenhuma contagem exata bloqueia a abertura.
+      const primeiro = await ler(0); linhas.push(...primeiro);
+      if (primeiro.length === lote) {
+        for (let inicio = lote; ; inicio += 6 * lote) {
+          const lotes = await Promise.all(Array.from({length: 6}, (_, i) => ler(inicio + i * lote)));
+          let terminou = false;
+          for (const parte of lotes) {linhas.push(...parte); if (parte.length < lote) {terminou = true; break;}}
+          if (document.getElementById('nqStatus')) document.getElementById('nqStatus').textContent = `Carregando critérios da reunião… ${fmt.format(linhas.length)} registros lidos.`;
+          if (terminou) break;
         }
       }
-
-      campoApontamosInconformidade =
-        localizarCampoApontamos(
-          criteriosDetalhe?.[0] || null
-        );
-
-      if (campoApontamosInconformidade) {
-        console.log(
-          "Reunião NQ · fonte de inconformidade:",
-          campoApontamosInconformidade
-        );
-      } else {
-        const possuiFallbackJson =
-          (criteriosDetalhe || []).slice(0, 25).some(
-            linha => valorApontamosInconformidade(linha) !== null
-          );
-
-        if (!possuiFallbackJson) {
-          console.warn(
-            "Reunião NQ: a coluna 'Apontamos inconformidade?' não foi localizada na view de detalhe."
-          );
-        }
-      }
+      // Publica o conjunto somente depois de uma leitura completa e bem-sucedida.
+      criteriosDetalhe = linhas;
+      campoApontamosInconformidade = localizarCampoApontamos(linhas[0] || null);
     })();
-
-    try {
-      await carregando;
-    } finally {
-      carregando = null;
-    }
+    try {await carregando;} finally {carregando = null;}
   }
 
   function statusNQ(v) {
@@ -729,35 +549,21 @@
       return 0;
     }
 
-    const {
-      data,
-      error
-    } =
-      await window.biSupabase
-        .from(
-          "monday_pp_validacao"
-        )
-        .select(
-          "monday_item_id," +
-          "id_pp," +
-          "status_validacao," +
-          "esteira_producao," +
-          "matriz_oferta," +
-          "categoria_material"
-        )
-        .eq(
-          "status_validacao",
-          "Validado"
-        );
-
-    if (error) {
-      console.error(
-        "Erro ao carregar PPs validados:",
-        error
-      );
-
-      throw error;
+    if (ppsFonte === null) {
+      if (!cargaPps) cargaPps = (async () => {
+        const linhas = [];
+        for (let inicio = 0; ; inicio += 1000) {
+          const {data, error} = await window.biSupabase.from('monday_pp_validacao')
+            .select('monday_item_id,id_pp,status_validacao,esteira_producao,matriz_oferta,categoria_material')
+            .eq('status_validacao', 'Validado').order('monday_item_id', {ascending: true}).range(inicio, inicio + 999);
+          if (error) throw error;
+          linhas.push(...(data || [])); if ((data || []).length < 1000) break;
+        }
+        ppsFonte = linhas;
+      })().finally(() => {cargaPps = null;});
+      await cargaPps;
     }
+    const data = ppsFonte;
 
     return (data || [])
       .filter(
@@ -988,9 +794,7 @@
   }
 
   async function garantirCoberturaNQ() {
-    if (formacoesNQ.length) {
-      return;
-    }
+    if (coberturaCarregada) return;
 
     if (carregandoCoberturaNQ) {
       return carregandoCoberturaNQ;
@@ -1009,14 +813,15 @@
     const fonte = document.getElementById("nqCoberturaFonte");
 
     try {
-      if (!formacoesNQ.length) {
+      if (!coberturaCarregada) {
         if (fonte) {
           fonte.textContent = "Atualizando dados dos especialistas...";
         }
 
-        await garantirCoberturaNQ();
+        await Promise.all([garantirCoberturaNQ(), carregarHistoricoImportacoesNQ()]);
       }
 
+      configurarImportacaoNQ();
       configurarFiltroCoberturaNQ();
       renderCoberturaNQ();
     } catch (e) {
@@ -1050,7 +855,7 @@
       return;
     }
 
-    const aplicar = tab => {
+    const aplicar = (tab, consultar = false) => {
       botoes.forEach(
         b =>
           b.classList.toggle(
@@ -1079,7 +884,7 @@
       ) {
         // A troca de aba não depende do carregamento das consultas.
         // Os dados são atualizados em segundo plano e a aba abre imediatamente.
-        atualizarProfessoresNQ();
+        if (consultar) void atualizarProfessoresNQ();
 
         requestAnimationFrame(
           () => {
@@ -1122,6 +927,7 @@
           }
         );
       }
+      if (consultar && tab === 'operacao' && nqIniciado) void atualizarReuniaoNQ(dadosBIAtuais);
     };
 
     botoes.forEach(b => {
@@ -1136,7 +942,7 @@
           "click",
           () =>
             aplicar(
-              b.dataset.nqTab
+              b.dataset.nqTab, true
             )
         );
       }
@@ -1150,7 +956,7 @@
     );
   }
 
-  function renderResumo() {
+  function renderResumo(qualidadePronta = true) {
     const rf =
       resumoDosFiltros(
         dadosBIAtuais
@@ -1241,6 +1047,8 @@
      * A ocorrência de não conformidade vem exclusivamente de
      * apontamos_inconformidade = Sim. Vazio/Não é conforme dentro do universo.
      */
+    if (!qualidadePronta) return;
+
     const validos =
       consolidarAvaliacoesQualidade(
         criteriosFiltrados
@@ -1528,92 +1336,33 @@
   }
 
 
-  async function atualizarReuniaoNQ(
-    dadosFiltrados
-  ) {
-    if (
-      Array.isArray(
-        dadosFiltrados
-      )
-    ) {
-      dadosBIAtuais =
-        dadosFiltrados;
+  async function atualizarReuniaoNQ(dadosFiltrados) {
+    if (Array.isArray(dadosFiltrados)) {dadosBIAtuais = dadosFiltrados; nqIniciado = true;}
+    const versao = ++versaoNQ, status = document.getElementById('nqStatus');
+    configurarAbasNQ(); configurarFiltroCoberturaNQ();
+    if (document.querySelector('[data-nq-tab].active')?.dataset.nqTab === 'professores') {
+      await atualizarProfessoresNQ(); return;
     }
-
-    const status =
-      document.getElementById(
-        "nqStatus"
-      );
-
-    // Os controles da Reunião NQ precisam permanecer utilizáveis mesmo
-    // quando alguma consulta do Supabase demora ou falha.
-    configurarAbasNQ();
-    configurarFiltroCoberturaNQ();
-
+    if (status) status.textContent = 'Carregando indicadores e critérios da reunião…';
+    const cargaDetalhes = carregar().then(() => null, error => error);
     try {
-      await carregar();
-
-      criteriosFiltrados =
-        filtrarCriteriosGlobais();
-
-      naoConformidades =
-        agregarCriterios(
-          criteriosFiltrados
-        );
-
-      /*
-       * Consulta os Projetos
-       * Pedagógicos validados
-       * antes de renderizar
-       * os cards.
-       */
-      ppsValidadosAtual =
-        await carregarPPsValidadosDosFiltros();
-
-      // V25.19 · Carrega a lista oficial de revisores NQ antes do KPI.
-      await carregarRevisoresNQAtivos();
-
-      renderResumo();
-
-      renderTabela();
-
-      renderGrafico();
-
-      configurarImportacaoNQ();
-
-      await carregarHistoricoImportacoesNQ();
-
-      configurarFiltroCoberturaNQ();
-
-      await carregarFormacaoCoberturaNQ();
-
-      renderCoberturaNQ();
-
-      if (status) {
-        const fonteEncontrada =
-          (criteriosDetalhe || []).some(
-            linha => localizarCampoApontamos(linha) !== null
-          );
-
-        status.textContent = fonteEncontrada
-          ? "Dados atualizados conforme os filtros globais. Não conformidades: coluna ‘Apontamos inconformidade?’ do Monday."
-          : "Atenção: os dados de não conformidade não estão disponíveis na fonte de critérios neste momento.";
-      }
-
-    } catch (e) {
-      console.error(
-        "Erro ao carregar Reunião NQ:",
-        e
-      );
-
-      if (status) {
-        status.textContent =
-          "Erro ao carregar a página da reunião: " +
-          (
-            e?.message ||
-            "erro desconhecido"
-          );
-      }
+      const [pps] = await Promise.all([carregarPPsValidadosDosFiltros(), carregarRevisoresNQAtivos()]);
+      if (versao !== versaoNQ) return;
+      ppsValidadosAtual = pps;
+      if (criteriosDetalhe === null) renderResumo(false);
+      const erroDetalhes = await cargaDetalhes;
+      if (erroDetalhes) throw erroDetalhes;
+      if (versao !== versaoNQ) return;
+      criteriosFiltrados = filtrarCriteriosGlobais();
+      naoConformidades = agregarCriterios(criteriosFiltrados);
+      renderResumo(); renderTabela();
+      if (document.querySelector('[data-nq-tab].active')?.dataset.nqTab === 'operacao') renderGrafico();
+      if (status) status.textContent = (criteriosDetalhe || []).some(linha => localizarCampoApontamos(linha) !== null)
+        ? 'Dados atualizados conforme os filtros globais. Não conformidades: coluna ‘Apontamos inconformidade?’ do Monday.'
+        : 'Atenção: os dados de não conformidade não estão disponíveis na fonte de critérios neste momento.';
+    } catch (error) {
+      console.error('Erro ao carregar Reunião NQ:', error);
+      if (versao === versaoNQ && status) status.textContent = 'Erro ao carregar a página da reunião: ' + (error?.message || 'erro desconhecido');
     }
   }
 
@@ -1715,6 +1464,7 @@
         ? []
         : (d.data || [])
             .filter(r => r.professor);
+    coberturaCarregada = true;
   }
 
 
@@ -4745,14 +4495,22 @@
   }
 
 
-  async function carregarHistoricoImportacoesNQ() {
+  async function carregarHistoricoImportacoesNQ(forcar = false) {
+    if (historicoNQCarregado && !forcar) return;
+    if (cargaHistoricoNQ) return cargaHistoricoNQ;
+    cargaHistoricoNQ = lerHistoricoImportacoesNQ().then(ok => {historicoNQCarregado = ok !== false;})
+      .finally(() => {cargaHistoricoNQ = null;});
+    return cargaHistoricoNQ;
+  }
+
+  async function lerHistoricoImportacoesNQ() {
     const tbody =
       document.getElementById(
         "tbodyNQImportacoes"
       );
 
     if (!tbody) {
-      return;
+      return false;
     }
 
     const {
@@ -4803,7 +4561,7 @@
           </tr>
         `;
 
-      return;
+      return false;
     }
 
     const linhas =
@@ -4819,7 +4577,7 @@
           </tr>
         `;
 
-      return;
+      return false;
     }
 
     tbody.innerHTML =
@@ -5350,7 +5108,7 @@
               "Nenhum arquivo selecionado";
           }
 
-          await carregarHistoricoImportacoesNQ();
+          await carregarHistoricoImportacoesNQ(true);
 
           /*
            * Limpa o cache da Reunião NQ

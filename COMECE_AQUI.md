@@ -1,12 +1,41 @@
-# BI-Monday V25.46.66 — Carregamento otimizado
+# BI-Monday V25.46.67 — Reunião NQ e Certificados
 
 ## Atualizar o site
 
-Publique o conteúdo desta pasta no site existente, mantendo a estrutura, e recarregue com **Ctrl + F5**. Confira **v25.46.66 · Carregamento otimizado**.
+Publique o conteúdo desta pasta no site existente, mantendo a estrutura. Recarregue com **Ctrl + F5** e confira **v25.46.67 · Reunião e Certificados**.
 
-**Esta atualização não exige novo SQL nem Edge Function.** Para quem já instalou a V25.46.65, basta atualizar os arquivos do site. Inclua o novo arquivo `js/recursos.js`; ele é necessário para importar/exportar Excel e gerar certificados em PDF.
+**Não há novo SQL nem Edge Function nesta atualização.** Os arquivos alterados em relação à V25.46.66 são `index.html`, `projetos.html`, `css/dashboard.css`, `js/dashboard.js`, `js/reuniao-nq.js`, `js/certificados.js`, este guia e `VERSAO.txt`. Mantenha também `js/recursos.js`, incluído na versão anterior.
 
-Arquivos alterados em relação à V25.46.65: `index.html`, `projetos.html`, `js/dashboard.js`, `js/paginas.js`, `js/indicadores.js`, `js/planejamento.js`, `js/certificados.js`, `js/reuniao-nq.js`, `js/qualidade-importacao.js`, este guia e `VERSAO.txt`. O arquivo `js/recursos.js` foi acrescentado. Os demais arquivos foram preservados.
+## Reunião NQ
+
+Os indicadores de produtividade e operação aparecem sem aguardar todos os critérios de qualidade. Enquanto a leitura de qualidade está em andamento, o status informa o carregamento; seus números só são publicados depois de uma leitura completa.
+
+A leitura dos critérios não depende mais de uma contagem exata prévia nem de duas consultas de resumo que eram substituídas pelo cálculo da própria tela. Continua lendo todos os lotes, preservando os filtros e a regra de uma UA, um critério e uma matriz por resultado vigente. Uma falha no meio da leitura permite nova tentativa, sem guardar um conjunto incompleto como definitivo.
+
+Os PPs validados e os revisores são carregados junto com os critérios. Os PPs ficam disponíveis para filtrar na memória da página, com paginação integral da fonte. **Professores e Especialistas** consulta formações, perfil acadêmico e histórico de importações quando essa seção é aberta. A importação continua atualizando seus dados e histórico.
+
+## Certificados
+
+As consultas de revisores, histórico, ajustes, fila e Monday ao vivo começam em paralelo com a leitura da base. As fontes oficiais de revisores também são buscadas juntas, mantendo a ordem de aplicação e os mesmos fallbacks.
+
+A tabela mostra **100 linhas por página**, com **Anterior**, **Próxima** e a indicação do intervalo/total. Os indicadores representam todo o filtro, e a pesquisa considera todas as páginas. Nenhum certificado foi retirado da base.
+
+- As seleções são mantidas ao trocar de página. As ações consideram todos os certificados selecionados, incluindo os de outras páginas.
+- **Selecionar elegíveis** considera todas as páginas do filtro atual.
+- **Exportar relatório** continua gerando o Excel completo do filtro, incluindo Pendentes e Enviados.
+- Ao mudar os filtros, a lista retorna à primeira página e a seleção é refeita.
+- O mapeamento de nomes/e-mails, os ajustes auditados, os documentos e as regras de envio foram mantidos. O histórico é carregado antes de integrar os aceites da fila.
+- Retornar à aba reaproveita os dados já carregados, sem reconstruir toda a base. A consulta automática da fila mantém seu intervalo de 30 segundos; **Atualizar fila** continua forçando uma nova leitura.
+
+## Validação
+
+Na comparação local controlada, com 11.501 critérios e 2.051 linhas de certificado, Reunião NQ passou de aproximadamente **2,4 segundos para 0,8 segundo**, com os mesmos indicadores. Seus cards de produtividade apareceram em cerca de **0,25 segundo**. Certificados passou de aproximadamente **1,4 segundo para 0,8 segundo**, com as mesmas 2.051 UAs na base.
+
+Foram conferidos critérios e filtros, recuperação de leitura interrompida, professores/histórico sob demanda, paginação, seleção em várias páginas, geração de PDFs individuais, exportação das 2.051 linhas, classificação dos enviados e atualização manual da fila. Os tempos são de teste local com consultas simuladas. O tempo no seu ambiente ainda depende da rede e das respostas do Supabase e da Monday.
+
+Esta versão foi preparada e testada localmente; é necessário publicar os arquivos no seu site.
+
+## Atualização anterior: carregamento geral (V25.46.66)
 
 ## O que ficou mais rápido
 

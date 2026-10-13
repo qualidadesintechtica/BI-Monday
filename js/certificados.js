@@ -17,6 +17,10 @@
   let base = [];
   let filtrados = [];
   let linhasFiltradas = [];
+  const TAMANHO_PAGINA = 100;
+  let paginaCertificados = 0, selecionadas = new Set(), preparacaoDados = null;
+  let referenciasBase = null, ultimaConsultaFila = 0, assinaturaFiltros = '';
+  const chaveLinha = linha => `${linha.ua.chaveUa}|${linha.revisorIndice}`;
   let revisoresPlanilhaPorNome = new Map();
   let revisoresPlanilhaPorEmail = new Map();
   let revisoresPlanilhaPorLocalEmail = new Map();
@@ -123,6 +127,7 @@
       const espera = Date.parse(config.iniciar_apos) > Date.now();
       const el = $("certAtualizarFila");
       if (el) el.title = `${config.pausado ? "Fila pausada: " + config.motivo : espera ? "Aguardando intervalo inicial de segurança" : "Fila automática ativa"} · ${n("na_fila")} na fila · ${n("processando")} processando · ${n("aceito")} enviados · ${n("erro") + n("conferir")} com erro ou para conferir.` + (config.ultimo_erro ? ` Aviso: ${config.ultimo_erro}` : "");
+      ultimaConsultaFila = Date.now();
       return out;
     } catch (e) {
       filaDisponivel = false;
@@ -656,63 +661,28 @@
     let totalCadastro = 0;
     let totalUa = 0;
 
-    // Fallback local: garante que a base anexada continue disponível
-    // mesmo se a tabela nova ainda não estiver instalada.
-    try {
-      const resp = await fetch(
-        "data/revisores_planilha.json?v=20261001-v25-46-26",
-        { cache: "no-store" }
-      );
-
-      if (resp.ok) {
-        const payload = await resp.json();
-        const lista = Array.isArray(payload?.revisores) ? payload.revisores : [];
-        totalJson = lista.length;
-
-        lista.forEach((r) => {
-          registrarRevisorBase(r.nome, r.email, "planilha");
-        });
+    // Busca as fontes juntas, mas aplica a mesma precedência: JSON, cadastro, UA.
+    const respostas = await Promise.allSettled([
+      (async () => {
+        const resp = await fetch('data/revisores_planilha.json?v=20261001-v25-46-26', {cache: 'no-store'});
+        if (!resp.ok) throw new Error('Base local de revisores indisponível.');
+        const payload = await resp.json(); return Array.isArray(payload?.revisores) ? payload.revisores : [];
+      })(),
+      window.biSupabase.from('revisores_cadastro').select('docente_revisor,email,ativo').eq('ativo', true),
+      window.biSupabase.from('revisores_ua').select('docente_revisor,email,ativo').eq('ativo', true)
+    ]);
+    respostas.forEach((resposta, indice) => {
+      const valor = resposta.status === 'fulfilled' ? resposta.value : null;
+      if (resposta.status === 'rejected' || valor?.error) {
+        console.warn('Certificados: fonte de revisores indisponível.', resposta.reason || valor.error); return;
       }
-    } catch (error) {
-      console.warn("Certificados: fallback local de revisores não carregado.", error);
-    }
-
-    // Fonte principal: cadastro geral no Supabase.
-    try {
-      const { data, error } = await window.biSupabase
-        .from("revisores_cadastro")
-        .select("docente_revisor,email,ativo")
-        .eq("ativo", true);
-
-      if (error) throw error;
-
-      totalCadastro = (data || []).length;
-      (data || []).forEach((r) => {
-        registrarRevisorBase(r.docente_revisor, r.email, "revisores_cadastro");
-      });
-    } catch (error) {
-      console.warn(
-        "Certificados: tabela revisores_cadastro indisponível; usando fallback da planilha.",
-        error
-      );
-    }
-
-    // Complemento legado: adiciona nomes/e-mails que existam em revisores_ua.
-    try {
-      const { data, error } = await window.biSupabase
-        .from("revisores_ua")
-        .select("docente_revisor,email,ativo")
-        .eq("ativo", true);
-
-      if (error) throw error;
-
-      totalUa = (data || []).length;
-      (data || []).forEach((r) => {
-        registrarRevisorBase(r.docente_revisor, r.email, "revisores_ua");
-      });
-    } catch (error) {
-      console.warn("Certificados: complemento revisores_ua não carregado.", error);
-    }
+      const lista = indice === 0 ? valor : (valor.data || []);
+      if (indice === 0) totalJson = lista.length;
+      if (indice === 1) totalCadastro = lista.length;
+      if (indice === 2) totalUa = lista.length;
+      lista.forEach(r => registrarRevisorBase(indice === 0 ? r.nome : r.docente_revisor, r.email,
+        ['planilha', 'revisores_cadastro', 'revisores_ua'][indice]));
+    });
 
     const listaFinal = [...revisoresPlanilhaPorNome.values()];
     const comEmail = listaFinal.filter((r) => emailValido(r.email)).length;
@@ -1965,11 +1935,35 @@
     return linhas;
   }
 
-  function render() {
+  function situacaoLinha(ua, r, cert) {
+    let situacao = 'Pendente';
+    if (!txt(r?.revisor)) situacao = 'Revisor não informado na Monday';
+    else if (!emailValido(r.email)) situacao = 'Sem e-mail';
+    else if (r.ajusteAuditado) situacao = 'Correção auditada';
+    else if (!r.localizado) situacao = 'Cadastro oficial pendente';
+    else if (cert && historico.has(cert.chave)) situacao = 'Enviado';
+    return cert && statusDaFila(cert) ? statusDaFila(cert) : situacao;
+  }
+
+  function render(conservarSelecao = false) {
+    if (!conservarSelecao) {paginaCertificados = 0; selecionadas.clear();}
     filtrados = aplicarFiltrosCertificados(base);
     linhasFiltradas = linhasTabelaCertificados(filtrados);
 
     atualizarKPIs(filtrados);
+    const paginas = Math.max(1, Math.ceil(linhasFiltradas.length / TAMANHO_PAGINA));
+    paginaCertificados = Math.min(paginaCertificados, paginas - 1);
+    const inicioPagina = paginaCertificados * TAMANHO_PAGINA;
+    if ($('certPaginaAnterior')) $('certPaginaAnterior').disabled = paginaCertificados === 0;
+    if ($('certPaginaProxima')) $('certPaginaProxima').disabled = paginaCertificados >= paginas - 1;
+    if ($('certPaginaInfo')) $('certPaginaInfo').textContent = linhasFiltradas.length
+      ? `${inicioPagina + 1}–${Math.min(inicioPagina + TAMANHO_PAGINA, linhasFiltradas.length)} de ${linhasFiltradas.length} linhas · Página ${paginaCertificados + 1} de ${paginas}`
+      : '0 linhas';
+    // Os vínculos abrangem todo o filtro, incluindo as páginas que não estão no DOM.
+    linhasFiltradas.forEach(({ua, revisor}) => {
+      const cert = txt(revisor?.revisor) ? registroCertificado(ua, revisor) : null;
+      window.biPlanejamento?.registrarCertificado(ua, revisor, situacaoLinha(ua, revisor, cert), cert?.chave);
+    });
 
     const tb = $("certTbody");
     if (!tb) return;
@@ -1991,7 +1985,8 @@
       return;
     }
 
-    tb.innerHTML = linhasFiltradas.map((linha, li) => {
+    tb.innerHTML = linhasFiltradas.slice(inicioPagina, inicioPagina + TAMANHO_PAGINA).map((linha, indicePagina) => {
+      const li = inicioPagina + indicePagina;
       const ua = linha.ua;
       const r = linha.revisor;
       const ri = linha.revisorIndice;
@@ -2060,14 +2055,8 @@
           </div>`;
       }
 
-      let situacao = "Pendente";
-      if (!podeGerar) situacao = "Revisor não informado na Monday";
-      else if (!emailValido(r.email)) situacao = "Sem e-mail";
-      else if (r.ajusteAuditado) situacao = "Correção auditada";
-      else if (!r.localizado) situacao = "Cadastro oficial pendente";
-      else if (enviado) situacao = "Enviado";
-      if (cert && statusDaFila(cert)) situacao = statusDaFila(cert);
-      window.biPlanejamento?.registrarCertificado(ua, r, situacao, cert?.chave);
+      const situacao = situacaoLinha(ua, r, cert);
+
 
       return `
         <tr>
@@ -2076,6 +2065,7 @@
               type="checkbox"
               class="cert-check"
               data-li="${li}"
+              ${selecionadas.has(chaveLinha(linha)) ? 'checked' : ''}
               ${podeGerar ? "" : "disabled"}
             >
           </td>
@@ -2117,10 +2107,8 @@
   }
 
   function selecionados() {
-    return [...document.querySelectorAll(".cert-check:checked")]
-      .map((c) => linhasFiltradas[Number(c.dataset.li)])
-      .filter(Boolean)
-      .map(({ ua, revisor }) => registroCertificado(ua, revisor));
+    return linhasFiltradas.filter(linha => selecionadas.has(chaveLinha(linha)))
+      .map(({ua, revisor}) => registroCertificado(ua, revisor));
   }
 
   function atualizarSel() {
@@ -2135,7 +2123,7 @@
     } else {
       const universoGlobal = aplicarFiltrosGlobaisCertificados(base);
       status.textContent =
-        `Exibindo ${linhasFiltradas.length} linha(s) de certificado em ${filtrados.length} UA(s) · ` +
+        `Exibindo ${Math.min(TAMANHO_PAGINA, Math.max(0, linhasFiltradas.length - paginaCertificados * TAMANHO_PAGINA))} de ${linhasFiltradas.length} linha(s) de certificado em ${filtrados.length} UA(s) · ` +
         `${universoGlobal.length} UAs após filtros globais · ${base.length} UAs validadas sincronizadas da Monday.`;
     }
   }
@@ -2253,6 +2241,16 @@
   // EVENTOS / INICIALIZAÇÃO
   // ============================================================
 
+  function prepararDados() {
+    if (!preparacaoDados) preparacaoDados = (async () => {
+      carregarEdicoesManuais();
+      const cargaHistorico = carregarHistorico();
+      await Promise.all([cargaHistorico, carregarRevisoresPlanilha(), carregarUsuariosMonday(),
+        cargaHistorico.then(() => carregarFila()).catch(console.warn), carregarAjustesAuditados()]);
+    })().catch(error => {preparacaoDados = null; throw error;});
+    return preparacaoDados;
+  }
+
   async function init(dadosConsolidados, dadosMondayDiretos) {
     ultimosDadosConsolidados = Array.isArray(dadosConsolidados) ? dadosConsolidados : [];
     ultimosDadosMondayDiretos = Array.isArray(dadosMondayDiretos) ? dadosMondayDiretos : [];
@@ -2262,20 +2260,10 @@
       return;
     }
 
+    await prepararDados();
     if (!inicializado) {
       inicializado = true;
       $("certAtualizarFila")?.addEventListener("click", atualizarFilaManual);
-
-      carregarEdicoesManuais();
-
-      const cargaHistorico = carregarHistorico();
-      await Promise.all([
-        cargaHistorico,
-        carregarRevisoresPlanilha(),
-        carregarUsuariosMonday(),
-        cargaHistorico.then(() => carregarFila()).catch(console.warn),
-        carregarAjustesAuditados()
-      ]);
 
       const atualizarPorFiltro = () => {
         render();
@@ -2363,14 +2351,20 @@
           return;
         }
 
-        if (e.target?.classList?.contains("cert-check")) atualizarSel();
+        if (e.target?.classList?.contains('cert-check')) {
+          const linha = linhasFiltradas[Number(e.target.dataset.li)];
+          if (linha) {if (e.target.checked) selecionadas.add(chaveLinha(linha)); else selecionadas.delete(chaveLinha(linha));}
+          atualizarSel();
+        }
       });
 
-      $("certSelecionarTodos")?.addEventListener("click", () => {
-        document
-          .querySelectorAll(".cert-check:not(:disabled)")
-          .forEach((x) => { x.checked = true; });
-        atualizarSel();
+      $('certSelecionarTodos')?.addEventListener('click', () => {
+        linhasFiltradas.forEach(linha => {if (txt(linha.revisor?.revisor)) selecionadas.add(chaveLinha(linha));});
+        document.querySelectorAll('.cert-check:not(:disabled)').forEach(x => {x.checked = true;}); atualizarSel();
+      });
+      $('certPaginaAnterior')?.addEventListener('click', () => {if (paginaCertificados > 0) {paginaCertificados--; render(true);}});
+      $('certPaginaProxima')?.addEventListener('click', () => {
+        if ((paginaCertificados + 1) * TAMANHO_PAGINA < linhasFiltradas.length) {paginaCertificados++; render(true);}
       });
 
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
@@ -2578,11 +2572,15 @@
       });
     }
 
-    if (base.length) {try {await carregarFila();} catch (_) { /* Aviso no painel. */ }}
-    montar(dadosConsolidados, dadosMondayDiretos);
-    popular();
-    render();
+    if (referenciasBase && Date.now() - ultimaConsultaFila >= 30000) {try {await carregarFila();} catch (_) { /* Aviso no painel. */ }}
+    const mudou = !referenciasBase || referenciasBase[0] !== dadosConsolidados || referenciasBase[1] !== dadosMondayDiretos;
+    if (mudou) {montar(dadosConsolidados, dadosMondayDiretos); referenciasBase = [dadosConsolidados, dadosMondayDiretos]; popular();}
+    const filtrosGlobais = JSON.stringify(['filtroEsteira','filtroMatriz','filtroBloco','filtroStatus','filtroCategoria','filtroGestor','filtroRevisor']
+      .map(id => window.obterSelecionados?.(id) || []));
+    render(!mudou && filtrosGlobais === assinaturaFiltros);
+    assinaturaFiltros = filtrosGlobais;
   }
 
+  window.prepararCertificados = prepararDados;
   window.atualizarCertificados = init;
 })();
