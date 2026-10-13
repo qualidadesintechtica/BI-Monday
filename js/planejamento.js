@@ -254,6 +254,7 @@
   }
   function render() {
     if (!$('planBoard')) return;
+    if ($('viewPlanejamento') && !$('viewPlanejamento').classList.contains('active') && !$('planDialog')?.open) return;
     $('planNova').disabled=!estado.pronto; $('planExportar').disabled=!estado.pronto;
     if($('planImportarQualidade')) $('planImportarQualidade').disabled=!estado.pronto || !estado.importacao || estado.importando;
     const resp=$('planFiltroResponsavel'), prev=resp.value;
@@ -292,10 +293,11 @@
   async function fontesExtras() {
     if (estado.extrasCarregados) return;
     const fontes=[['vw_pq_projetos_v245','id'],['vw_pq_tarefas_v245','id'],['vw_nq_perfil_academico','professor'],['revisores_ua','id']];
-    const res=await Promise.allSettled(fontes.map(([t,c])=>todasLinhas(t,c)));
+    if ($('planFonteAviso')) $('planFonteAviso').textContent='Carregando fontes e vínculos do BI…';
+    const res=await Promise.allSettled([...fontes.map(([t,c])=>todasLinhas(t,c)),window.carregarFontesPlanejamento?.()]);
     const faltas=[];
     res.forEach((r,i)=>{
-      if(r.status!=='fulfilled') {faltas.push(TIPOS[['projeto','tarefa_projeto','professor','revisor'][i]]);return;}
+      if(r.status!=='fulfilled') {faltas.push(i===4?'Materiais do BI':TIPOS[['projeto','tarefa_projeto','professor','revisor'][i]]);return;}
       if (i===0) {estado.projetos=r.value; r.value.forEach(x=>registrar(projetoRef(x)));}
       if (i===1) {estado.tarefasProjeto=r.value; r.value.forEach(x=>registrar(tarefaProjetoRef(x)));}
       if(i===2) r.value.forEach(x=>registrar({tipo:'professor',id:txt(x.especialista_id || x.id || x.professor),pagina:'reuniao-nq',label:x.professor || x.nome,

@@ -1,10 +1,35 @@
-# BI-Monday V25.46.65 — Alertas de prazo no Planejamento
+# BI-Monday V25.46.66 — Carregamento otimizado
 
-## Ativar os avisos
+## Atualizar o site
 
-Publique o conteúdo desta pasta no site existente e recarregue com **Ctrl + F5**. Confira **v25.46.65**. Sobre a V25.46.64, os arquivos alterados são `js/planejamento.js`, `css/planejamento.css`, `index.html`, `projetos.html`, este guia e `VERSAO.txt`.
+Publique o conteúdo desta pasta no site existente, mantendo a estrutura, e recarregue com **Ctrl + F5**. Confira **v25.46.66 · Carregamento otimizado**.
 
-**Esta correção de prazo não exige novo SQL nem Edge Function.** Se a V25.46.64 já está instalada, mantenha o banco como está. Os arquivos de banco abaixo permanecem disponíveis para instalações anteriores ainda não atualizadas.
+**Esta atualização não exige novo SQL nem Edge Function.** Para quem já instalou a V25.46.65, basta atualizar os arquivos do site. Inclua o novo arquivo `js/recursos.js`; ele é necessário para importar/exportar Excel e gerar certificados em PDF.
+
+Arquivos alterados em relação à V25.46.65: `index.html`, `projetos.html`, `js/dashboard.js`, `js/paginas.js`, `js/indicadores.js`, `js/planejamento.js`, `js/certificados.js`, `js/reuniao-nq.js`, `js/qualidade-importacao.js`, este guia e `VERSAO.txt`. O arquivo `js/recursos.js` foi acrescentado. Os demais arquivos foram preservados.
+
+## O que ficou mais rápido
+
+- O Resumo Executivo carrega a base principal e os responsáveis juntos. A navegação já funciona enquanto os dados são consultados.
+- A fonte completa de Operação é consultada ao abrir essa aba. A fonte direta da Monday, os revisores e o histórico/fila de Certificados são consultados ao abrir Certificados.
+- As tabelas e os gráficos são atualizados na aba aberta. Filtros não recriam gráficos das abas fechadas. Ao mudar de aba, ela recebe os filtros atuais.
+- Resultados, Reunião NQ e Indicadores UC iniciam suas consultas quando forem abertos. Planejamento e Projeto Qualidade podem abrir sem esperar a base de materiais.
+- As fontes já carregadas são reaproveitadas na memória desta página. Trocar rapidamente de aba não duplica o download da mesma base nem devolve a navegação à aba anterior.
+- Os scripts principais são baixados em paralelo, preservando a ordem de execução. Excel e PDF são carregados apenas ao usar essas funções; uma falha permite nova tentativa.
+- A consulta periódica da fila de Certificados ocorre com essa aba aberta. Ao retornar, a fila é consultada novamente. O processamento dos envios no servidor continua independente da navegação.
+- Os vínculos do Planejamento carregam as fontes completas de materiais ao abrir o detalhe da tarefa. A sinalização, a leitura de cards e o arquivamento continuam disponíveis.
+
+A paginação da base foi mantida integralmente: os lotes continuam sendo lidos até o fim. Não foi aplicado limite para esconder linhas ou reduzir as contagens. As regras de elegibilidade, os filtros, o histórico, os status, as permissões e a geração dos documentos foram mantidos.
+
+## Conferência local
+
+Na comparação controlada com 2.301 registros e a mesma latência simulada para as duas versões, a primeira tela passou de aproximadamente **2,0 segundos para 0,7 segundo**, com os mesmos indicadores. As consultas iniciadas até a abertura do Resumo passaram de **27 para 9**. Esses números são de teste local; o tempo no seu ambiente depende da rede, do servidor e do volume da base.
+
+A validação incluiu Operação com 2.401 registros, fonte direta com 2.051 itens, filtros iguais à versão anterior, troca rápida de abas, exportação Excel e certificado PDF reais, importação de Excel, recuperação de falha no recurso e abertura das abas com a base principal indisponível. Também foram conferidos os avisos de prazo, os passos, o arquivamento, os status e as permissões com os SQLs reais em banco de teste.
+
+A atualização foi preparada e testada localmente. Ainda é necessário publicar os arquivos no seu site.
+
+## Atualização anterior: avisos de prazo (V25.46.65)
 
 ## Entregas com prazo acabando
 
@@ -26,7 +51,7 @@ Os avisos são visuais no Planejamento. O sistema mantém responsáveis, datas, 
 3. Execute inteiro `docs/23_PERMITIR_PLANILHAS_EVIDENCIAS.sql` para permitir o envio dos novos formatos ao armazenamento existente.
 4. Publique o conteúdo da pasta atual, mantendo a estrutura. Recarregue com **Ctrl + F5** e confira a identificação da versão atual.
 
-Os três novos SQLs são reaplicáveis. Copiá-los para o GitHub não os executa. Não há nova Edge Function nem alteração na fila de certificados. Se o arquivamento ainda não foi instalado, execute também o SQL 20.
+Os três SQLs da V25.46.64 são reaplicáveis. Copiá-los para o GitHub não os executa. Não há nova Edge Function nem alteração na fila de certificados. Se o arquivamento ainda não foi instalado, execute também o SQL 20.
 
 ## O que muda na finalização
 

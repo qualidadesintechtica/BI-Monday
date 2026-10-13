@@ -353,6 +353,7 @@
   }
   async function preparar(file) {
     if (!file || !/\.xlsx?$/i.test(file.name)) throw new Error('Selecione um arquivo Excel (.xlsx ou .xls).');
+    if (!window.XLSX && window.biCarregarRecurso) await window.biCarregarRecurso('excel');
     if (!window.XLSX) throw new Error('Leitor de Excel não carregado. Atualize a página com Ctrl+F5.');
     const workbook = window.XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true, cellText:false});
     return {...prepararWorkbook(workbook), arquivo_nome:file.name, arquivo_tamanho:file.size};

@@ -97,7 +97,12 @@
     window.__aj2.setOption({tooltip:{trigger:"axis",axisPointer:{type:"shadow"}},grid:{left:180,right:25,top:15,bottom:30},xAxis:{type:"value",minInterval:1},yAxis:{type:"category",data:top.map(x=>x.n),axisLabel:{width:165,overflow:"truncate"}},series:[{type:"bar",data:top.map(x=>x.v)}]});
   }
 
-  function atualizar(dados){ renderOperacional(dados); renderDias(dados); renderHistorico(dados); renderAjustesGraficos(dados); }
+  function atualizar(dados, pagina) {
+    if (!pagina || pagina === 'grafico-operacional') renderOperacional(dados);
+    if (!pagina || pagina === 'dias-validacao') renderDias(dados);
+    if (!pagina || pagina === 'historico') renderHistorico(dados);
+    if (!pagina || pagina === 'ajustes') renderAjustesGraficos(dados);
+  }
   window.addEventListener("resize",()=>[chartOpBloco,chartOpStatus,chartDiasFaixas,chartDiasBloco,chartHistDia,chartHistAcum,window.__aj1,window.__aj2].forEach(c=>c?.resize()));
   window.atualizarIndicadoresBI=atualizar;
 })();

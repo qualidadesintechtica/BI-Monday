@@ -1,2 +1,4 @@
-BI-Monday V25.46.65 — Alertas de prazo no Planejamento
-2026-10-09
+BI-Monday V25.46.66 — Carregamento otimizado
+2026-10-13
+Fontes e renderização por aba, scripts em paralelo e Excel/PDF sob demanda.
+Sem novo SQL ou Edge Function.

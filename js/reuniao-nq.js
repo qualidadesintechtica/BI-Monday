@@ -5050,6 +5050,7 @@
         }
 
         try {
+          if (!window.XLSX && window.biCarregarRecurso) await window.biCarregarRecurso('excel');
           if (!window.XLSX) {
             throw new Error(
               "Leitor de Excel não foi carregado. Atualize a página com Ctrl+F5."

@@ -1279,7 +1279,9 @@
     return ws;
   }
 
-  function exportarRelatorioCertificados() {
+  async function exportarRelatorioCertificados() {
+    try {if (!window.XLSX && window.biCarregarRecurso) await window.biCarregarRecurso('excel');}
+    catch (error) {alert(error.message); return;}
     if (!window.XLSX) {
       alert("Biblioteca XLSX não carregada. Atualize a página e tente novamente.");
       return;
@@ -2175,6 +2177,7 @@
   }
 
   async function pdf(r, baixar = true) {
+    if (!window.jspdf?.jsPDF && window.biCarregarRecurso) await window.biCarregarRecurso('pdf');
     if (!window.jspdf || !window.jspdf.jsPDF) {
       throw new Error("Biblioteca jsPDF não carregada.");
     }
@@ -2265,11 +2268,12 @@
 
       carregarEdicoesManuais();
 
-      await carregarHistorico();
+      const cargaHistorico = carregarHistorico();
       await Promise.all([
+        cargaHistorico,
         carregarRevisoresPlanilha(),
         carregarUsuariosMonday(),
-        carregarFila().catch(console.warn),
+        cargaHistorico.then(() => carregarFila()).catch(console.warn),
         carregarAjustesAuditados()
       ]);
 
@@ -2371,7 +2375,7 @@
 
       $("certRelatorio")?.addEventListener("click", exportarRelatorioCertificados);
       setInterval(async () => {
-        if (document.hidden || enfileirando || selecionados().length || document.activeElement?.closest?.(".cert-email-manual,.cert-revisor-manual")) return;
+        if (document.hidden || !$("viewCertificados")?.classList.contains("active") || enfileirando || selecionados().length || document.activeElement?.closest?.(".cert-email-manual,.cert-revisor-manual")) return;
         try { await carregarFila(); render(); } catch (_) { /* Aviso no painel. */ }
       }, 30000);
 
@@ -2574,6 +2578,7 @@
       });
     }
 
+    if (base.length) {try {await carregarFila();} catch (_) { /* Aviso no painel. */ }}
     montar(dadosConsolidados, dadosMondayDiretos);
     popular();
     render();

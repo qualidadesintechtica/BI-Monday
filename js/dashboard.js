@@ -106,8 +106,55 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Fonte direta do board Validação de Materiais para Certificados.
   let dadosValidacaoMonday = [];
 
-  let paginaAtual =
-    "resumo";
+  let paginaAtual = "resumo";
+  let cargaBase = null, cargaOperacao = null, cargaMonday = null;
+  let cargaCertificados = null, fontesPlanejamento = null;
+  let dadosProntos = false, indicadoresIniciados = false, versaoRender = 0;
+
+  async function garantirOperacao() {
+    await cargaBase;
+    if (!dadosProntos) throw new Error('A base do BI ainda não foi carregada.');
+    if (!cargaOperacao) cargaOperacao = (async () => {
+      const dados = typeof window.carregarDadosOperacaoCompleta === 'function'
+        ? await window.carregarDadosOperacaoCompleta(dadosCompletos) : dadosCompletos;
+      dadosOperacaoCompletos = Array.isArray(dados) ? dados : dadosCompletos;
+    })().catch(error => {cargaOperacao = null; throw error;});
+    return cargaOperacao;
+  }
+
+  async function garantirMonday() {
+    await cargaBase;
+    if (!dadosProntos) throw new Error('A base do BI ainda não foi carregada.');
+    if (!cargaMonday) cargaMonday = (async () => {
+      try {
+        dadosValidacaoMonday = typeof window.carregarDadosOperacaoMonday === 'function'
+          ? await window.carregarDadosOperacaoMonday() : [];
+      } catch (error) {
+        console.warn('Fonte direta de Certificados indisponível; usando a base consolidada.', error);
+        dadosValidacaoMonday = [];
+      }
+    })();
+    return cargaMonday;
+  }
+
+  window.carregarFontesPlanejamento = function () {
+    if (!fontesPlanejamento) fontesPlanejamento = Promise.all([garantirOperacao(), garantirMonday()])
+      .then(() => window.biPlanejamento?.definirDados(dadosCompletos, dadosOperacaoCompletos, dadosValidacaoMonday))
+      .catch(error => {fontesPlanejamento = null; throw error;});
+    return fontesPlanejamento;
+  };
+
+  function mostrarCargaPagina(nome, texto) {
+    const painel = document.querySelector(`.page-view[data-page="${nome}"]`);
+    if (!painel) return;
+    let aviso = painel.querySelector('.bi-carga-pagina');
+    if (!aviso) {
+      aviso = document.createElement('p'); aviso.className = 'bi-carga-pagina table-counter';
+      aviso.setAttribute('role', 'status'); aviso.setAttribute('aria-live', 'polite'); painel.prepend(aviso);
+    }
+    aviso.textContent = texto; aviso.hidden = !texto;
+    painel.setAttribute('aria-busy', String(!!texto));
+  }
 
 
   // ============================================================
@@ -521,182 +568,57 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ATUALIZAÇÃO DA TELA
   // ============================================================
 
-  function atualizarTela() {
-
+  async function atualizarTela() {
+    const pagina = paginaAtual, versao = ++versaoRender;
+    if (pagina === 'planejamento') return;
+    mostrarCargaPagina(pagina, 'Carregando dados desta aba…');
     try {
-
-      const dadosFiltrados =
-        typeof window.aplicarFiltros ===
-        "function"
-
-          ? window.aplicarFiltros(
-              dadosCompletos
-            )
-
-          : dadosCompletos;
-
-
-      // --------------------------------------------------------
-      // KPIs
-      // --------------------------------------------------------
-
-      if (
-        typeof window.calcularKPIs ===
-        "function"
-      ) {
-
-        const kpis =
-          window.calcularKPIs(
-            dadosFiltrados
-          );
-
-
-        if (
-          typeof window.preencherKPIs ===
-          "function"
-        ) {
-
-          window.preencherKPIs(
-            kpis
-          );
-
-        }
-
+      // Essas abas têm fontes próprias e podem abrir antes da base de materiais.
+      if (pagina === 'projeto-qualidade') {
+        await window.atualizarProjetoQualidade?.();
+        return;
       }
-
-
-      // --------------------------------------------------------
-      // GRÁFICOS
-      // --------------------------------------------------------
-
-      if (
-        typeof window.atualizarGraficos ===
-        "function"
-      ) {
-
-        window.atualizarGraficos(
-          dadosFiltrados
-        );
-
+      if (pagina === 'indicadores-uc') {
+        if (!indicadoresIniciados) {indicadoresIniciados = true; window.inicializarIndicadoresUC?.();}
+        return;
       }
+      await cargaBase;
+      if (!dadosProntos) return;
+      if (pagina === 'operacao') await garantirOperacao();
+      if (pagina === 'certificados') await garantirMonday();
+      if (versao !== versaoRender || pagina !== paginaAtual) return;
 
+      const filtrados = typeof window.aplicarFiltros === 'function'
+        ? window.aplicarFiltros(dadosCompletos) : dadosCompletos;
+      if (quantidadeFiltrada) quantidadeFiltrada.textContent = `${filtrados.length} registros no filtro atual`;
+      if (window.calcularKPIs && window.preencherKPIs) window.preencherKPIs(window.calcularKPIs(filtrados));
 
-      // --------------------------------------------------------
-      // OPERAÇÃO
-      // --------------------------------------------------------
-
-      const dadosOperacaoFiltrados =
-        typeof window.aplicarFiltros ===
-        "function"
-
-          ? window.aplicarFiltros(
-              dadosOperacaoCompletos
-            )
-
-          : dadosOperacaoCompletos;
-
-
-      window.atualizarPaginasBI?.(
-        dadosFiltrados,
-        dadosOperacaoFiltrados
-      );
-
-
-      // --------------------------------------------------------
-      // INDICADORES
-      // --------------------------------------------------------
-
-      window.atualizarIndicadoresBI?.(
-        dadosFiltrados
-      );
-
-
-      // --------------------------------------------------------
-      // RESULTADOS
-      // --------------------------------------------------------
-
-      window.atualizarResultadosAlcancados?.();
-
-
-      // --------------------------------------------------------
-      // REUNIÃO NQ
-      // --------------------------------------------------------
-
-      window.atualizarReuniaoNQ?.(
-        dadosFiltrados
-      );
-
-
-      // --------------------------------------------------------
-      // INDICADORES UC
-      // --------------------------------------------------------
-
-      window.inicializarIndicadoresUC?.();
-
-
-      // --------------------------------------------------------
-      // GESTORES E MATERIAIS
-      // --------------------------------------------------------
-
-      window.atualizarGestoresMateriais?.(
-        dadosFiltrados
-      );
-
-
-      // --------------------------------------------------------
-      // PROJETO QUALIDADE
-      // --------------------------------------------------------
-
-      window.atualizarProjetoQualidade?.();
-
-
-      // --------------------------------------------------------
-      // CERTIFICADOS V25.44
-      //
-      // A página Certificados recebe a base completa.
-      // O certificados.js aplica:
-      //
-      // Status Validação = Validado
-      // Semestre
-      // Revisor
-      // Pesquisa
-      // E-mail
-      // Deduplicação
-      // Geração PDF
-      // Envio Supabase / Resend
-      // Histórico
-      // --------------------------------------------------------
-
-      window.atualizarCertificados?.(
-        dadosCompletos,
-        dadosValidacaoMonday
-      );
-
-
-      // --------------------------------------------------------
-      // CONTADOR GLOBAL
-      // --------------------------------------------------------
-
-      if (
-        quantidadeFiltrada
-      ) {
-
-        quantidadeFiltrada
-          .textContent =
-            `${dadosFiltrados.length} registros no filtro atual`;
-
+      if (pagina === 'resumo') window.atualizarGraficos?.(filtrados);
+      if (['operacao', 'ajustes', 'equipe'].includes(pagina)) {
+        const operacao = pagina === 'operacao' && typeof window.aplicarFiltros === 'function'
+          ? window.aplicarFiltros(dadosOperacaoCompletos) : dadosOperacaoCompletos;
+        window.atualizarPaginasBI?.(filtrados, operacao, pagina);
       }
-
-
+      if (['grafico-operacional', 'dias-validacao', 'historico', 'ajustes'].includes(pagina))
+        window.atualizarIndicadoresBI?.(filtrados, pagina);
+      if (pagina === 'resultados') await window.atualizarResultadosAlcancados?.();
+      if (pagina === 'reuniao-nq') await window.atualizarReuniaoNQ?.(filtrados);
+      if (pagina === 'gestores-materiais') window.atualizarGestoresMateriais?.(filtrados);
+      if (pagina === 'certificados') {
+        if (!cargaCertificados) cargaCertificados = Promise.resolve(window.atualizarCertificados?.(dadosCompletos, dadosValidacaoMonday))
+          .finally(() => {cargaCertificados = null;});
+        await cargaCertificados;
+      }
     } catch (error) {
-
-      console.error(
-        "Erro ao atualizar tela:",
-        error
-      );
-
+      console.error('Erro ao carregar a aba:', pagina, error);
+      if (versao === versaoRender) mostrarCargaPagina(pagina, 'Falha ao carregar esta aba. Abra a aba novamente para tentar.');
+      return;
+    } finally {
+      if (versao === versaoRender && pagina === paginaAtual) {
+        const aviso = document.querySelector(`.page-view[data-page="${pagina}"] .bi-carga-pagina`);
+        if (aviso?.textContent === 'Carregando dados desta aba…') mostrarCargaPagina(pagina, '');
+      }
     }
-
   }
 
 
@@ -723,7 +645,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     paginaAtual =
       nome;
 
-    window.biPlanejamento?.paginaAlterada(nome);
+
 
 
     // ----------------------------------------------------------
@@ -879,6 +801,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
 
     }
+
+    window.biPlanejamento?.paginaAlterada(nome);
+    void atualizarTela();
 
   }
 
@@ -1049,117 +974,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
 
 
-      dadosCompletos =
-        await window.carregarDadosBI();
-
-
-      if (
-        !Array.isArray(
-          dadosCompletos
-        )
-      ) {
-
-        dadosCompletos =
-          [];
-
-      }
-
-
-      console.log(
-        "Total de registros:",
-        dadosCompletos.length
-      );
-
-
-      // --------------------------------------------------------
-      // FONTE DIRETA DA MONDAY PARA CERTIFICADOS
-      // --------------------------------------------------------
-
-      if (
-        typeof window.carregarDadosOperacaoMonday ===
-        "function"
-      ) {
-
-        try {
-
-          dadosValidacaoMonday =
-            await window.carregarDadosOperacaoMonday();
-
-        } catch (error) {
-
-          console.warn(
-            "Não foi possível carregar o board Validação de Materiais diretamente. " +
-            "Certificados usará a base consolidada como fallback.",
-            error
-          );
-
-          dadosValidacaoMonday = [];
-
-        }
-
-      }
-
-
-      console.log(
-        "Itens diretos do board para Certificados:",
-        dadosValidacaoMonday.length
-      );
-
-
-      // --------------------------------------------------------
-      // FONTE DA OPERAÇÃO
-      // --------------------------------------------------------
-
-      if (
-        typeof window.carregarDadosOperacaoCompleta ===
-        "function"
-      ) {
-
-        dadosOperacaoCompletos =
-          await window.carregarDadosOperacaoCompleta(
-            dadosCompletos
-          );
-
-      } else {
-
-        dadosOperacaoCompletos =
-          dadosCompletos;
-
-      }
-
-
-      if (
-        !Array.isArray(
-          dadosOperacaoCompletos
-        )
-      ) {
-
-        dadosOperacaoCompletos =
-          dadosCompletos;
-
-      }
-
-
-      console.log(
-        "Total da fonte Operação:",
-        dadosOperacaoCompletos.length
-      );
-
-
-      // --------------------------------------------------------
-      // RESPONSÁVEIS NQ
-      // --------------------------------------------------------
-
-      await carregarResponsaveisNQ();
-
-      window.biPlanejamento?.definirDados(dadosCompletos, dadosOperacaoCompletos, dadosValidacaoMonday);
-
+      const [base] = await Promise.all([window.carregarDadosBI(), carregarResponsaveisNQ()]);
+      dadosCompletos = Array.isArray(base) ? base : [];
+      dadosProntos = true;
 
       // --------------------------------------------------------
       // FILTROS
       // --------------------------------------------------------
 
       popularFiltros();
+      if (quantidadeFiltrada) {
+        const filtrados = window.aplicarFiltros ? window.aplicarFiltros(dadosCompletos) : dadosCompletos;
+        quantidadeFiltrada.textContent = `${filtrados.length} registros no filtro atual`;
+      }
 
 
       // --------------------------------------------------------
@@ -1167,32 +994,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       // --------------------------------------------------------
 
       mostrarUltimaAtualizacao();
-
-
-      // --------------------------------------------------------
-      // ATUALIZA TELA
-      // --------------------------------------------------------
-
-      atualizarTela();
-
-
-      // --------------------------------------------------------
-      // PÁGINA INICIAL
-      // --------------------------------------------------------
-
-      const paginaHash =
-        location.hash
-          .replace(
-            "#",
-            ""
-          )
-          .trim();
-
-
-      trocarPagina(
-        paginaHash ||
-        "resumo"
-      );
 
 
       // --------------------------------------------------------
@@ -1211,7 +1012,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
       console.log(
-        "Dashboard V25.44 carregado."
+        "Dashboard V25.46.66 carregado."
       );
 
 
@@ -1248,6 +1049,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   // INICIALIZAÇÃO
   // ============================================================
 
-  await carregarDashboard();
+  cargaBase = carregarDashboard();
+  trocarPagina(location.hash.replace('#', '').trim() || 'resumo');
+  await cargaBase;
 
 });

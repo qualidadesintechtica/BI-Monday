@@ -605,10 +605,10 @@
     `).join("");
   }
 
-  function atualizarPaginas(dadosFiltrados, dadosOperacao) {
-    atualizarOperacao(Array.isArray(dadosOperacao) ? dadosOperacao : dadosFiltrados);
-    renderAjustes(dadosFiltrados);
-    renderEquipe(dadosFiltrados);
+  function atualizarPaginas(dadosFiltrados, dadosOperacao, pagina) {
+    if (!pagina || pagina === 'operacao') atualizarOperacao(Array.isArray(dadosOperacao) ? dadosOperacao : dadosFiltrados);
+    if (!pagina || pagina === 'ajustes') renderAjustes(dadosFiltrados);
+    if (!pagina || pagina === 'equipe') renderEquipe(dadosFiltrados);
   }
 
   document.addEventListener("click", function (event) {
