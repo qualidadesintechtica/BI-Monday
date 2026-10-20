@@ -1,4 +1,11 @@
-BI-Monday V25.46.67 — Reunião NQ e Certificados
-2026-10-13
-Consultas paralelas, professores sob demanda e paginação de Certificados.
-Sem novo SQL ou Edge Function.
+BI-Monday V25.46.68 — Operação: chegada e histórico
+2026-10-19
+Base: ZIP enviado por Liu, V25.46.67.
+Instalar docs/24_HISTORICO_STATUS_OPERACAO.sql inteiro e publicar a pasta completa.
+Inclui js/operacao-historico.js e css/operacao-historico.css.
+Chegada ao validador corresponde à liberação para validação registrada na Monday.
+Histórico por ID exato: estado inicial e mudanças detectadas após a instalação.
+Datas dos eventos são de observação no Supabase; eventos antigos e mudanças entre sincronizações não são reconstruídos.
+SQL reaplicável; sem alteração da Edge Function ou do cron.
+Filtros, pesquisa, CSV, responsáveis, certificados, comentários, histórico e demais abas preservados.
+SQL e interface verificados em banco de teste e DOM simulado; produção e navegador real ainda não verificados.

@@ -23,6 +23,7 @@
   >
 
   <link rel="stylesheet" href="css/dashboard.css?v=20261013-v25-46-67-abas">
+  <link rel="stylesheet" href="css/operacao-historico.css?v=20261019-v25-46-68-chegada-historico">
 
 
   
@@ -52,7 +53,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.67 · Reunião e Certificados</small>
+        <small class="build-badge">v25.46.68 · Operação: datas e histórico</small>
 
       </div>
 
@@ -1244,9 +1245,11 @@
 
     <div class="monday-board-meta">
       <span id="contadorOperacao">--</span>
-      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.28</span>
+      <span id="operacaoNivelDescricao">Quadro principal</span><span id="operacaoBuildBadge">V25.46.68</span>
     </div>
 
+    <p class="op-arrival-note">Chegada ao validador: liberação para validação registrada na Monday. O histórico reúne as mudanças detectadas pela sincronização após a instalação do acompanhamento.</p>
+    <p id="operacaoAcompanhamentoAviso" class="op-history-page-error" role="status" hidden></p>
     <div id="operacaoBoard" class="monday-board"></div>
   </div>
 </section>
@@ -1578,7 +1581,8 @@
 
   <script defer src="js/graficos.js?v=20260901-v20-ordenacao-colunas"></script>
 
-  <script defer src="js/paginas.js?v=20261013-v25-46-66-carregamento"></script>
+  <script defer src="js/operacao-historico.js?v=20261019-v25-46-68-chegada-historico"></script>
+  <script defer src="js/paginas.js?v=20261019-v25-46-68-chegada-historico"></script>
 
   <script defer src="js/indicadores.js?v=20261013-v25-46-66-carregamento"></script>
 

@@ -1,3 +1,48 @@
+# BI-Monday V25.46.68 — Operação: chegada e histórico
+
+## Instalar esta atualização
+
+1. Extraia o ZIP e abra a pasta **BI-Monday**.
+2. No SQL Editor do mesmo Supabase do BI, crie uma consulta nova.
+3. Copie e execute **todo o conteúdo** de `docs/24_HISTORICO_STATUS_OPERACAO.sql`. Confira a mensagem: **Operação V25.46.68 instalada: data de liberação disponível e mudanças de status registradas a partir de agora.**
+4. Publique o conteúdo da pasta BI-Monday na raiz do site existente, mantendo os demais arquivos. Inclua os novos `js/operacao-historico.js` e `css/operacao-historico.css`.
+5. Recarregue com **Ctrl + F5** e confira **v25.46.68 · Operação: datas e histórico**.
+
+O SQL 24 é reaplicável. Ele cria o histórico e sua consulta protegida, registra o estado inicial dos materiais existentes e acompanha INSERT/UPDATE da tabela sincronizada. Mantém a fonte de materiais, a sincronização, os comentários, os certificados e os históricos anteriores. A mesma regra de acesso do BI anexado foi mantida: sessão com domínio @animaeducacao.com.br. Não é preciso reinstalar scripts antigos nem publicar outra Edge Function para esta mudança.
+
+## Usar na aba Operação
+
+- A coluna **Chegada ao validador (liberação)** mostra a data de `data_liberacao_validacao`, sincronizada da Monday. O código atual da sincronização lê a coluna `data` do quadro de Validação de Materiais. A data é exibida sem deslocamento de fuso horário.
+- **Não informada** significa que a fonte consultada não tem uma data válida. A data da sincronização e a data de validação final não são usadas para preencher esse campo.
+- **Ver histórico** abre o acompanhamento daquele ID exato da Monday. O número entre parênteses conta as mudanças de status registradas, sem contar a fotografia inicial.
+- Cada registro mostra status anterior e novo, data/hora em que a base detectou a mudança e revisor atribuído naquele momento. O revisor é contexto do evento; o histórico não identifica quem clicou no status da Monday.
+- **Atualizar histórico** consulta novamente. **Carregar mais registros** permite consultar as páginas anteriores, em lotes de 50.
+- UCs e planos agregados exibem **Por material**. Consulte a linha do material vinculado para ver sua própria data e seu histórico.
+
+As novas colunas aparecem nas visões Quadro principal, Planos, UA e Avaliações. Os filtros, a pesquisa e a exportação mantêm seu recorte. O CSV recebe a data ao final das oito colunas anteriores. Grupos recolhidos mantêm o comportamento anterior; a consulta complementar é feita ao abrir os grupos ou o histórico. O restante do BI conserva os arquivos e o fluxo da versão enviada.
+
+## Alcance do histórico
+
+O acompanhamento começa **quando o SQL 24 é instalado**. O primeiro registro de cada item existente é identificado como **Estado no início do acompanhamento**. Itens novos recebem **Primeira observação do material**. Depois disso, cada mudança de status observada na tabela sincronizada cria um evento permanente. Atualizar a mesma linha com o mesmo status não duplica o histórico. Reaplicar a instalação preserva os eventos existentes.
+
+As datas representam a observação no Supabase, de acordo com a sincronização que já existe. Uma mudança intermediária que aconteça e seja desfeita entre duas leituras da Monday pode não ser capturada. O arquivo anexado contém o estado atual, sem um arquivo de eventos antigos da Monday; por isso, não recupera mudanças anteriores à instalação nem informa a hora exata do clique na Monday.
+
+A chegada apresentada corresponde à data de liberação para validação da fonte. A correção dessa data na Monday será refletida após a sincronização e a próxima consulta. O histórico conserva a data que existia no instante de cada evento de status.
+
+## Se houver aviso de acompanhamento indisponível
+
+Execute o SQL 24 inteiro e abra novamente o histórico. As linhas da Operação continuam disponíveis quando essa consulta complementar falha. Confira se o SQL foi instalado no mesmo projeto configurado para o BI. Uma data já presente no conjunto de materiais continua visível; sem consulta complementar e sem data na linha, aparece Indisponível.
+
+## Verificação desta versão
+
+O SQL 24 foi executado em PostgreSQL de teste. Foram verificados fotografia inicial, três mudanças sucessivas, sincronização/upsert sem duplicação, limpeza de status, revisão do responsável, item novo, reinstalação, correção da data, consulta por ID, limites e bloqueio de acesso externo/anônimo e de escrita direta no histórico.
+
+Em DOM simulado, foram verificados dez cabeçalhos, datas presentes/ausentes, IDs exatos, separação dos agregados, consultas sob demanda, 70 eventos com paginação, HTML seguro, troca rápida de material, instalação ausente e recuperação, pesquisa, CSV e encerramento da sessão. Os arquivos não relacionados à alteração foram comparados com o ZIP enviado. A inspeção visual em navegador real, o login institucional, a execução do SQL em produção e a publicação ainda precisam ocorrer no seu ambiente.
+
+---
+
+# Notas da versão anterior enviada no ZIP
+
 # BI-Monday V25.46.67 — Reunião NQ e Certificados
 
 ## Atualizar o site

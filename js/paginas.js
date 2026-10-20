@@ -76,7 +76,8 @@
     { label: "Matriz", get: x => texto(x.matriz_oferta) },
     { label: "Status Validação", get: x => texto(x.status_validacao) },
     { label: "Gestor", get: x => texto(x.gestor_validacao_nq) },
-    { label: "Revisor", get: x => texto(x.revisor_validador) }
+    { label: "Revisor", get: x => texto(x.revisor_validador) },
+    { label: "Chegada ao validador (liberação)", get: x => window.biOperacaoHistorico?.idItem(x) ? window.biOperacaoHistorico.dataBR(window.biOperacaoHistorico.chegada(x)) : "Por material vinculado" }
   ];
 
   const ORDEM_GRUPOS_OPERACAO = [
@@ -440,14 +441,16 @@
             </div>
             <div class="monday-items-table-wrap">
               <table class="monday-items-table">
-                <thead><tr>${COLUNAS_OPERACAO.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+                <thead><tr>${COLUNAS_OPERACAO.map(c => `<th scope="col">${escapeHtml(c.label)}</th>`).join("")}<th scope="col">Histórico de status</th></tr></thead>
                 <tbody>
                   ${amostra.map(item => `<tr>${COLUNAS_OPERACAO.map(c => {
                     const valor = c.get(item);
-                    return c.label === "Status Validação"
+                    return c.label === "Chegada ao validador (liberação)"
+                      ? `<td class="op-arrival-cell">${window.biOperacaoHistorico?.celulaChegada(item) || "Não informada"}</td>`
+                      : c.label === "Status Validação"
                       ? `<td><span class="board-status board-status-${classeStatusOperacao(valor)}">${escapeHtml(valor)}</span></td>`
                       : `<td title="${escapeHtml(valor)}">${escapeHtml(valor)}</td>`;
-                  }).join("")}</tr>`).join("")}
+                  }).join("")}<td>${window.biOperacaoHistorico?.botaoHistorico(item) || "Acompanhamento indisponível"}</td></tr>`).join("")}
                 </tbody>
               </table>
               ${itens.length > amostra.length ? `<div class="monday-more-row">Mostrando 300 de ${itens.length} registros neste grupo.</div>` : ""}
@@ -455,6 +458,7 @@
           </div>
         </section>`;
     }).join("");
+    void window.biOperacaoHistorico?.atualizar(board);
   }
 
   function atualizarOperacao(dados) {
