@@ -1718,6 +1718,7 @@
           <button type="button" data-action="view">Ver versão</button>
           <button type="button" data-action="base">Usar como base</button>
           <button type="button" data-action="reprint">Reimprimir relatório</button>
+          <button type="button" data-action="revoke-evidence-links">Desativar links dos PDFs</button>
           ${workflow}
         </div>
       </article>`;
@@ -1729,6 +1730,7 @@
       item.querySelector('[data-action="view"]')?.addEventListener("click", () => visualizarEdicao(edicao));
       item.querySelector('[data-action="base"]')?.addEventListener("click", () => usarComoBase(edicao));
       item.querySelector('[data-action="reprint"]')?.addEventListener("click", () => void reimprimirEdicao(edicao));
+      item.querySelector('[data-action="revoke-evidence-links"]')?.addEventListener("click", () => void desativarLinksEvidencias(edicao));
       item.querySelector('[data-action="review"]')?.addEventListener("click", () => void enviarEdicaoParaRevisao(edicao));
       item.querySelector('[data-action="finalize"]')?.addEventListener("click", () => void finalizarEdicaoEmRevisao(edicao));
     });
@@ -2193,6 +2195,24 @@
     }
   }
 
+  async function desativarLinksEvidencias(edicao) {
+    if (!edicao || estado.salvando) return;
+    if (!window.confirm(`Desativar os links das evidências nos PDFs já emitidos da versão ${edicao.versao}? Os arquivos e a versão permanecem no BI. Uma nova impressão criará novos links.`)) return;
+    definirSalvando(true);
+    try {
+      if (!window.biProjetosCompartilhamento) throw new Error("Atualize a página para carregar o serviço de compartilhamento.");
+      await window.biProjetosCompartilhamento.revogar(edicao.id);
+      mostrarFeedback(`Links dos PDFs anteriores da versão ${edicao.versao} desativados. Os arquivos e o relatório foram preservados.`, "success");
+    } catch (error) { mostrarFeedback(mensagemErro(error), "error"); }
+    finally { definirSalvando(false); }
+  }
+
+  async function prepararDownloadsPdf(raiz) {
+    if (!raiz?.querySelector('.report-evidence-file [data-storage-path]')) return;
+    if (!window.biProjetosCompartilhamento) throw new Error("Atualize todos os arquivos da página para preparar os downloads do PDF.");
+    await window.biProjetosCompartilhamento.prepararPdf(raiz, estado.edicaoVisualizada);
+  }
+
   function nomeArquivoPdf() {
     const projeto = origemAtual().projeto || projetoAtual();
     const nome = texto(projeto?.nome || "Projeto da Qualidade")
@@ -2207,14 +2227,16 @@
     return `Relatorio-${nome}${versao}.pdf`;
   }
 
-  function imprimirRelatorioFallback() {
+  async function imprimirRelatorioFallback() {
     atualizarPreview();
+    await prepararDownloadsPdf($("reportDocument"));
     const projeto = origemAtual().projeto || projetoAtual();
     const tituloAnterior = document.title;
     document.title = `Relatorio - ${texto(projeto?.nome || "Projeto da Qualidade")}`;
     const restaurar = () => {
       document.title = tituloAnterior;
       window.removeEventListener("afterprint", restaurar);
+      atualizarPreview();
     };
     window.addEventListener("afterprint", restaurar);
     window.print();
@@ -2227,7 +2249,7 @@
     const html2canvas = window.html2canvas;
     const JsPDF = window.jspdf?.jsPDF;
     if (!html2canvas || !JsPDF || !window.biProjetosPdf) {
-      imprimirRelatorioFallback();
+      await imprimirRelatorioFallback();
       throw new Error("Gerador direto de PDF não carregado. Foi aberta a impressão do navegador como alternativa.");
     }
 
@@ -2251,18 +2273,13 @@
     const clone = origem.cloneNode(true);
     clone.removeAttribute("id");
     clone.classList.add("pdf-export-document");
-    clone.querySelectorAll("button.evidence-open-file").forEach((botao) => {
-      const span = document.createElement("span");
-      span.textContent = botao.dataset.fileName
-        ? `Arquivo: ${botao.dataset.fileName}`
-        : "Arquivo anexado";
-      botao.replaceWith(span);
-    });
+    // Os acionadores são convertidos em links específicos desta versão antes da captura.
 
     suporte.appendChild(clone);
     document.body.appendChild(suporte);
 
     try {
+      await prepararDownloadsPdf(clone);
       if (document.fonts?.ready) await document.fonts.ready;
       await hidratarMiniaturasRelatorio(clone);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));

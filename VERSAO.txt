@@ -1,11 +1,8 @@
-BI-Monday V25.46.68 — Operação: chegada e histórico
-2026-10-19
-Base: ZIP enviado por Liu, V25.46.67.
-Instalar docs/24_HISTORICO_STATUS_OPERACAO.sql inteiro e publicar a pasta completa.
-Inclui js/operacao-historico.js e css/operacao-historico.css.
-Chegada ao validador corresponde à liberação para validação registrada na Monday.
-Histórico por ID exato: estado inicial e mudanças detectadas após a instalação.
-Datas dos eventos são de observação no Supabase; eventos antigos e mudanças entre sincronizações não são reconstruídos.
-SQL reaplicável; sem alteração da Edge Function ou do cron.
-Filtros, pesquisa, CSV, responsáveis, certificados, comentários, histórico e demais abas preservados.
-SQL e interface verificados em banco de teste e DOM simulado; produção e navegador real ainda não verificados.
+BI-Monday V25.46.69 — Evidências do relatório sem login
+2026-10-21
+Base: V25.46.68 CHEGADA E HISTÓRICO, preservada.
+Instalar docs/25_DOWNLOAD_EVIDENCIAS_RELATORIO.sql e publicar pq-evidencia-publica.
+Somente o endpoint de evidências usa verify_jwt=false e valida um token específico do PDF.
+Bucket e BI continuam privados; arquivos incluídos em versões salvas podem ser baixados por quem tem o PDF.
+Links antigos precisam de nova impressão; novos links persistem até revogação, exclusão da versão ou indisponibilidade do arquivo.
+Nenhuma alteração dos dados, versões, aprovações, tarefas, certificados ou sincronização.

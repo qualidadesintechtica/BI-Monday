@@ -12,3 +12,7 @@ verify_jwt = false
 
 [functions.processar-certificados]
 verify_jwt = false
+
+# O token específico do PDF protege somente este endpoint de evidências.
+[functions.pq-evidencia-publica]
+verify_jwt = false

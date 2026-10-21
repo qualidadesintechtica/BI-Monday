@@ -1,3 +1,25 @@
+# BI-Monday V25.46.69 — Evidências do PDF sem login no BI
+
+Na aba Projetos, o PDF passa a incluir **Baixar evidência** para os arquivos anexados e selecionados. O leitor consegue baixar sem uma conta no BI. Os links são específicos dos anexos da versão salva; o BI e o bucket continuam privados.
+
+## Instalar esta alteração
+
+1. Execute **todo** `docs/25_DOWNLOAD_EVIDENCIAS_RELATORIO.sql` no SQL Editor do mesmo projeto do BI.
+2. Publique uma Edge Function chamada **pq-evidencia-publica**, colando o arquivo completo `INSTALAR_PELO_PAINEL/pq-evidencia-publica.ts`.
+3. Desative **Verify JWT somente nessa nova função**, que valida o token específico do anexo no PDF. Não altere as configurações das outras funções.
+4. Publique todos os arquivos desta pasta no site atual do BI, substituindo os anteriores. Pressione Ctrl + F5.
+5. Abra Projetos, escolha a versão salva e use **Reimprimir relatório**. Envie o PDF novo: PDFs antigos continuam com os links antigos.
+
+O histórico recebe **Desativar links dos PDFs**, para encerrar o acesso pelos links já emitidos daquela versão. Uma reimpressão posterior cria novos links.
+
+As etapas completas, os limites dos links externos e a verificação em janela anônima estão em **LEIA_EVIDENCIAS_SEM_LOGIN.md**. Se o BI já está na V25.46.68 funcionando, não repita os scripts antigos das notas abaixo. Esta atualização preserva a chegada/histórico da Operação e os demais recursos.
+
+Foram verificadas 50 condições de SQL, 46 da função de download e 37 de interface/PDF, com dados de teste. A instalação e a validação de um PDF real em produção ainda precisam ser realizadas.
+
+---
+
+# Notas da V25.46.68 preservada
+
 # BI-Monday V25.46.68 — Operação: chegada e histórico
 
 ## Instalar esta atualização
