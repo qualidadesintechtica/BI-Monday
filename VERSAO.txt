@@ -1,8 +1,14 @@
-BI-Monday V25.46.69 — Evidências do relatório sem login
-2026-10-21
-Base: V25.46.68 CHEGADA E HISTÓRICO, preservada.
-Instalar docs/25_DOWNLOAD_EVIDENCIAS_RELATORIO.sql e publicar pq-evidencia-publica.
-Somente o endpoint de evidências usa verify_jwt=false e valida um token específico do PDF.
-Bucket e BI continuam privados; arquivos incluídos em versões salvas podem ser baixados por quem tem o PDF.
-Links antigos precisam de nova impressão; novos links persistem até revogação, exclusão da versão ou indisponibilidade do arquivo.
-Nenhuma alteração dos dados, versões, aprovações, tarefas, certificados ou sincronização.
+BI-Monday V25.46.70 — Equipe: Banco de Validadores
+2026-10-22
+Base: V25.46.69 EVIDÊNCIAS SEM LOGIN, preservada.
+Instalar docs/26_BANCO_VALIDADORES_EQUIPE.sql no Supabase do BI.
+Publicar o conteúdo da pasta BI-Monday no site existente.
+Abrir Equipe > Importar Excel > Cadastro completo e vínculos; selecionar Banco_de_Validadores.xlsx e a aba Banco.
+Pesquisa e filtros próprios por docente, e-mail, IES, vínculo, formação, titulação, UC, semestre e avaliação.
+Avaliação da Atuação na Validação por vínculo, com comentários e histórico das alterações.
+Datas de desligamento atualizadas por Excel, com identificação por e-mail e IES opcional.
+Tempo desde o desligamento em dias corridos, atualizado automaticamente pela data de Brasília.
+Importação transacional, sem duplicação e sem apagar avaliações ou datas por células vazias.
+Dados da planilha fornecida: 139 linhas, 69 docentes, 8 duplicatas idênticas e 131 vínculos únicos.
+Avaliação e Comentários estão vazios no anexo; a tela mostra Sem avaliação até o registro ou importação.
+Sem Edge Function nova. As alterações precisam ser instaladas e publicadas no ambiente do BI.

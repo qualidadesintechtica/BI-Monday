@@ -1,3 +1,17 @@
+# BI-Monday V25.46.70 — Equipe e Banco de Validadores
+
+1. Execute **todo** `docs/26_BANCO_VALIDADORES_EQUIPE.sql` no Supabase do BI.
+2. Publique o conteúdo da pasta **BI-Monday** no site atual do BI e pressione **Ctrl + F5**.
+3. Abra **Equipe > Importar Excel**, escolha **Cadastro completo e vínculos**, selecione `Banco_de_Validadores.xlsx`, confira a aba **Banco** e confirme a importação.
+
+Pesquisa e filtros próprios, avaliação da atuação por vínculo, importação das datas de desligamento e cálculo automático do tempo em dias estão disponíveis na aba Equipe. Leia **LEIA_EQUIPE_VALIDADORES.md** para os campos e as regras de atualização.
+
+O anexo tem 69 docentes e 131 vínculos únicos após ignorar 8 linhas duplicadas idênticas. As colunas de avaliação e comentários estão vazias.
+
+**Para atualizar da V25.46.69, execute apenas o SQL 26.** As orientações abaixo documentam versões anteriores.
+
+---
+
 # BI-Monday V25.46.69 — Evidências do PDF sem login no BI
 
 Na aba Projetos, o PDF passa a incluir **Baixar evidência** para os arquivos anexados e selecionados. O leitor consegue baixar sem uma conta no BI. Os links são específicos dos anexos da versão salva; o BI e o bucket continuam privados.

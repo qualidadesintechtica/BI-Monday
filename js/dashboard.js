@@ -576,6 +576,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       ? window.prepararCertificados().then(() => null, error => error) : Promise.resolve(null);
     try {
       // Essas abas têm fontes próprias e podem abrir antes da base de materiais.
+      if (pagina === 'equipe') {
+        await window.atualizarEquipeValidadores();
+        return;
+      }
       if (pagina === 'projeto-qualidade') {
         await window.atualizarProjetoQualidade?.();
         return;
@@ -748,7 +752,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
 
 
-    const paginaUc = ["indicadores-uc", "planejamento"].includes(nome);
+    const paginaUc = ["indicadores-uc", "planejamento", "equipe"].includes(nome);
 
 
     filtrosGlobais
