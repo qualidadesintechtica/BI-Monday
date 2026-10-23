@@ -24,7 +24,7 @@
 
   <link rel="stylesheet" href="css/dashboard.css?v=20261013-v25-46-67-abas">
   <link rel="stylesheet" href="css/operacao-historico.css?v=20261019-v25-46-68-chegada-historico">
-  <link rel="stylesheet" href="css/equipe.css?v=20261022-v25-46-70-equipe">
+  <link rel="stylesheet" href="css/equipe.css?v=20261022-v25-46-71-equipe">
 
 
   
@@ -54,7 +54,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.70 · Banco de Validadores</small>
+        <small class="build-badge">v25.46.71 · Avaliações automáticas</small>
 
       </div>
 
@@ -1523,7 +1523,7 @@
         <div class="section-heading">
           <div>
             <h2>Equipe · Banco de Validadores</h2>
-            <p>Cadastro dos docentes, vínculos institucionais e atuação na validação por UC e semestre.</p>
+            <p>Cadastro dos docentes, vínculos institucionais e avaliações da atuação recebidas na Monday.</p>
           </div>
           <button id="eqReload" type="button">Atualizar banco</button>
         </div>
@@ -1534,6 +1534,8 @@
           <article class="mini-kpi"><span>Docentes com desligamento</span><strong id="eqDeparted">0</strong></article>
         </section>
         <div id="eqMessage" class="eq-message" role="status" aria-live="polite"></div>
+        <div class="eq-actions"><button id="eqSyncMonday" type="button">Atualizar avaliações da Monday</button><span id="eqSourceInfo" class="eq-muted">Carregando avaliações…</span></div>
+        <div id="eqMondayMessage" class="eq-message" role="status" aria-live="polite"></div>
         <div class="eq-tabs" role="tablist" aria-label="Áreas da equipe">
           <button id="eqTabCadastro" type="button" role="tab" data-eq-tab="cadastro" aria-controls="eqPanelCadastro" aria-selected="true">Cadastro e vínculos</button>
           <button id="eqTabAvaliacao" type="button" role="tab" data-eq-tab="avaliacao" aria-controls="eqPanelAvaliacao" aria-selected="false" tabindex="-1">Avaliação da Atuação na Validação</button>
@@ -1549,31 +1551,23 @@
             <label>Titulação máxima<select id="eqFilter_titulacao"><option value="">Todos</option></select></label>
             <label>Semestre de validação<select id="eqFilter_semestre"><option value="">Todos</option></select></label>
             <label>Avaliação da atuação<select id="eqFilter_avaliacao"><option value="">Todas</option><option value="com">Com avaliação</option><option value="sem">Sem avaliação</option></select></label>
+            <label id="eqMatchLabel" hidden>Reconhecimento do nome<select id="eqMatch"><option value="">Todos</option><option value="reconhecido">Reconhecidos</option><option value="sem-cadastro">Sem cadastro correspondente</option><option value="ambiguo">Nomes ambíguos</option></select></label>
             <label class="eq-wide">Unidade curricular validada<select id="eqFilter_uc"><option value="">Todos</option></select></label>
           </div>
           <div class="eq-form-actions"><button id="eqReset" type="button">Limpar filtros</button></div>
         </section>
         <div id="eqCount" class="table-counter" role="status" aria-live="polite">--</div>
         <section id="eqPanelCadastro" role="tabpanel" aria-labelledby="eqTabCadastro" data-eq-panel="cadastro">
-          <p class="eq-muted">Uma linha por docente, IES, UC e semestre. Tempo de desligamento em dias corridos, atualizado pela data de Brasília.</p>
+          <p class="eq-muted">Uma linha por docente, IES, UC e semestre. As avaliações são gerais do docente e aparecem automaticamente quando o nome em “Revisores - NQ” corresponde a um único cadastro. Tempo de desligamento em dias corridos, pela data de Brasília.</p>
           <div class="table-card"><div class="table-scroll"><table class="data-table">
             <thead><tr><th>Docente validador</th><th>IES de vínculo</th><th>Vínculo ativo</th><th>Data de desligamento</th><th>Tempo de desligamento</th><th>E-mail institucional</th><th>Área de formação</th><th>Titulação máxima</th><th>Lattes</th><th>Unidade curricular validada</th><th>Semestre de validação</th><th>Avaliação da atuação</th><th>Comentários</th></tr></thead>
             <tbody id="eqBody"></tbody>
           </table></div></div>
         </section>
         <section id="eqPanelAvaliacao" role="tabpanel" aria-labelledby="eqTabAvaliacao" data-eq-panel="avaliacao" hidden>
-          <p class="eq-muted">Avaliações da atuação do docente registradas no banco ou importadas da coluna AVALIAÇÃO. Campos sem preenchimento permanecem como “Sem avaliação”.</p>
-          <form id="eqEditor" class="eq-editor" hidden>
-            <h3>Registrar avaliação da atuação</h3><p id="eqEditorTitle" class="eq-muted"></p>
-            <div class="eq-filter-grid">
-              <label>Avaliação registrada<input id="eqRating" type="text" maxlength="2000" placeholder="Informe a avaliação recebida"></label>
-              <label>Comentários<textarea id="eqComments" maxlength="10000" placeholder="Observações sobre a atuação na validação"></textarea></label>
-            </div>
-            <div id="eqEditFeedback" class="eq-message" role="status"></div>
-            <div class="eq-form-actions"><button id="eqSaveEvaluation" type="submit" class="eq-primary">Salvar avaliação</button><button id="eqCancelEdit" type="button">Cancelar</button></div>
-          </form>
+          <p class="eq-muted">Fonte: Avaliação da Atuação na Validação. O vínculo usa o nome completo em “Revisores - NQ”, considerando acentos, maiúsculas e espaços. Nomes sem cadastro ou com mais de um cadastro permanecem visíveis para conferência. As notas são gerais do docente; filtros de UC/semestre selecionam seus vínculos cadastrados.</p>
           <div class="table-card"><div class="table-scroll"><table class="data-table eq-evaluation-table">
-            <thead><tr><th>Docente validador</th><th>IES</th><th>UC validada</th><th>Semestre</th><th>Avaliação da Atuação na Validação</th><th>Comentários</th><th>Ação</th></tr></thead>
+            <thead><tr><th>Revisor avaliado</th><th>Cadastro reconhecido</th><th>Gestor / avaliador</th><th>Média Critérios (P1)</th><th>Avaliação geral</th><th>Recomendação</th><th>Seis critérios</th><th>Comentários</th><th>Origem</th></tr></thead>
             <tbody id="eqEvaluationBody"></tbody>
           </table></div></div>
         </section>
@@ -1582,10 +1576,11 @@
             <h3>Atualizar o Banco de Validadores</h3>
             <p class="eq-muted">Selecione o Excel e confira a prévia antes de importar. Para o cadastro completo, use a estrutura da aba Banco. Para desligamentos, bastam E-MAIL INSTITUCIONAL e DATA DE DESLIGAMENTO. Inclua IES DE VINCULO para atualizar somente aquela instituição; sem IES, todos os vínculos do e-mail serão atualizados. Datas vazias são ignoradas. Campos vazios do cadastro preservam avaliações e datas existentes.</p>
             <div class="eq-filter-grid">
-              <label>Tipo de atualização<select id="eqMode"><option value="cadastro">Cadastro completo e vínculos</option><option value="desligamentos">Somente datas de desligamento</option></select></label>
+              <label>Tipo de atualização<select id="eqMode"><option value="cadastro">Cadastro completo e vínculos</option><option value="desligamentos">Somente datas de desligamento</option><option value="atuacao">Avaliações — exportação da Monday</option></select></label>
               <label>Arquivo Excel<input id="eqFile" type="file" accept=".xlsx,.xls,.csv"></label>
               <label>Aba da planilha<select id="eqSheet"><option value="">Selecione um arquivo</option></select></label>
             </div>
+            <p class="eq-muted">Para avaliações, use a exportação completa do quadro Avaliação da Atuação na Validação. A importação substitui a última leitura completa, preserva seu histórico e reconhece os docentes pelo nome. O rodapé de totais é ignorado. A sincronização da Monday passa a ser a fonte nas próximas atualizações.</p>
             <p id="eqImportSummary" class="eq-message" role="status" aria-live="polite"></p>
             <div id="eqImportErrors" class="eq-message" role="alert"></div>
             <div id="eqPreview" class="eq-preview-scroll"></div><p id="eqPreviewNote" class="eq-muted"></p>
@@ -1618,8 +1613,9 @@
   ================================================ -->
 
   <script defer src="js/recursos.js?v=20261013-v25-46-66-carregamento"></script>
-  <script defer src="js/equipe-core.js?v=20261022-v25-46-70-equipe"></script>
-  <script defer src="js/equipe.js?v=20261022-v25-46-70-equipe"></script>
+  <script defer src="js/equipe-core.js?v=20261022-v25-46-71-equipe"></script>
+  <script defer src="js/equipe-atuacao-core.js?v=20261022-v25-46-71-equipe"></script>
+  <script defer src="js/equipe.js?v=20261022-v25-46-71-equipe"></script>
   <script defer src="js/config.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
 
   <script defer src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
@@ -1652,10 +1648,10 @@
   <script defer src="js/certificados.js?v=20261013-v25-46-67-abas"></script>
   <script defer src="js/planejamento-qualidade.js?v=20261009-v25-46-64-status-persistente"></script>
   <script defer src="js/planejamento.js?v=20261013-v25-46-66-carregamento"></script>
-  <script defer src="js/dashboard.js?v=20261022-v25-46-70-equipe"></script>
+  <script defer src="js/dashboard.js?v=20261022-v25-46-71-equipe"></script>
 
 
-<div data-build-version="20261022-v25-46-70-equipe" style="display:none"></div>
+<div data-build-version="20261022-v25-46-71-equipe" style="display:none"></div>
 
 
 

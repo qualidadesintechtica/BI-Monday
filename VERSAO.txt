@@ -1,14 +1,18 @@
-BI-Monday V25.46.70 — Equipe: Banco de Validadores
+BI-Monday V25.46.71 — Equipe: Avaliações automáticas
 2026-10-22
-Base: V25.46.69 EVIDÊNCIAS SEM LOGIN, preservada.
-Instalar docs/26_BANCO_VALIDADORES_EQUIPE.sql no Supabase do BI.
-Publicar o conteúdo da pasta BI-Monday no site existente.
-Abrir Equipe > Importar Excel > Cadastro completo e vínculos; selecionar Banco_de_Validadores.xlsx e a aba Banco.
-Pesquisa e filtros próprios por docente, e-mail, IES, vínculo, formação, titulação, UC, semestre e avaliação.
-Avaliação da Atuação na Validação por vínculo, com comentários e histórico das alterações.
-Datas de desligamento atualizadas por Excel, com identificação por e-mail e IES opcional.
-Tempo desde o desligamento em dias corridos, atualizado automaticamente pela data de Brasília.
-Importação transacional, sem duplicação e sem apagar avaliações ou datas por células vazias.
-Dados da planilha fornecida: 139 linhas, 69 docentes, 8 duplicatas idênticas e 131 vínculos únicos.
-Avaliação e Comentários estão vazios no anexo; a tela mostra Sem avaliação até o registro ou importação.
-Sem Edge Function nova. As alterações precisam ser instaladas e publicadas no ambiente do BI.
+Base: V25.46.70, com cadastro, filtros e desligamentos preservados.
+Fonte da atuação: Avaliação da Atuação na Validação, quadro Monday 18430296590.
+Revisor avaliado: coluna Revisores - NQ. Gestor/avaliador: Gestores Validadores - NQ.
+Vínculo automático por nome completo, com normalização de acentos, maiúsculas e espaços.
+Nomes sem cadastro e homônimos permanecem visíveis para conferência.
+Seis critérios, média P1 da fonte, avaliação geral, recomendação e comentários integrais.
+Avaliações gerais por docente; não inventa UC, semestre ou data ausentes na fonte.
+Leitura automática ao abrir o BI, com atualização após 15 minutos; botão de atualização imediata.
+Importação opcional da exportação completa da Monday, com prévia e reconhecimento de nomes.
+Instalar docs/27_ATUACAO_VALIDADORES_MONDAY.sql após o SQL 26.
+Publicar a função sync-atuacao-validadores com Verify JWT ativado e MONDAY_API_TOKEN no Supabase.
+Publicar os arquivos completos da pasta BI-Monday no site atual.
+Comparação local dos anexos: 28 avaliações, 28 comentários, 24 nomes reconhecidos e 4 pendentes.
+Banco: 69 docentes, 131 vínculos únicos. Tempo de desligamento automático por data de Brasília.
+Testes locais de fonte, associação, filtros, importações, SQL, acesso e API simulada concluídos.
+Instalação, publicação e leitura da Monday em produção ainda dependem da aplicação deste pacote.

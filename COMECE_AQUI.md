@@ -1,4 +1,17 @@
-# BI-Monday V25.46.70 — Equipe e Banco de Validadores
+# BI-Monday V25.46.71 — Avaliações automáticas pelo nome do revisor
+
+1. Execute **todo** `docs/27_ATUACAO_VALIDADORES_MONDAY.sql` no Supabase do BI, após o SQL 26 (se já instalou o 26, não precisa repeti-lo).
+2. Publique a função **sync-atuacao-validadores** pelo painel, usando **todo** `INSTALAR_PELO_PAINEL/sync-atuacao-validadores.ts`. Mantenha **Verify JWT ativado** e confira o Secret **MONDAY_API_TOKEN**, com acesso ao quadro **18430296590**.
+3. Publique o conteúdo completo da pasta **BI-Monday** no site atual e pressione **Ctrl + F5**. Confira **v25.46.71 · Avaliações automáticas**.
+4. Abra **Equipe**. As notas e os comentários são reconhecidos automaticamente pelo nome de **Revisores - NQ**. Se ainda não importou o Banco de Validadores, faça a importação em **Importar Excel > Cadastro completo e vínculos**.
+
+A comparação dos arquivos enviados encontrou **28 avaliações com comentários**, **24 docentes reconhecidos** e **4 nomes pendentes**. As avaliações pendentes continuam visíveis. Cada resposta é contada uma vez, mesmo quando o docente tem várias UCs. O reconhecimento considera acentos, maiúsculas e espaços, sem adivinhar nomes parecidos.
+
+Leia **LEIA_EQUIPE_VALIDADORES.md** para a instalação pelo painel, a importação opcional da exportação da Monday, os filtros e as regras. O SQL e a função ainda precisam ser instalados no ambiente do BI; os testes deste pacote foram locais e com a API simulada.
+
+---
+
+# Histórico da V25.46.70 — Equipe e Banco de Validadores
 
 1. Execute **todo** `docs/26_BANCO_VALIDADORES_EQUIPE.sql` no Supabase do BI.
 2. Publique o conteúdo da pasta **BI-Monday** no site atual do BI e pressione **Ctrl + F5**.

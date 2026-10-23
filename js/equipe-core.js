@@ -120,13 +120,13 @@
     return rows.filter(r=>(!q || norm(Object.values(r).filter(x=>typeof x==='string').join(' ')).includes(q)) &&
       ['ies','titulacao','formacao','semestre','uc'].every(key=>!f[key] || norm(r[key])===norm(f[key])) &&
       (!f.status || state(r,reference)===f.status) &&
-      (!f.avaliacao || (f.avaliacao==='com' ? present(r.avaliacao) : !present(r.avaliacao))));
+      (!f.avaliacao || (f.avaliacao==='com' ? (r.atuacoes?r.atuacoes.length>0:present(r.avaliacao)) : (r.atuacoes?r.atuacoes.length===0:!present(r.avaliacao)))));
   }
   function stats(rows, reference=today()) {
     return {people:new Set(rows.map(r=>r.email)).size,links:rows.length,
       active:new Set(rows.filter(r=>state(r,reference)==='ativo').map(r=>r.email)).size,
       departed:new Set(rows.filter(r=>state(r,reference)==='desligado').map(r=>r.email)).size,
-      evaluated:rows.filter(r=>present(r.avaliacao)).length};
+      evaluated:new Set(rows.filter(r=>r.atuacoes?r.atuacoes.length>0:present(r.avaliacao)).map(r=>r.email)).size};
   }
   return {text,norm,email,present,today,dateISO,active,state,elapsed,safeURL,mapping,parseRows,filter,stats};
 });
