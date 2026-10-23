@@ -29,7 +29,7 @@
 
   
 
-  <link rel="stylesheet" href="css/planejamento.css?v=20261009-v25-46-65-alertas-prazo">
+  <link rel="stylesheet" href="css/planejamento.css?v=20261023-v25-46-72-atividades">
 </head>
 
 
@@ -54,7 +54,7 @@
           Validação de Materiais
         </strong>
 
-        <small class="build-badge">v25.46.71 · Avaliações automáticas</small>
+        <small class="build-badge">v25.46.72 · Atividades por responsável</small>
 
       </div>
 
@@ -340,10 +340,23 @@
         <div class="plan-hero-actions"><button id="planAtualizar" type="button">Atualizar</button><button id="planExportar" type="button" disabled>Exportar CSV</button><button id="planNova" class="plan-primary" type="button" disabled>+ Nova tarefa</button></div></div>
         <details class="plan-import"><summary>Importar planilha de Projeto Qualidade</summary><p>Envie a planilha completa: ela atualiza a base compartilhada da aba Projeto Qualidade. Os projetos aparecem como cartões e suas tarefas como passos. Itens ausentes da nova planilha saem da base ativa.</p><div class="plan-import-actions"><label>Planilha Excel<input id="planArquivoQualidade" type="file" accept=".xlsx,.xls"></label><button id="planImportarQualidade" type="button" disabled>Atualizar Projeto Qualidade e Planejamento</button></div><p id="planImportResumo" aria-live="polite">Selecione uma planilha Excel para conferir os itens.</p></details>
         <p class="plan-muted" id="planFonteQualidade">Aguardando a base de Projeto Qualidade.</p>
-        <div class="plan-kpis"><article><span>Itens no quadro</span><strong id="planTotal">0</strong></article><article><span>Em andamento</span><strong id="planEmAndamento">0</strong></article><article><span>Atrasadas</span><strong id="planAtrasadas">0</strong></article><article class="plan-kpi-attention"><span>Exigem atenção</span><strong id="planAtencaoTotal">0</strong></article><article><span>Concluídas</span><strong id="planConcluidas">0</strong></article></div>
+        <div id="planCardKpis" class="plan-kpis"><article><span>Itens no quadro</span><strong id="planTotal">0</strong></article><article><span>Em andamento</span><strong id="planEmAndamento">0</strong></article><article><span>Atrasadas</span><strong id="planAtrasadas">0</strong></article><article class="plan-kpi-attention"><span>Exigem atenção</span><strong id="planAtencaoTotal">0</strong></article><article><span>Concluídas</span><strong id="planConcluidas">0</strong></article></div>
         <div class="plan-toolbar"><label>Buscar tarefa<input id="planBusca" type="search" placeholder="Tarefa, responsável, UA, UC ou projeto"></label><label>Status<select id="planFiltroStatus"></select></label><label>Prioridade<select id="planFiltroPrioridade"></select></label><label>Responsável<select id="planFiltroResponsavel"><option value="">Todos os responsáveis</option></select></label><label class="plan-checkbox"><input type="checkbox" id="planSomenteAtencao">Somente atenção</label><label class="plan-checkbox"><input type="checkbox" id="planArquivadas"><span id="planArquivoRotulo">Arquivados</span></label></div>
-        <div class="plan-status-row"><span id="planContagem">0 tarefas</span><button id="planFiltroArea" type="button" hidden></button><button id="planModo" type="button">Ver lista</button></div>
+        <div class="plan-status-row"><span id="planContagem">0 tarefas</span><button id="planFiltroArea" type="button" hidden></button><div class="plan-view-switch" role="group" aria-label="Visualização do planejamento"><button id="planModo" type="button">Ver lista</button><button id="planModoAtividades" type="button" aria-pressed="false" aria-controls="planPainelAtividades">Por responsável</button></div></div>
         <p id="planStatus" aria-live="polite">Carregando tarefas…</p><div id="planBoard" aria-label="Quadro de tarefas"></div>
+        <section id="planPainelAtividades" class="plan-activities" aria-labelledby="planAtividadesTitulo" hidden>
+          <header><h3 id="planAtividadesTitulo">Atividades por responsável</h3><p>Responsável × atividade × vencimento. Use os filtros acima para selecionar atividades individuais.</p></header>
+          <div class="plan-activity-filters">
+            <label>Situação do vencimento<select id="planFiltroVencimento"><option value="">Todas</option><option value="atrasada">Vencidas</option><option value="hoje">Vencem hoje</option><option value="proximas">Vencem em até 5 dias</option><option value="em-dia">Vencem em mais de 5 dias</option><option value="sem-prazo">Sem vencimento</option><option value="invalida">Data inválida</option><option value="concluida">Concluídas</option></select></label>
+            <label>Vencimento de<input id="planVencimentoDe" type="date"></label><label>Vencimento até<input id="planVencimentoAte" type="date"></label><button id="planLimparAtividades" type="button">Limpar filtros</button>
+          </div>
+          <p id="planAtividadesErro" class="plan-error" role="alert" hidden></p>
+          <div class="plan-activity-kpis"><article><span>Atividades no filtro</span><strong id="planAtividadesTotal">0</strong></article><article><span>Vencidas</span><strong id="planAtividadesVencidas">0</strong></article><article><span>Vencem em até 5 dias</span><strong id="planAtividadesProximas">0</strong></article><article><span>Concluídas</span><strong id="planAtividadesConcluidas">0</strong></article><article><span>Sem vencimento</span><strong id="planAtividadesSemPrazo">0</strong></article></div>
+          <details class="plan-owner-summary" open><summary>Distribuição por responsável</summary><p class="plan-muted">Clique em um nome para ver suas atividades. Atividades compartilhadas entram na carga de cada responsável; o total geral conta cada atividade uma vez.</p><div class="plan-table-scroll"><table class="plan-table"><thead><tr><th scope="col">Responsável</th><th scope="col">Atividades</th><th scope="col">Pendentes</th><th scope="col">Vencidas</th><th scope="col">Até 5 dias</th><th scope="col">Concluídas</th></tr></thead><tbody id="planResponsaveisResumo"></tbody></table></div></details>
+          <p id="planAtividadesContagem" class="plan-muted" role="status" aria-live="polite"></p>
+          <div class="plan-table-scroll"><table class="plan-table plan-activity-table"><thead><tr><th scope="col">Responsável(is)</th><th scope="col">Atividade e projeto</th><th scope="col">Vencimento</th><th scope="col">Situação do prazo</th><th scope="col">Status</th><th scope="col">Detalhes</th></tr></thead><tbody id="planAtividadesBody"></tbody></table></div>
+          <div class="plan-activity-pager"><button id="planAtividadesAnterior" type="button" disabled>Anterior</button><span id="planAtividadesPagina">Página 1 de 1</span><button id="planAtividadesProxima" type="button" disabled>Próxima</button></div>
+        </section>
       </section>
 
       <section id="viewReuniaoNQ" class="page-view" data-page="reuniao-nq">
@@ -1647,11 +1660,12 @@
 
   <script defer src="js/certificados.js?v=20261013-v25-46-67-abas"></script>
   <script defer src="js/planejamento-qualidade.js?v=20261009-v25-46-64-status-persistente"></script>
-  <script defer src="js/planejamento.js?v=20261013-v25-46-66-carregamento"></script>
+  <script defer src="js/planejamento-atividades-core.js?v=20261023-v25-46-72-atividades"></script>
+  <script defer src="js/planejamento.js?v=20261023-v25-46-72-atividades"></script>
   <script defer src="js/dashboard.js?v=20261022-v25-46-71-equipe"></script>
 
 
-<div data-build-version="20261022-v25-46-71-equipe" style="display:none"></div>
+<div data-build-version="20261023-v25-46-72-atividades" style="display:none"></div>
 
 
 

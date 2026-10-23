@@ -1,4 +1,18 @@
-# BI-Monday V25.46.71 — Avaliações automáticas pelo nome do revisor
+# BI-Monday V25.46.72 — Atividades por responsável no Planejamento
+
+1. Publique o conteúdo completo da pasta **BI-Monday** no site atual do BI.
+2. Pressione **Ctrl + F5**. Confira **v25.46.72 · Atividades por responsável**.
+3. Abra **Planejamento → Por responsável** para consultar **responsável × atividade × vencimento**.
+
+O painel detalha as atividades e os passos dos projetos, com resumo por responsável, status, vencimentos, alertas de prazo, filtros de período e exportação CSV. Atividades compartilhadas entram na carga de cada responsável, com contagem única no total geral. **Abrir** leva ao card e ao passo correspondente.
+
+**Esta alteração não exige novo SQL ou Edge Function.** Usa a base já carregada pelo Planejamento. Leia **LEIA_PAINEL_ATIVIDADES.md** para as regras de contagem e os filtros.
+
+Foram verificadas 84 condições locais com dados simulados, incluindo os fluxos da interface em simulação DOM. A versão ainda precisa ser publicada no seu BI.
+
+---
+
+# Histórico da V25.46.71 — Avaliações automáticas pelo nome do revisor
 
 1. Execute **todo** `docs/27_ATUACAO_VALIDADORES_MONDAY.sql` no Supabase do BI, após o SQL 26 (se já instalou o 26, não precisa repeti-lo).
 2. Publique a função **sync-atuacao-validadores** pelo painel, usando **todo** `INSTALAR_PELO_PAINEL/sync-atuacao-validadores.ts`. Mantenha **Verify JWT ativado** e confira o Secret **MONDAY_API_TOKEN**, com acesso ao quadro **18430296590**.

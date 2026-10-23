@@ -1,18 +1,17 @@
-BI-Monday V25.46.71 — Equipe: Avaliações automáticas
-2026-10-22
-Base: V25.46.70, com cadastro, filtros e desligamentos preservados.
-Fonte da atuação: Avaliação da Atuação na Validação, quadro Monday 18430296590.
-Revisor avaliado: coluna Revisores - NQ. Gestor/avaliador: Gestores Validadores - NQ.
-Vínculo automático por nome completo, com normalização de acentos, maiúsculas e espaços.
-Nomes sem cadastro e homônimos permanecem visíveis para conferência.
-Seis critérios, média P1 da fonte, avaliação geral, recomendação e comentários integrais.
-Avaliações gerais por docente; não inventa UC, semestre ou data ausentes na fonte.
-Leitura automática ao abrir o BI, com atualização após 15 minutos; botão de atualização imediata.
-Importação opcional da exportação completa da Monday, com prévia e reconhecimento de nomes.
-Instalar docs/27_ATUACAO_VALIDADORES_MONDAY.sql após o SQL 26.
-Publicar a função sync-atuacao-validadores com Verify JWT ativado e MONDAY_API_TOKEN no Supabase.
-Publicar os arquivos completos da pasta BI-Monday no site atual.
-Comparação local dos anexos: 28 avaliações, 28 comentários, 24 nomes reconhecidos e 4 pendentes.
-Banco: 69 docentes, 131 vínculos únicos. Tempo de desligamento automático por data de Brasília.
-Testes locais de fonte, associação, filtros, importações, SQL, acesso e API simulada concluídos.
-Instalação, publicação e leitura da Monday em produção ainda dependem da aplicação deste pacote.
+BI-Monday V25.46.72 — Planejamento: Atividades por responsável
+2026-10-23
+Base: V25.46.71.
+Painel responsável × atividade × vencimento na aba Planejamento, botão Por responsável.
+Resumo de carga por responsável e tabela de atividades individuais, com 25 linhas por página.
+Filtros de responsável, pesquisa, status, prioridade, atenção, arquivadas e período de vencimento.
+Vencidas, hoje, até cinco dias, mais de cinco dias, sem data e data inválida.
+Cada passo usa seu responsável e vencimento; o card não é contado novamente quando tem passos.
+Atividades compartilhadas contam para cada responsável e uma vez no total geral.
+Responsável ausente pode vir do card; vencimento ausente permanece sem data.
+Abre o card existente e foca o passo selecionado, sem operação de escrita no painel.
+Exportação CSV de todas as atividades do filtro, incluindo as outras páginas.
+Sem novo SQL, tabela, Secret ou Edge Function.
+Publicar a pasta BI-Monday completa no site existente e pressionar Ctrl + F5.
+Consultar LEIA_PAINEL_ATIVIDADES.md para uso, instalação e regras de contagem.
+84 verificações locais com dados simulados: regras e simulação DOM concluídas.
+Publicação e conferência no BI em produção ainda pendentes.

@@ -22,7 +22,7 @@
   const idNovo = () => crypto.randomUUID();
   const chaveRef = r => `${r.tipo}|${r.id}|${r.pagina}`;
   const estado = {tarefas: [], refs: new Map(), pagina: location.pathname.endsWith('projetos.html') ? 'projeto-qualidade' : 'resumo',
-    pronto: false, carregando: false, salvando: false, lista: false, draft: null, fontes: new Map(), projetos: [], tarefasProjeto: [],
+    pronto: false, carregando: false, salvando: false, lista: false, atividades: false, atividadePagina: 1, draft: null, fontes: new Map(), projetos: [], tarefasProjeto: [],
     persistidas: [], qualidadeFonte: null, qualidadeErro: '', importando: false, importacao: null, importacaoToken: 0, recarregarDepois: false, pessoas: [], extrasCarregados: false, buscaRefs: [], filtroPagina: '', historicoToken: 0, ultimoArquivado: null};
   function diaDoCalendario(valor) {
     const iso=txt(valor).slice(0,10);
@@ -252,14 +252,54 @@
       <div class="plan-card-links">${(t.vinculos || []).slice(0,2).map(r=>`<span title="${esc(r.label)}">${esc(TIPOS[r.tipo])}: ${esc(r.label.slice(0,75))}</span>`).join('')}${(t.vinculos || []).length>2?`<small>+${t.vinculos.length-2} vínculos</small>`:''}</div>
       <label class="plan-card-status">Status<select data-plan-status="${esc(t.id)}" ${t.arquivada || estado.salvando?'disabled':''}>${opcoes(STATUS,t.status)}</select>${t.qualidade?`<small>Status na fonte: ${esc(t.qualidade.fonte?.status || 'Indisponível')}</small>`:''}</label><div class="plan-card-actions">${botaoArquivo(t)}</div></article>`;
   }
+  function atividadesTodas() {
+    return window.BIPlanejamentoAtividadesCore.project(estado.tarefas,{names:window.biPlanejamentoQualidade.nomes,sourceStatus:window.biPlanejamentoQualidade.status},hoje());
+  }
+  function filtrosAtividades() {
+    return {search:$('planBusca')?.value,owner:$('planFiltroResponsavel')?.value,status:$('planFiltroStatus')?.value,priority:$('planFiltroPrioridade')?.value,
+      attention:$('planSomenteAtencao')?.checked,archived:$('planArquivadas')?.checked,area:estado.filtroPagina,
+      due:$('planFiltroVencimento')?.value,from:$('planVencimentoDe')?.value,to:$('planVencimentoAte')?.value};
+  }
+  function renderAtividades(todas) {
+    const P=window.BIPlanejamentoAtividadesCore,result=P.filter(estado.pronto?todas:[],filtrosAtividades()),rows=result.rows,s=P.stats(rows);
+    const pages=Math.max(1,Math.ceil(rows.length/25));estado.atividadePagina=Math.max(1,Math.min(estado.atividadePagina,pages));
+    $('planAtividadesErro').textContent=result.error;$('planAtividadesErro').hidden=!result.error;
+    $('planExportar').disabled=!estado.pronto||!!result.error;
+    for(const [id,n] of Object.entries({planAtividadesTotal:s.total,planAtividadesVencidas:s.overdue,planAtividadesProximas:s.soon,planAtividadesConcluidas:s.done,planAtividadesSemPrazo:s.noDate}))$(id).textContent=n;
+    $('planResponsaveisResumo').innerHTML=P.summaries(rows).map(g=>`<tr><td><button type="button" data-plan-owner="${esc(g.owner)}" aria-pressed="${chaveNome($('planFiltroResponsavel').value)===chaveNome(g.owner)}">${esc(g.label)}</button></td><td>${g.total}</td><td>${g.open}</td><td>${g.overdue}</td><td>${g.soon}</td><td>${g.done}</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma atividade neste filtro.</td></tr>';
+    const message=!estado.pronto?'O painel estará disponível após o carregamento do Planejamento.':result.error?'Ajuste o período de vencimento para consultar as atividades.':'Nenhuma atividade corresponde aos filtros.';
+    $('planAtividadesBody').innerHTML=rows.slice((estado.atividadePagina-1)*25,estado.atividadePagina*25).map(r=>`<tr>
+      <td>${r.owners.length?r.owners.map(n=>`<span class="plan-owner-name">${esc(n)}</span>`).join(''):'<span class="plan-unassigned">Sem responsável</span>'}${r.inheritedOwner?'<small>Responsável do card</small>':''}</td>
+      <td><strong>${esc(r.activity)}</strong><small>${r.type==='Passo'?'Projeto / card: ':''}${esc(r.project)}</small><small>${esc(r.source)} · ${esc(r.type)}</small></td>
+      <td>${P.day(r.due)!==null?dataBR(r.due):r.due?`Data inválida<small>${esc(r.due)}</small>`:'Sem vencimento'}</td>
+      <td><span class="plan-activity-deadline plan-activity-${r.deadline.kind}">${esc(r.deadline.label)}</span></td>
+      <td>${esc(STATUS[r.status])}<small>Prioridade: ${esc(PRIORIDADES[r.priority]||'Não informada')}</small></td>
+      <td><button type="button" data-plan-activity-open="${esc(r.key)}" aria-label="Abrir atividade: ${esc(r.activity)}">Abrir</button></td></tr>`).join('')||`<tr><td colspan="6">${esc(message)}</td></tr>`;
+    $('planAtividadesContagem').textContent=`${rows.length} atividade(s) · ${s.noOwner} sem responsável · ordenadas por vencimento, com concluídas ao final`;
+    $('planContagem').textContent=`${rows.length} atividade(s) nesta visão`;
+    $('planAtividadesPagina').textContent=`Página ${estado.atividadePagina} de ${pages}`;
+    $('planAtividadesAnterior').disabled=estado.atividadePagina<=1;$('planAtividadesProxima').disabled=estado.atividadePagina>=pages;
+  }
+  function abrirAtividade(key) {
+    const r=atividadesTodas().find(x=>x.key===key),card=r&&estado.tarefas.find(t=>t.id===r.cardId);if(!card)return;
+    const opening=abrir(card);
+    if(r.stepId||r.stepIndex!==null){
+      const input=r.sourceStep?[...document.querySelectorAll('[data-plan-source-step]')].find(x=>x.dataset.planSourceStep===r.stepId):[...document.querySelectorAll('[data-plan-step]')].find(x=>Number(x.dataset.planStep)===r.stepIndex)?.querySelector('[data-step-field="titulo"]');
+      input?.scrollIntoView?.({block:'center',behavior:'smooth'});input?.focus();
+    }
+    void opening.catch(error=>aviso(mensagemErro(error),true));
+  }
   function render() {
     if (!$('planBoard')) return;
     if ($('viewPlanejamento') && !$('viewPlanejamento').classList.contains('active') && !$('planDialog')?.open) return;
     $('planNova').disabled=!estado.pronto; $('planExportar').disabled=!estado.pronto;
     if($('planImportarQualidade')) $('planImportarQualidade').disabled=!estado.pronto || !estado.importacao || estado.importando;
     const resp=$('planFiltroResponsavel'), prev=resp.value;
-    const nomes=listaResponsaveis();
-    resp.innerHTML='<option value="">Todos os responsáveis</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join(''); resp.value=nomes.find(n=>chaveNome(n)===chaveNome(prev)) || '';
+    const atividades=estado.atividades?atividadesTodas():[];
+    const nomes=estado.atividades?[...new Map(atividades.map(r=>r.owners).flat().map(n=>[chaveNome(n),n])).values()].sort((a,b)=>a.localeCompare(b,'pt-BR')):listaResponsaveis();
+    const semResponsavel=estado.atividades&&atividades.some(r=>!r.owners.length);
+    resp.innerHTML='<option value="">Todos os responsáveis</option>'+nomes.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')+(semResponsavel?`<option value="${window.BIPlanejamentoAtividadesCore.SEM_RESPONSAVEL}">Sem responsável</option>`:'');
+    resp.value=semResponsavel&&prev===window.BIPlanejamentoAtividadesCore.SEM_RESPONSAVEL?prev:nomes.find(n=>chaveNome(n)===chaveNome(prev)) || '';
     const arquivo=!!$('planArquivadas')?.checked;
     $('planSomenteAtencao').disabled=arquivo;
     if($('planArquivoRotulo')) $('planArquivoRotulo').textContent=`Arquivados (${estado.tarefas.filter(t=>t.arquivada).length})`;
@@ -272,6 +312,11 @@
     $('planContagem').textContent=`${lista.length} ${lista.length===1?'card':'cards'} ${arquivo?(lista.length===1?'arquivado':'arquivados'):'nesta visão'}`;
     $('planFiltroArea').hidden=!estado.filtroPagina;
     $('planFiltroArea').textContent=estado.filtroPagina?`Área: ${PAGINAS[estado.filtroPagina]} · Limpar`:'';
+    $('planBoard').hidden=estado.atividades;
+    $('planPainelAtividades').hidden=!estado.atividades;$('planCardKpis').hidden=estado.atividades;
+    $('planModoAtividades').setAttribute('aria-pressed',String(estado.atividades));
+    $('planModo').textContent=estado.lista?'Ver quadro':'Ver lista';
+    if(estado.atividades){renderAtividades(atividades);if($('planDialog')?.open)atualizarAvisosDialogo();return;}
     if (!estado.pronto) {$('planBoard').innerHTML='<div class="plan-empty">O Planejamento estará disponível após a instalação da estrutura de tarefas.</div>';return;}
     $('planBoard').classList.toggle('plan-archive-board',arquivo && !estado.lista);
     if (estado.lista) {
@@ -617,6 +662,11 @@
     window.open('index.html'+(termo?'?buscaPlanejamento='+encodeURIComponent(termo):'')+'#'+r.pagina,'_blank','noopener');
   }
   function exportar() {
+    if(estado.atividades){
+      const P=window.BIPlanejamentoAtividadesCore,result=P.filter(atividadesTodas(),filtrosAtividades());if(result.error){aviso(result.error,true);return;}
+      const url=URL.createObjectURL(new Blob([P.csv(result.rows)],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+      a.href=url;a.download=`Planejamento_Atividades_${hoje()}.csv`;a.click();URL.revokeObjectURL(url);return;
+    }
     const c=v=>{let s=String(v ?? ''); if(/^[=+@-]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"';};
     const linhas=filtradas().map(t=>[t.id,t.titulo,STATUS[t.status],t.responsavel,t.prazo,PRIORIDADES[t.prioridade],exigeAtencao(t)?'Sim':'Não',
       (t.etapas||[]).map(e=>`${e.concluida?'[x]':'[ ]'} ${e.titulo}`).join(' | '),(t.vinculos||[]).map(r=>`${TIPOS[r.tipo]}: ${r.label} (ID ${r.id})`).join(' | '),t.descricao]);
@@ -675,6 +725,8 @@
       const b=event.target.closest('button');if(!b)return;
       const has=k=>Object.prototype.hasOwnProperty.call(b.dataset,k);
       if(has('planArchive')) {void mudarArquivamento(b.dataset.planArchive);return;}
+      if(has('planActivityOpen')) {abrirAtividade(b.dataset.planActivityOpen);return;}
+      if(has('planOwner')) {$('planFiltroResponsavel').value=b.dataset.planOwner;estado.atividadePagina=1;render();return;}
       if(has('planOpen')) {void abrir(estado.tarefas.find(t=>t.id===b.dataset.planOpen));return;}
       if(has('planRef')) {void abrir(null,estado.refs.get(b.dataset.planRef));return;}
       if(has('planAddRef')) {const r=estado.buscaRefs[Number(b.dataset.planAddRef)]; adicionarRef(r?.tipo==='visao'?paginaRef(r.pagina):r);return;}
@@ -687,7 +739,13 @@
         case 'planImportarQualidade': void importarQualidade();break;
         case 'planNova': void abrir();break;
         case 'planAtualizar': void carregar();break;
-        case 'planModo': estado.lista=!estado.lista;render();break;
+        case 'planModo': estado.lista=!estado.lista;estado.atividades=false;render();break;
+        case 'planModoAtividades': estado.atividades=!estado.atividades;estado.atividadePagina=1;render();break;
+        case 'planAtividadesAnterior': estado.atividadePagina--;render();break;
+        case 'planAtividadesProxima': estado.atividadePagina++;render();break;
+        case 'planLimparAtividades':
+          ['planBusca','planFiltroStatus','planFiltroPrioridade','planFiltroResponsavel','planFiltroVencimento','planVencimentoDe','planVencimentoAte'].forEach(id=>$(id).value='');
+          $('planSomenteAtencao').checked=false;$('planArquivadas').checked=false;estado.filtroPagina='';estado.atividadePagina=1;render();break;
         case 'planExportar': exportar();break;
         case 'planFiltroArea': estado.filtroPagina='';render();break;
         case 'planAddEtapa': if(estado.draft.etapas.length<100){estado.draft.etapas.push({id:idNovo(),titulo:'',concluida:false,responsavel:'',prazo:''});renderEtapas();$('planEtapas').lastElementChild.querySelector('[data-step-field="titulo"]').focus();}break;
@@ -706,11 +764,11 @@
       if(step && e.dataset.stepField) {estado.draft.etapas[Number(step.dataset.planStep)][e.dataset.stepField]=e.type==='checkbox'?e.checked:e.value;
         $('planEtapasContagem').textContent=`${estado.draft.etapas.filter(x=>x.concluida).length}/${estado.draft.etapas.length} passos concluídos`;atualizarAvisosDialogo();}
       if(e.id==='planCampo_prazo' || e.id==='planCampo_status')atualizarAvisosDialogo();
-      if(e.id==='planBuscaVinculo')buscarRefs();if(e.id==='planBusca')render();
+      if(e.id==='planBuscaVinculo')buscarRefs();if(e.id==='planBusca'){estado.atividadePagina=1;render();}
     });
     document.addEventListener('change',event=>{
       const e=event.target;if(e.dataset.planSourceStep){void marcarPassoQualidade(e.dataset.planSourceStep,e.checked);return;}if(e.dataset.planStatus)void mudarStatus(e.dataset.planStatus,e.value);
-      if(e.id==='planTipoVinculo')buscarRefs();if(['planFiltroStatus','planFiltroPrioridade','planFiltroResponsavel','planSomenteAtencao','planArquivadas'].includes(e.id))render();
+      if(e.id==='planTipoVinculo')buscarRefs();if(['planFiltroStatus','planFiltroPrioridade','planFiltroResponsavel','planSomenteAtencao','planArquivadas','planFiltroVencimento','planVencimentoDe','planVencimentoAte'].includes(e.id)){estado.atividadePagina=1;render();}
     });
     document.addEventListener('dragstart',e=>{const card=e.target.closest('[data-plan-drag]');if(card)e.dataTransfer.setData('text/plain',card.dataset.planDrag);});
     document.addEventListener('dragover',e=>{if(e.target.closest('[data-plan-drop]'))e.preventDefault();});
