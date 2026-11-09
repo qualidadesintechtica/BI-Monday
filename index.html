@@ -66,7 +66,7 @@
         <a href="#reuniao-nq" data-view="reuniao-nq">Reunião NQ</a>
         <a href="#operacao" data-view="operacao">Operação</a>
         <a href="#ajustes" data-view="ajustes">Ajustes</a>
-        <a href="#equipe" data-view="equipe">Equipe</a>
+        <a href="#equipe" data-view="equipe">Banco de Professores</a>
         <a href="#gestores-materiais" data-view="gestores-materiais">Gestores e Materiais</a>
         <a href="#certificados" data-view="certificados">Certificados</a>
         <a href="#planejamento" data-view="planejamento">Planejamento</a>
@@ -1535,7 +1535,7 @@
       <section id="viewEquipe" class="page-view" data-page="equipe">
         <div class="section-heading">
           <div>
-            <h2>Equipe · Banco de Validadores</h2>
+            <h2>Banco de Professores</h2>
             <p>Cadastro dos docentes, vínculos institucionais e avaliações da atuação recebidas na Monday.</p>
           </div>
           <button id="eqReload" type="button">Atualizar banco</button>
@@ -1549,7 +1549,7 @@
         <div id="eqMessage" class="eq-message" role="status" aria-live="polite"></div>
         <div class="eq-actions"><button id="eqSyncMonday" type="button">Atualizar avaliações da Monday</button><span id="eqSourceInfo" class="eq-muted">Carregando avaliações…</span></div>
         <div id="eqMondayMessage" class="eq-message" role="status" aria-live="polite"></div>
-        <div class="eq-tabs" role="tablist" aria-label="Áreas da equipe">
+        <div class="eq-tabs" role="tablist" aria-label="Áreas do banco de professores">
           <button id="eqTabCadastro" type="button" role="tab" data-eq-tab="cadastro" aria-controls="eqPanelCadastro" aria-selected="true">Cadastro e vínculos</button>
           <button id="eqTabAvaliacao" type="button" role="tab" data-eq-tab="avaliacao" aria-controls="eqPanelAvaliacao" aria-selected="false" tabindex="-1">Avaliação da Atuação na Validação</button>
           <button id="eqTabImportar" type="button" role="tab" data-eq-tab="importar" aria-controls="eqPanelImportar" aria-selected="false" tabindex="-1">Importar Excel</button>
@@ -1558,6 +1558,7 @@
           <h3 id="eqFiltersTitle">Pesquisa e filtros</h3>
           <div class="eq-filter-grid">
             <label class="eq-wide">Pesquisar docente, e-mail, UC ou formação<input id="eqSearch" type="search" placeholder="Digite um nome ou termo…"></label>
+            <label>É do NQ<select id="eqFilter_nq"><option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
             <label>IES<select id="eqFilter_ies"><option value="">Todos</option></select></label>
             <label>Vínculo<select id="eqFilter_status"><option value="">Todos</option><option value="ativo">Ativo</option><option value="desligado">Desligado</option><option value="agendado">Desligamento agendado</option><option value="nao-informado">Não informado</option></select></label>
             <label>Área de formação<select id="eqFilter_formacao"><option value="">Todos</option></select></label>
@@ -1573,7 +1574,7 @@
         <section id="eqPanelCadastro" role="tabpanel" aria-labelledby="eqTabCadastro" data-eq-panel="cadastro">
           <p class="eq-muted">Uma linha por docente, IES, UC e semestre. As avaliações são gerais do docente e aparecem automaticamente quando o nome em “Revisores - NQ” corresponde a um único cadastro. Tempo de desligamento em dias corridos, pela data de Brasília.</p>
           <div class="table-card"><div class="table-scroll"><table class="data-table">
-            <thead><tr><th>Docente validador</th><th>IES de vínculo</th><th>Vínculo ativo</th><th>Data de desligamento</th><th>Tempo de desligamento</th><th>E-mail institucional</th><th>Área de formação</th><th>Titulação máxima</th><th>Lattes</th><th>Unidade curricular validada</th><th>Semestre de validação</th><th>Avaliação da atuação</th><th>Comentários</th></tr></thead>
+            <thead><tr><th>Docente validador</th><th>É do NQ</th><th>IES de vínculo</th><th>Vínculo ativo</th><th>Data de desligamento</th><th>Tempo de desligamento</th><th>E-mail institucional</th><th>Área de formação</th><th>Titulação máxima</th><th>Lattes</th><th>Unidade curricular validada</th><th>Semestre de validação</th><th>Avaliação da atuação</th><th>Comentários</th></tr></thead>
             <tbody id="eqBody"></tbody>
           </table></div></div>
         </section>
@@ -1586,7 +1587,7 @@
         </section>
         <section id="eqPanelImportar" role="tabpanel" aria-labelledby="eqTabImportar" data-eq-panel="importar" hidden>
           <div class="eq-import">
-            <h3>Atualizar o Banco de Validadores</h3>
+            <h3>Atualizar o Banco de Professores</h3>
             <p class="eq-muted">Selecione o Excel e confira a prévia antes de importar. Para o cadastro completo, use a estrutura da aba Banco. Para desligamentos, bastam E-MAIL INSTITUCIONAL e DATA DE DESLIGAMENTO. Inclua IES DE VINCULO para atualizar somente aquela instituição; sem IES, todos os vínculos do e-mail serão atualizados. Datas vazias são ignoradas. Campos vazios do cadastro preservam avaliações e datas existentes.</p>
             <div class="eq-filter-grid">
               <label>Tipo de atualização<select id="eqMode"><option value="cadastro">Cadastro completo e vínculos</option><option value="desligamentos">Somente datas de desligamento</option><option value="atuacao">Avaliações — exportação da Monday</option></select></label>
