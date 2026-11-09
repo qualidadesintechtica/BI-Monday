@@ -6,7 +6,7 @@
   const rating=v=>v===null||v===undefined?'Não informada':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:4});
   const labels={ativo:'Ativo',desligado:'Desligado',agendado:'Desligamento agendado','nao-informado':'Não informado'};
   const matchLabels={reconhecido:'Reconhecido automaticamente','sem-cadastro':'Sem cadastro correspondente',ambiguo:'Mais de um cadastro com este nome'};
-  const state={rows:[],source:null,responses:[],evaluated:[],enriched:[],sourceReady:false,loaded:false,nqNames:new Set(),nqReady:false,pending:null,syncPending:null,lastAttempt:0,bound:false,tab:'cadastro',page:1,size:25,workbook:null,preview:null,file:null,saving:false};
+  const state={rows:[],source:null,responses:[],evaluated:[],enriched:[],sourceReady:false,loaded:false,nqNames:new Set(),nqReady:false,pending:null,syncPending:null,lastAttempt:0,bound:false,tab:'cadastro',page:1,size:25,workbook:null,preview:null,file:null,saving:false,uc20261:[],manual:new Map(),manualReady:false};
   const freshness=15*60*1000;
   function message(id,text,error=false){$(id).textContent=text;$(id).dataset.error=String(error);}
   function failure(error,source=false){
@@ -19,6 +19,21 @@
     const el=$('eqFilter_'+k),v=el.value,values=[...new Set(state.rows.map(r=>r[k]).filter(C.present))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     el.innerHTML='<option value="">Todos</option>'+values.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(values.includes(v))el.value=v;
   }}
+  async function readManual(){
+    const {data,error}=await window.biSupabase.from('bi_professores_notas_manuais').select('vinculo_id,nota,atualizado_em');
+    if(error)throw error;state.manual=new Map((data||[]).map(x=>[String(x.vinculo_id),x]));state.manualReady=true;
+  }
+  async function saveManual(id,raw,button){
+    const nota=String(raw||'').trim().replace(',','.');
+    if(nota && (!/^\d+(?:\.\d{1,2})?$/.test(nota)||Number(nota)>10)){alert('Informe uma nota de 0 a 10, com até duas casas decimais, ou deixe vazio.');return;}
+    button.disabled=true;try{
+      const {error}=await window.biSupabase.rpc('bi_professores_salvar_nota',{p_vinculo_id:Number(id),p_nota:nota?Number(nota):null});
+      if(error)throw error;await readManual();render();message('eqMessage','Nota manual salva com histórico de alteração.');
+    }catch(e){message('eqMessage','Não foi possível salvar a nota: '+failure(e),true);button.disabled=false;}
+  }
+  async function readUC20261(){
+    const all=[];let offset=0;while(true){const {data,error}=await window.biSupabase.from('bi_professores_uc_20261').select('*').order('uc').range(offset,offset+999);if(error)throw error;all.push(...(data||[]));if((data||[]).length<1000)break;offset+=1000;}state.uc20261=all;
+  }
   function reconcile(){state.evaluated=A.recognize(state.responses,state.rows);state.enriched=A.attach(state.rows,state.evaluated);}
   function sourceInfo(){
     if(!state.sourceReady){$('eqSourceInfo').textContent='Avaliações indisponíveis';return;}
@@ -46,15 +61,20 @@
   function render(){
     reconcile();sourceInfo();const f=filters(),base=C.filter(state.enriched,f),rows=base.filter(r=>!f.nq||(state.nqReady&&(state.nqNames.has(C.norm(r.docente))===(f.nq==='sim')))),s=C.stats(rows),evaluations=evaluationRows(f);
     $('eqSyncMonday').disabled=!state.sourceReady||!!state.syncPending;
-    const list=state.tab==='avaliacao'?evaluations:rows,pages=Math.max(1,Math.ceil(list.length/state.size));state.page=Math.max(1,Math.min(state.page,pages));
+    const list=state.tab==='uc20261'?state.uc20261.filter(r=>!C.norm(f.search)||C.norm([r.uc,r.docente_conteudista,r.monday_item_id].join(' ')).includes(C.norm(f.search))):state.tab==='avaliacao'?evaluations:rows,pages=Math.max(1,Math.ceil(list.length/state.size));state.page=Math.max(1,Math.min(state.page,pages));
     for(const [id,value] of Object.entries({eqPeople:s.people,eqLinks:s.links,eqActive:s.active,eqDeparted:s.departed}))$(id).textContent=value;
     const recognized=new Set(evaluations.filter(r=>r.email).map(r=>r.email)).size;
-    $('eqCount').textContent=state.tab==='avaliacao'?`${evaluations.length} avaliação(ões) · ${recognized} docente(s) reconhecido(s) · ${evaluations.filter(r=>!r.email).length} sem vínculo automático`:`${s.people} docente(s) · ${s.links} vínculo(s) de UC/semestre · ${state.sourceReady?s.evaluated+' docente(s) com avaliação':'avaliações indisponíveis'}`;
+    $('eqCount').textContent=state.tab==='uc20261'?`${list.length} UC(s) 2026.1 identificadas na Monday` :state.tab==='avaliacao'?`${evaluations.length} avaliação(ões) · ${recognized} docente(s) reconhecido(s) · ${evaluations.filter(r=>!r.email).length} sem vínculo automático`:`${s.people} docente(s) · ${s.links} vínculo(s) de UC/semestre · ${state.sourceReady?s.evaluated+' docente(s) com avaliação':'avaliações indisponíveis'}`;
     const visible=list.slice((state.page-1)*state.size,state.page*state.size);
     if(state.tab==='cadastro')$('eqBody').innerHTML=visible.map(r=>{
-      const st=C.state(r),days=C.elapsed(r),av=String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':!state.sourceReady?'Avaliações indisponíveis':r.atuacoes.length?r.atuacoes.map(a=>`<div class="eq-response">P1: ${rating(a.media_p1)}<br><small>${cell(a.avaliador)}</small></div>`).join(''):'Sem avaliação vinculada';
+      const st=C.state(r),days=C.elapsed(r),manual=state.manual.get(String(r.vinculo_id)),manualInput=String(r.semestre||'').trim()==='2026.2' && !r.atuacoes.length ? `<div class="eq-manual"><label>Nota manual (0–10) <input type="number" min="0" max="10" step="0.01" data-eq-nota="${esc(r.vinculo_id)}" value="${manual?.nota??''}" style="width:90px"></label> <button type="button" data-eq-save="${esc(r.vinculo_id)}">Salvar</button></div>`:'',av=String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':!state.sourceReady?'Avaliações indisponíveis':r.atuacoes.length?r.atuacoes.map(a=>`<div class="eq-response">P1: ${rating(a.media_p1)}<br><small>${cell(a.avaliador)}</small></div>`).join(''):(manualInput||'Sem avaliação vinculada');
       return `<tr><td>${cell(r.docente)}</td><td>${state.nqReady?(state.nqNames.has(C.norm(r.docente))?'Sim':'Não'):'Não verificado'}</td><td>${cell(r.ies)}</td><td><span class="eq-badge ${st}">${labels[st]}</span></td><td>${date(r.data_desligamento)}</td><td>${days===null?(st==='agendado'?'Ainda não iniciado':'—'):`${days} dia(s)`}</td><td>${cell(r.email)}</td><td>${cell(r.formacao)}</td><td>${cell(r.titulacao)}</td><td>${C.safeURL(r.lattes)?`<a href="${esc(C.safeURL(r.lattes))}" target="_blank" rel="noopener noreferrer">Abrir Lattes</a>`:'—'}</td><td>${cell(r.uc)}</td><td>${cell(r.semestre)}</td><td>${av}</td><td>${String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':(comments(r.atuacoes)||'—')}</td></tr>`;
     }).join('')||'<tr><td colspan="14">Nenhum vínculo encontrado. Ajuste os filtros ou importe o cadastro.</td></tr>';
+    if(state.tab==='cadastro')$('eqBody').querySelectorAll('[data-eq-save]').forEach(button=>button.addEventListener('click',()=>{const id=button.dataset.eqSave;saveManual(id,$('eqBody').querySelector(`[data-eq-nota="${id}"]`)?.value,button);}));
+    if(state.tab==='uc20261'){
+      $('eqUC20261Body').innerHTML=visible.map(r=>`<tr><td>${cell(r.uc)}</td><td>2026.1</td><td>${cell(r.docente_conteudista)}</td><td>${cell(r.monday_item_id)}</td><td>Não se aplica</td><td>Não se aplica</td></tr>`).join('')||'<tr><td colspan="6">Nenhuma UC de 2026.1 disponível na base sincronizada.</td></tr>';
+      $('eqUC20261Info').textContent=state.uc20261.length+' registro(s) da Monday carregado(s). A vinculação a revisores exige correspondência comprovada, não presumida.';
+    }
     if(state.tab==='avaliacao')$('eqEvaluationBody').innerHTML=visible.map(r=>`<tr><td>${cell(r.revisor)}</td><td><span class="eq-badge ${r.reconhecimento==='reconhecido'?'ativo':'agendado'}">${matchLabels[r.reconhecimento]}</span>${r.email?`<div>${cell(r.docente)}<br>${cell(r.email)}</div>`:''}</td><td>${cell(r.avaliador)}</td><td>${rating(r.media_p1)}</td><td>${rating(r.avaliacao_geral)}</td><td>${rating(r.recomendacao)}</td><td>${criteria(r)}</td><td>${cell(r.comentarios)}</td><td>${sourceLink(r)}</td></tr>`).join('')||`<tr><td colspan="9">${state.sourceReady?'Nenhuma avaliação encontrada. Ajuste os filtros ou atualize a fonte.':'Avaliações indisponíveis. Confira a mensagem acima.'}</td></tr>`;
     $('eqPageInfo').textContent=`Página ${state.page} de ${pages}`;$('eqPrev').disabled=state.page<=1;$('eqNext').disabled=state.page>=pages;$('eqPager').hidden=state.tab==='importar';
   }
@@ -93,6 +113,8 @@
       for(;;){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
         try{const {data,error}=await window.biSupabase.from('bi_validadores_banco').select('*').order('email').order('vinculo_id').range(start,start+999).abortSignal(controller.signal);if(error)throw error;const batch=data||[];rows.push(...batch);if(batch.length<1000)break;start+=1000;}finally{clearTimeout(timer);}}
       state.rows=rows;state.loaded=true;populate();
+      try{await readManual();}catch(error){state.manualReady=false;message('eqMessage','Notas manuais indisponíveis: '+failure(error),true);}
+      try{await readUC20261();}catch(error){state.uc20261=[];message('eqUC20261Info','Não foi possível ler as UCs da Monday: '+failure(error),true);}
       // Base usada pela aba Reunião NQ; sem correspondência não implica ausência do NQ.
       try {
         const nomes=new Set();let offset=0;

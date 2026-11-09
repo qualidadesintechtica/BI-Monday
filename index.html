@@ -1552,6 +1552,7 @@
         <div class="eq-tabs" role="tablist" aria-label="Áreas do banco de professores">
           <button id="eqTabCadastro" type="button" role="tab" data-eq-tab="cadastro" aria-controls="eqPanelCadastro" aria-selected="true">Cadastro e vínculos</button>
           <button id="eqTabAvaliacao" type="button" role="tab" data-eq-tab="avaliacao" aria-controls="eqPanelAvaliacao" aria-selected="false" tabindex="-1">Avaliação da Atuação na Validação</button>
+          <button id="eqTabUC20261" type="button" role="tab" data-eq-tab="uc20261" aria-controls="eqPanelUC20261" aria-selected="false" tabindex="-1">UCs 2026.1 · Monday</button>
           <button id="eqTabImportar" type="button" role="tab" data-eq-tab="importar" aria-controls="eqPanelImportar" aria-selected="false" tabindex="-1">Importar Excel</button>
         </div>
         <section id="eqFilters" class="eq-filters" aria-labelledby="eqFiltersTitle">
@@ -1574,7 +1575,7 @@
         <section id="eqPanelCadastro" role="tabpanel" aria-labelledby="eqTabCadastro" data-eq-panel="cadastro">
           <p class="eq-muted">Uma linha por docente, IES, UC e semestre. As avaliações são gerais do docente e aparecem automaticamente quando o nome em “Revisores - NQ” corresponde a um único cadastro. Tempo de desligamento em dias corridos, pela data de Brasília.</p>
           <div class="table-card"><div class="table-scroll"><table class="data-table">
-            <thead><tr><th>Docente validador</th><th>É do NQ</th><th>IES de vínculo</th><th>Vínculo ativo</th><th>Data de desligamento</th><th>Tempo de desligamento</th><th>E-mail institucional</th><th>Área de formação</th><th>Titulação máxima</th><th>Lattes</th><th>Unidade curricular validada</th><th>Semestre de validação</th><th>Avaliação da atuação</th><th>Comentários</th></tr></thead>
+            <thead><tr><th>Docente validador</th><th>É do NQ</th><th>IES de vínculo</th><th>Vínculo ativo</th><th>Data de desligamento</th><th>Tempo de desligamento</th><th>E-mail institucional</th><th>Área de formação</th><th>Titulação máxima</th><th>Lattes</th><th>Unidade curricular validada</th><th>Semestre de validação</th><th>Avaliação da atuação / nota manual 2026.2</th><th>Comentários</th></tr></thead>
             <tbody id="eqBody"></tbody>
           </table></div></div>
         </section>
@@ -1584,6 +1585,11 @@
             <thead><tr><th>Revisor avaliado</th><th>Cadastro reconhecido</th><th>Gestor / avaliador</th><th>Média Critérios (P1)</th><th>Avaliação geral</th><th>Recomendação</th><th>Seis critérios</th><th>Comentários</th><th>Origem</th></tr></thead>
             <tbody id="eqEvaluationBody"></tbody>
           </table></div></div>
+        </section>
+        <section id="eqPanelUC20261" role="tabpanel" aria-labelledby="eqTabUC20261" data-eq-panel="uc20261" hidden>
+          <p class="eq-muted">UCs do semestre 2026.1 identificadas na Esteira de Produção da Monday. Esta lista não presume que o docente conteudista seja o revisor. Não houve avaliação nem comentários em 2026.1.</p>
+          <div class="eq-message" id="eqUC20261Info" role="status"></div>
+          <div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Unidade curricular</th><th>Semestre</th><th>Docente conteudista (Monday)</th><th>Identificador Monday</th><th>Avaliação</th><th>Comentários</th></tr></thead><tbody id="eqUC20261Body"></tbody></table></div></div>
         </section>
         <section id="eqPanelImportar" role="tabpanel" aria-labelledby="eqTabImportar" data-eq-panel="importar" hidden>
           <div class="eq-import">
@@ -1629,7 +1635,7 @@
   <script defer src="js/recursos.js?v=20261013-v25-46-66-carregamento"></script>
   <script defer src="js/equipe-core.js?v=20261022-v25-46-71-equipe"></script>
   <script defer src="js/equipe-atuacao-core.js?v=20261022-v25-46-71-equipe"></script>
-  <script defer src="js/equipe.js?v=20261022-v25-46-71-equipe"></script>
+  <script defer src="js/equipe.js?v=20261109-banco-professores-completo-1"></script>
   <script defer src="js/config.js?v=20260918-v25-26-operacao-pesquisa-titulos"></script>
 
   <script defer src="js/supabase.js?v=20260901-v20-ordenacao-colunas"></script>
