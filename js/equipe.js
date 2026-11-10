@@ -89,17 +89,41 @@
       return !q||C.norm([r.revisor,r.docente,r.avaliador,r.comentarios,profile].join(' ')).includes(q);
     });
   }
+  // Consolidação apenas visual de 2026.2: mantém todos os vínculos originais.
+  function group20262(rows){
+    const groups=new Map(),result=[];
+    for(const r of rows){
+      if(String(r.semestre||'').trim()!=='2026.2'){result.push(r);continue;}
+      const key=C.email(r.email)||C.norm(r.docente);
+      if(!groups.has(key)){
+        const group={...r,_links:[],_ucs:new Set(),_ies:new Set(),_formacoes:new Set(),_titulacoes:new Set()};
+        groups.set(key,group);result.push(group);
+      }
+      const g=groups.get(key);g._links.push(r);
+      for(const value of String(r.uc||'').split(/\s*\|\s*/))if(C.present(value))g._ucs.add(value.trim());
+      if(C.present(r.ies))g._ies.add(r.ies);
+      if(C.present(r.formacao))g._formacoes.add(r.formacao);
+      if(C.present(r.titulacao))g._titulacoes.add(r.titulacao);
+    }
+    for(const g of groups.values()){
+      g.uc=[...g._ucs].sort((a,b)=>a.localeCompare(b,'pt-BR')).join(' | ');
+      g.ies=[...g._ies].join(' | ');
+      g.formacao=[...g._formacoes].join(' | ');
+      g.titulacao=[...g._titulacoes].join(' | ');
+    }
+    return result;
+  }
   function render(){
     reconcile();sourceInfo();const f=filters(),base=C.filter(state.enriched,f),rows=base.filter(r=>!f.nq||(isNQ(r)===(f.nq==='sim'))),catalog=C.filter(catalogRows(),f).filter(r=>!f.nq||f.nq==='nao'),s=C.stats(rows),evaluations=evaluationRows(f);
     $('eqSyncMonday').disabled=!state.sourceReady||!!state.syncPending;
-    const list=state.tab==='avaliacao'?evaluations:state.tab==='cadastro'?[...rows,...catalog]:rows,pages=Math.max(1,Math.ceil(list.length/state.size));state.page=Math.max(1,Math.min(state.page,pages));
+    const list=state.tab==='avaliacao'?evaluations:state.tab==='cadastro'?[...group20262(rows),...catalog]:rows,pages=Math.max(1,Math.ceil(list.length/state.size));state.page=Math.max(1,Math.min(state.page,pages));
     for(const [id,value] of Object.entries({eqPeople:s.people,eqLinks:s.links,eqActive:s.active,eqDeparted:s.departed}))$(id).textContent=value;
     const recognized=new Set(evaluations.filter(r=>r.email).map(r=>r.email)).size;
     $('eqCount').textContent=state.tab==='uc20261'?`${list.length} UC(s) 2026.1 identificadas na Monday` :state.tab==='avaliacao'?`${evaluations.length} avaliação(ões) · ${recognized} docente(s) reconhecido(s) · ${evaluations.filter(r=>!r.email).length} sem vínculo automático`:`${s.people} docente(s) · ${s.links} vínculo(s) cadastrados · ${catalog.length} UC(s) 2026.1 sem revisor identificado · ${state.sourceReady?s.evaluated+' docente(s) com avaliação':'avaliações indisponíveis'}`;
     const visible=list.slice((state.page-1)*state.size,state.page*state.size);
     if(state.tab==='cadastro')$('eqBody').innerHTML=visible.map(r=>{
       if(r._catalog20261)return `<tr><td><strong>Revisor não identificado</strong><div class="eq-muted">Catálogo Monday; conteudista: ${cell(r._conteudista)}</div></td><td>Não</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>${cell(r.uc)}</td><td>2026.1</td><td>Não se aplica (2026.1)</td><td>Não se aplica (2026.1)</td></tr>`;
-      const st=C.state(r),days=C.elapsed(r),manual=state.manual.get(String(r.vinculo_id)),manualInput=String(r.semestre||'').trim()==='2026.2' && !r.atuacoes.length ? `<div class="eq-manual"><label>Nota manual (0–10) <input type="number" min="0" max="10" step="0.01" data-eq-nota="${esc(r.vinculo_id)}" value="${manual?.nota??''}" style="width:90px"></label> <button type="button" data-eq-save="${esc(r.vinculo_id)}">Salvar</button></div>`:'',av=String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':!state.sourceReady?'Avaliações indisponíveis':r.atuacoes.length?r.atuacoes.map(a=>`<div class="eq-response">P1: ${rating(a.media_p1)}<br><small>${cell(a.avaliador)}</small></div>`).join(''):(manualInput||'Sem avaliação vinculada');
+      const st=C.state(r),days=C.elapsed(r),manual=state.manual.get(String(r.vinculo_id)),manualInput=String(r.semestre||'').trim()==='2026.2' && !r.atuacoes.length ? (r._links||[r]).map(link=>{const saved=state.manual.get(String(link.vinculo_id));return `<div class="eq-manual"><label>${r._links?`UC: ${cell(link.uc)} · `:''}Nota manual (0–10) <input type="number" min="0" max="10" step="0.01" data-eq-nota="${esc(link.vinculo_id)}" value="${saved?.nota??''}" style="width:90px"></label> <button type="button" data-eq-save="${esc(link.vinculo_id)}">Salvar</button></div>`;}).join(''):'',av=String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':!state.sourceReady?'Avaliações indisponíveis':r.atuacoes.length?r.atuacoes.map(a=>`<div class="eq-response">P1: ${rating(a.media_p1)}<br><small>${cell(a.avaliador)}</small></div>`).join(''):(manualInput||'Sem avaliação vinculada');
       return `<tr><td>${cell(r.docente)}</td><td>${isNQ(r)?'Sim':'Não'}</td><td>${cell(r.ies)}</td><td><span class="eq-badge ${st}">${labels[st]}</span></td><td>${date(r.data_desligamento)}</td><td>${days===null?(st==='agendado'?'Ainda não iniciado':'—'):`${days} dia(s)`}</td><td>${cell(r.email)}</td><td>${cell(r.formacao)}</td><td>${cell(r.titulacao)}</td><td>${C.safeURL(r.lattes)?`<a href="${esc(C.safeURL(r.lattes))}" target="_blank" rel="noopener noreferrer">Abrir Lattes</a>`:'—'}</td><td>${cell(r.uc)}</td><td>${cell(r.semestre)}</td><td>${av}</td><td>${String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':(comments(r.atuacoes)||'—')}</td></tr>`;
     }).join('')||'<tr><td colspan="14">Nenhum vínculo encontrado. Ajuste os filtros ou importe o cadastro.</td></tr>';
     if(state.tab==='cadastro')$('eqBody').querySelectorAll('[data-eq-save]').forEach(button=>button.addEventListener('click',()=>{const id=button.dataset.eqSave;saveManual(id,$('eqBody').querySelector(`[data-eq-nota="${id}"]`)?.value,button);}));
