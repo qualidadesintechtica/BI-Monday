@@ -33,6 +33,25 @@
       if(error)throw error;await readManual();render();message('eqMessage','Nota manual salva com histórico de alteração.');
     }catch(e){message('eqMessage','Não foi possível salvar a nota: '+failure(e),true);button.disabled=false;}
   }
+  // A view de classificação NQ pode conter uma projeção anterior do campo UC.
+  // O vínculo é a chave estável; a view oficial do Banco fornece a UC atualizada.
+  async function mergeCurrentUC(rows){
+    const official=[];let offset=0;
+    while(true){
+      const {data,error}=await window.biSupabase.from('bi_validadores_banco')
+        .select('vinculo_id,semestre,uc').order('vinculo_id').range(offset,offset+999);
+      if(error)throw error;
+      const batch=data||[];official.push(...batch);
+      if(batch.length<1000)break;
+      offset+=1000;
+    }
+    const byLink=new Map(official.map(r=>[String(r.vinculo_id),r]));
+    return rows.map(row=>{
+      const source=byLink.get(String(row.vinculo_id));
+      if(!source||String(source.semestre||'').trim()!==String(row.semestre||'').trim())return row;
+      return {...row,uc:source.uc};
+    });
+  }
   async function readUC20261(){
     const all=[];let offset=0;while(true){const {data,error}=await window.biSupabase.from('bi_professores_uc_20261').select('*').order('uc').range(offset,offset+999);if(error)throw error;all.push(...(data||[]));if((data||[]).length<1000)break;offset+=1000;}state.uc20261=all;
   }
@@ -121,7 +140,13 @@
       const rows=[];let start=0;
       for(;;){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
         try{const {data,error}=await window.biSupabase.from('vw_banco_professores_nq').select('*').order('email').order('vinculo_id').range(start,start+999).abortSignal(controller.signal);if(error)throw error;const batch=data||[];rows.push(...batch);if(batch.length<1000)break;start+=1000;}finally{clearTimeout(timer);}}
-      state.rows=rows;state.loaded=true;populate();
+      try{
+        state.rows=await mergeCurrentUC(rows);
+      }catch(error){
+        state.rows=rows;
+        message('eqMessage','Não foi possível conferir as UCs na fonte oficial: '+failure(error),true);
+      }
+      state.loaded=true;populate();
       try{await readManual();}catch(error){state.manualReady=false;message('eqMessage','Notas manuais indisponíveis: '+failure(error),true);}
       try{await readUC20261();populate();}catch(error){state.uc20261=[];message('eqMessage','Não foi possível ler o catálogo 2026.1: '+failure(error),true);}
       try{await readEvaluations();message('eqMondayMessage','');}catch(error){state.sourceReady=false;message('eqMondayMessage',failure(error,true),true);}
