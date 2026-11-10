@@ -6,7 +6,7 @@
   const rating=v=>v===null||v===undefined?'Não informada':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:4});
   const labels={ativo:'Ativo',desligado:'Desligado',agendado:'Desligamento agendado','nao-informado':'Não informado'};
   const matchLabels={reconhecido:'Reconhecido automaticamente','sem-cadastro':'Sem cadastro correspondente',ambiguo:'Mais de um cadastro com este nome'};
-  const state={rows:[],source:null,responses:[],evaluated:[],enriched:[],sourceReady:false,loaded:false,nqNames:new Set(),nqReady:false,pending:null,syncPending:null,lastAttempt:0,bound:false,tab:'cadastro',page:1,size:25,workbook:null,preview:null,file:null,saving:false,uc20261:[],manual:new Map(),manualReady:false};
+  const state={rows:[],source:null,responses:[],evaluated:[],enriched:[],sourceReady:false,loaded:false,pending:null,syncPending:null,lastAttempt:0,bound:false,tab:'cadastro',page:1,size:25,workbook:null,preview:null,file:null,saving:false,uc20261:[],manual:new Map(),manualReady:false};
   const freshness=15*60*1000;
   function message(id,text,error=false){$(id).textContent=text;$(id).dataset.error=String(error);}
   function failure(error,source=false){
@@ -14,6 +14,7 @@
     if(error?.code==='42501')return 'A sessão não tem acesso. Entre com seu e-mail institucional.';
     return error?.message||'Não foi possível carregar os dados. Tente novamente.';
   }
+  const isNQ=r=>r['É do NQ']==='Sim';
   function filters(){const f={search:$('eqSearch').value,nq:$('eqFilter_nq').value};for(const k of ['ies','titulacao','formacao','semestre','uc','status','avaliacao'])f[k]=$('eqFilter_'+k).value;return f;}
   function populate(){for(const k of ['ies','titulacao','formacao','semestre','uc']){
     const el=$('eqFilter_'+k),v=el.value,values=[...new Set(state.rows.map(r=>r[k]).filter(C.present))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
@@ -47,7 +48,7 @@
   function sourceLink(r){return r.monday_item_id?`<a href="https://anima-educacao.monday.com/boards/${A.BOARD}/pulses/${encodeURIComponent(r.monday_item_id)}" target="_blank" rel="noopener noreferrer">Abrir avaliação</a>`:`Exportação Excel · resposta ${cell(r.nome_item)}`;}
   function evaluationRows(f){
     const q=C.norm(f.search),linkFilters={...f,search:''};
-    const validEmails=new Set(C.filter(state.enriched,linkFilters).filter(r=>!f.nq||(state.nqReady&&(state.nqNames.has(C.norm(r.docente))===(f.nq==='sim')))).map(r=>C.email(r.email)));
+    const validEmails=new Set(C.filter(state.enriched,linkFilters).filter(r=>!f.nq||(isNQ(r)===(f.nq==='sim'))).map(r=>C.email(r.email)));
     const hasLinkFilter=['ies','titulacao','formacao','semestre','uc','status'].some(k=>f[k]);
     return state.evaluated.filter(r=>{
       if($('eqMatch').value&&r.reconhecimento!==$('eqMatch').value)return false;
@@ -59,7 +60,7 @@
     });
   }
   function render(){
-    reconcile();sourceInfo();const f=filters(),base=C.filter(state.enriched,f),rows=base.filter(r=>!f.nq||(state.nqReady&&(state.nqNames.has(C.norm(r.docente))===(f.nq==='sim')))),s=C.stats(rows),evaluations=evaluationRows(f);
+    reconcile();sourceInfo();const f=filters(),base=C.filter(state.enriched,f),rows=base.filter(r=>!f.nq||(isNQ(r)===(f.nq==='sim'))),s=C.stats(rows),evaluations=evaluationRows(f);
     $('eqSyncMonday').disabled=!state.sourceReady||!!state.syncPending;
     const list=state.tab==='uc20261'?state.uc20261.filter(r=>!C.norm(f.search)||C.norm([r.uc,r.docente_conteudista,r.monday_item_id].join(' ')).includes(C.norm(f.search))):state.tab==='avaliacao'?evaluations:rows,pages=Math.max(1,Math.ceil(list.length/state.size));state.page=Math.max(1,Math.min(state.page,pages));
     for(const [id,value] of Object.entries({eqPeople:s.people,eqLinks:s.links,eqActive:s.active,eqDeparted:s.departed}))$(id).textContent=value;
@@ -68,7 +69,7 @@
     const visible=list.slice((state.page-1)*state.size,state.page*state.size);
     if(state.tab==='cadastro')$('eqBody').innerHTML=visible.map(r=>{
       const st=C.state(r),days=C.elapsed(r),manual=state.manual.get(String(r.vinculo_id)),manualInput=String(r.semestre||'').trim()==='2026.2' && !r.atuacoes.length ? `<div class="eq-manual"><label>Nota manual (0–10) <input type="number" min="0" max="10" step="0.01" data-eq-nota="${esc(r.vinculo_id)}" value="${manual?.nota??''}" style="width:90px"></label> <button type="button" data-eq-save="${esc(r.vinculo_id)}">Salvar</button></div>`:'',av=String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':!state.sourceReady?'Avaliações indisponíveis':r.atuacoes.length?r.atuacoes.map(a=>`<div class="eq-response">P1: ${rating(a.media_p1)}<br><small>${cell(a.avaliador)}</small></div>`).join(''):(manualInput||'Sem avaliação vinculada');
-      return `<tr><td>${cell(r.docente)}</td><td>${state.nqReady?(state.nqNames.has(C.norm(r.docente))?'Sim':'Não'):'Não verificado'}</td><td>${cell(r.ies)}</td><td><span class="eq-badge ${st}">${labels[st]}</span></td><td>${date(r.data_desligamento)}</td><td>${days===null?(st==='agendado'?'Ainda não iniciado':'—'):`${days} dia(s)`}</td><td>${cell(r.email)}</td><td>${cell(r.formacao)}</td><td>${cell(r.titulacao)}</td><td>${C.safeURL(r.lattes)?`<a href="${esc(C.safeURL(r.lattes))}" target="_blank" rel="noopener noreferrer">Abrir Lattes</a>`:'—'}</td><td>${cell(r.uc)}</td><td>${cell(r.semestre)}</td><td>${av}</td><td>${String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':(comments(r.atuacoes)||'—')}</td></tr>`;
+      return `<tr><td>${cell(r.docente)}</td><td>${isNQ(r)?'Sim':'Não'}</td><td>${cell(r.ies)}</td><td><span class="eq-badge ${st}">${labels[st]}</span></td><td>${date(r.data_desligamento)}</td><td>${days===null?(st==='agendado'?'Ainda não iniciado':'—'):`${days} dia(s)`}</td><td>${cell(r.email)}</td><td>${cell(r.formacao)}</td><td>${cell(r.titulacao)}</td><td>${C.safeURL(r.lattes)?`<a href="${esc(C.safeURL(r.lattes))}" target="_blank" rel="noopener noreferrer">Abrir Lattes</a>`:'—'}</td><td>${cell(r.uc)}</td><td>${cell(r.semestre)}</td><td>${av}</td><td>${String(r.semestre||'').trim()==='2026.1'?'Não se aplica (2026.1)':(comments(r.atuacoes)||'—')}</td></tr>`;
     }).join('')||'<tr><td colspan="14">Nenhum vínculo encontrado. Ajuste os filtros ou importe o cadastro.</td></tr>';
     if(state.tab==='cadastro')$('eqBody').querySelectorAll('[data-eq-save]').forEach(button=>button.addEventListener('click',()=>{const id=button.dataset.eqSave;saveManual(id,$('eqBody').querySelector(`[data-eq-nota="${id}"]`)?.value,button);}));
     if(state.tab==='uc20261'){
@@ -107,24 +108,14 @@
   async function load(force=false,{skipSync=false}={}){
     bind();if(state.pending)return state.pending;
     if(state.loaded&&!force){render();if(!skipSync)await syncEvaluations();return;}
-    message('eqMessage','Carregando o Banco de Validadores…');$('eqReload').disabled=true;
+    message('eqMessage','Carregando o Banco de Professores…');$('eqReload').disabled=true;
     state.pending=(async()=>{
       const rows=[];let start=0;
       for(;;){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
-        try{const {data,error}=await window.biSupabase.from('bi_validadores_banco').select('*').order('email').order('vinculo_id').range(start,start+999).abortSignal(controller.signal);if(error)throw error;const batch=data||[];rows.push(...batch);if(batch.length<1000)break;start+=1000;}finally{clearTimeout(timer);}}
+        try{const {data,error}=await window.biSupabase.from('vw_banco_professores_nq').select('*').order('email').order('vinculo_id').range(start,start+999).abortSignal(controller.signal);if(error)throw error;const batch=data||[];rows.push(...batch);if(batch.length<1000)break;start+=1000;}finally{clearTimeout(timer);}}
       state.rows=rows;state.loaded=true;populate();
       try{await readManual();}catch(error){state.manualReady=false;message('eqMessage','Notas manuais indisponíveis: '+failure(error),true);}
       try{await readUC20261();}catch(error){state.uc20261=[];message('eqUC20261Info','Não foi possível ler as UCs da Monday: '+failure(error),true);}
-      // Base usada pela aba Reunião NQ; sem correspondência não implica ausência do NQ.
-      try {
-        const nomes=new Set();let offset=0;
-        while(true){const {data,error}=await window.biSupabase.from('nq_especialistas').select('professor').range(offset,offset+999);if(error)throw error;
-          (data||[]).forEach(r=>{if(C.present(r.professor))nomes.add(C.norm(r.professor));});
-          if((data||[]).length<1000)break;offset+=1000;
-        }
-        state.nqNames=nomes;state.nqReady=true;
-      }catch(error){state.nqNames=new Set();state.nqReady=false;message('eqMessage','Não foi possível conferir a base NQ: '+failure(error),true);}
-
       try{await readEvaluations();message('eqMondayMessage','');}catch(error){state.sourceReady=false;message('eqMondayMessage',failure(error,true),true);}
       render();message('eqMessage',rows.length?'Banco atualizado.':'Banco vazio. Importe Banco_de_Validadores.xlsx em Importar Excel.');
     })().catch(error=>{state.loaded=false;state.rows=[];render();message('eqMessage',failure(error),true);throw error;}).finally(()=>{state.pending=null;$('eqReload').disabled=false;});
